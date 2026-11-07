@@ -213,8 +213,9 @@ export function klTarget() {
 export function lbSonuc(k) {
   if (!GL.db || GL.ok != 1 || !GL.me || SET.lbu === 0 || k <= 0) return '';
   const bir = (rows, mine, ad) => {
+    // tahtadaki sırayla aynı: eşit skorda önce ulaşan üstte (yeni koşu herkesten sonra)
     const old = mine ? mine.k : 0,
-      at = r => 1 + rows.filter(x => x.id != GL.me && x.k > r).length;
+      at = r => 1 + rows.filter(x => x.id != GL.me && (x.k > r || x.k == r && (r != old || !mine || x.at <= mine.at))).length;
     if (k <= old) return `<span class=olbc><small>${ad}</small><b>${at(old)}.</b><em>en iyin ${old}</em></span>`;
     const yeni = at(k),
       eski = mine && (rows.includes(mine) || rows.some(x => x.id == GL.me) || rows.length < 200) ? at(old) : 0;

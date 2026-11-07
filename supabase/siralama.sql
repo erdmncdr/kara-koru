@@ -203,7 +203,7 @@ begin
     raise exception 'hesap yok' using errcode = '42501';
   end if;
   if v_son > now() - interval '15 seconds' then
-    raise exception 'cok sik' using errcode = '54000';
+    raise exception 'cok sik' using errcode = 'PT429'; -- HTTP 429; istemci giden kutusuyla sonra yeniden dener
   end if;
   update public.kk_hesap set son_skor = now() where id = v_id;
 
