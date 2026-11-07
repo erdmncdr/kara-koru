@@ -1,5 +1,5 @@
 # Netlify: GitHub deposuna bağlı. Kredi (ücretsiz plan ayda 300, her başarılı yayın 15) boşa gitmesin diye her main
-# gönderimi yayınlanmaz: yalnız son commit mesajında [yayinla] geçerse derlenir. Diğerleri "ignore" ile atlanır
+# gönderimi yayınlanmaz: yalnız son commit mesajı [yayinla] ile başlarsa derlenir. Diğerleri "ignore" ile atlanır
 # (atlanan derleme kredi harcamaz). Yayınlamak için: git commit --allow-empty -m "[yayinla] ..." && git push
 # Ortak sıralama için Netlify panelinde (Site configuration → Environment variables) iki değişken:
 #   VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY  (README, Ortak sıralama). Yoksa oyun yalnız yerel rekorla çalışır.
@@ -7,7 +7,8 @@
   command = "npm run build"
   publish = "dist"
   # çıkış 0 = derlemeyi atla, 1 = derle
-  ignore = "git log -1 --pretty=%B | grep -qF '[yayinla]' && exit 1 || exit 0"
+  # etiket mesajın başında olmalı: mesaj içinde kurala değinen commit'ler yanlışlıkla yayınlanmasın
+  ignore = "git log -1 --pretty=%s | grep -q '^\\[yayinla\\]' && exit 1 || exit 0"
 
 [build.environment]
   NODE_VERSION = "22"
