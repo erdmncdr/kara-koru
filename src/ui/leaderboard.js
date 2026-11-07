@@ -9,7 +9,7 @@ import { CR, heroIdx, heroOn } from '../game/heroes.js';
 import { MAPS, WD } from '../data/content.js';
 import { A } from './actions.js';
 import { IC, iconCol, svg } from './icons.js';
-import { cleanCh, supaAllow, supaFlush, supaIdent, supaMine, supaName, supaOn, supaRecord, supaRows } from './supa.js';
+import { cleanCh, gecenHafta, haftaBasi, haftaSonu, supaAllow, supaCount, supaFlush, supaIdent, supaMine, supaName, supaOn, supaRecord, supaRows } from './supa.js';
 
 const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
@@ -40,9 +40,18 @@ export function __init_61() {
     db: null,
     user: null,
     me: null,
-    rows: [],
+    rows: [], // tüm zamanlar
     ok: 0,
-    mine: null
+    mine: null,
+    tot: 0, // tablodaki oyuncu sayısı (bilinmiyorsa 0)
+    mrk: 0, // kendi satırı ilk 200'ün dışındaysa sunucudan sayılan sırası
+    // haftalık (yalnız Supabase): bu haftanın satırları, kendi satırı, geçen haftanın ilk üçü
+    hf: '',
+    wrows: [],
+    wmine: null,
+    wtot: 0,
+    wmrk: 0,
+    prev: []
   };
   glRow = (id, x) => ({
     id,
@@ -103,14 +112,27 @@ export function __init_61() {
 }
 
 let supaT = 0;
-// Supabase tablosunu yeniden okur (en çok 15 saniyede bir, zorla değilse); kendi satırı ilk 200'ün dışındaysa ayrıca okunur
+// Supabase tablolarını yeniden okur (en çok 15 saniyede bir, zorla değilse): tüm zamanlar, bu hafta, geçen haftanın ilk üçü.
+// Kendi satırı ilk 200'ün dışındaysa ayrıca okunur ve sırası sayılır.
 export async function supaLoad(force) {
   if (GL.kind != 'supa' || (!force && Date.now() - supaT < 15000)) return;
   supaT = Date.now();
+  const hf = haftaBasi();
   try {
-    GL.rows = (await supaRows()).map(r => glRow(r.id, r));
-    const m = GL.rows.find(x => x.id == GL.me) || await supaMine().catch(() => null);
-    if (m) GL.mine = glRow(m.id, m);
+    // haftalık okunamazsa tüm zamanlar yine gösterilir
+    const [rows, wrows, prev, tot, wtot] = await Promise.all([supaRows(), supaRows(hf).catch(() => []), supaRows(gecenHafta(), 3).catch(() => []), supaCount(), supaCount(hf)]);
+    const kendi = async (rs, h) => {
+      const m = rs.find(x => x.id == GL.me) || (GL.me ? await supaMine(h).catch(() => null) : null);
+      return [m ? glRow(m.id, m) : null, m && !rs.includes(m) && rs.length >= 200 ? await supaCount(h, m.k).then(n => n == null ? 0 : n + 1) : 0];
+    };
+    [GL.mine, GL.mrk] = await kendi(rows, '');
+    [GL.wmine, GL.wmrk] = await kendi(wrows, hf);
+    GL.rows = rows.map(r => glRow(r.id, r));
+    GL.wrows = wrows.map(r => glRow(r.id, r));
+    GL.prev = prev.map(r => glRow(r.id, r));
+    GL.tot = tot || rows.length;
+    GL.wtot = wtot || wrows.length;
+    GL.hf = hf;
     GL.ok = 1;
     $G.hk = '';
   } catch (e) {
@@ -166,21 +188,44 @@ export async function glSubmit(r) {
 
 export function __init_62() {
   glRank = k => GL.db && GL.ok == 1 ? 1 + GL.rows.filter(x => x.id != GL.me && x.k > k).length : 0;
+  $G.LBM = 'h'; // sıralama görünümü: 'h' bu hafta, 't' tüm zamanlar (haftalık yalnız Supabase'de)
 }
 
+// haftalık görünüm bu yayında var mı ve seçili mi
+const haftalik = () => GL.kind == 'supa' && $G.LBM == 'h';
+// seçili görünümün kaynağı: satırlar, kendi satırı, oyuncu sayısı, ilk 200 dışındaki sıra
+const kaynak = h => h ? { rows: GL.wrows, mine: GL.wmine, tot: GL.wtot, mrk: GL.wmrk } : { rows: GL.rows, mine: GL.mine, tot: GL.tot, mrk: GL.mrk };
+
+// koşu sırasında sağ üstteki hedef: haftalık tablo doluysa onda, değilse tüm zamanlarda bir üst sıra
 export function klTarget() {
-  if (GL.db && GL.ok == 1 && GL.rows.length) {
-    const ab = GL.rows.filter(x => x.id != GL.me && x.k >= $G.kills);
-    if (!ab.length) return 'Sıralamada 1.';
+  const h = GL.kind == 'supa' && GL.hf == haftaBasi() && GL.wrows.length > 0,
+    rows = h ? GL.wrows : GL.rows;
+  if (GL.db && GL.ok == 1 && rows.length) {
+    const ab = rows.filter(x => x.id != GL.me && x.k >= $G.kills);
+    if (!ab.length) return (h ? 'Bu hafta ' : 'Sıralamada ') + '1.';
     const nx = ab.reduce((a, b) => b.k < a.k ? b : a);
-    return ab.length + 1 + '. sıradasın, üst sıraya ' + (nx.k - $G.kills + 1);
+    return (h ? 'Bu hafta ' : '') + (ab.length + 1) + '. sıradasın, üst sıraya ' + (nx.k - $G.kills + 1);
   }
   return $G.bestK ? 'Rekor ' + $G.bestK : '';
 }
 
-export function lbRows() {
-  const c = $G.LBT;
-  return GL.rows.map(r => {
+// koşu sonu ekranı: bu koşunun sıralamadaki yeri ve yükselişi (gönderimden önce, eski tabloya göre hesaplanır)
+export function lbSonuc(k) {
+  if (!GL.db || GL.ok != 1 || !GL.me || SET.lbu === 0 || k <= 0) return '';
+  const bir = (rows, mine, ad) => {
+    const old = mine ? mine.k : 0,
+      at = r => 1 + rows.filter(x => x.id != GL.me && x.k > r).length;
+    if (k <= old) return `<span class=olbc><small>${ad}</small><b>${at(old)}.</b><em>en iyin ${old}</em></span>`;
+    const yeni = at(k),
+      eski = mine && (rows.includes(mine) || rows.some(x => x.id == GL.me) || rows.length < 200) ? at(old) : 0;
+    return `<span class="olbc up"><small>${ad}</small><b>${yeni}.</b><em>${eski > yeni ? `↑ ${eski - yeni} sıra yükseldin` : eski ? 'yerini korudun' : 'sıralamaya girdin'}</em></span>`;
+  };
+  return `<div class=olb>${GL.kind == 'supa' && GL.hf == haftaBasi() ? bir(GL.wrows, GL.wmine, 'Bu hafta') : ''}${bir(GL.rows, GL.mine, 'Tüm zamanlar')}</div>`;
+}
+
+// seçili kahramana göre süzülmüş, sıralı satırlar (kahraman sekmesinde o kahramanın rekoru)
+export function lbRows(h = haftalik(), c = $G.LBT) {
+  return kaynak(h).rows.map(r => {
     if (c < 0) return r;
     const x = r.ch && r.ch[c];
     return x ? {
@@ -189,13 +234,19 @@ export function lbRows() {
       k: Math.max(0, +x.k | 0),
       c,
       s: +x.s | 0,
-      t: +x.t | 0
+      t: +x.t | 0,
+      at: r.at
     } : null;
-  }).filter(r => r && r.k > 0).sort((a, b) => b.k - a.k).slice(0, 30);
+  }).filter(r => r && r.k > 0).sort((a, b) => b.k - a.k || a.at - b.at);
 }
 
 export function lbTab(i) {
   $G.LBT = i;
+  lbRender();
+}
+
+export function lbMode(m) {
+  $G.LBM = m;
   lbRender();
 }
 
@@ -209,17 +260,65 @@ export function lbRefresh() {
   if ($G.S == 'lb') lbRender();
 }
 
+const heroSvg = c => CR[c] ? svg(IC['h_' + CR[c].k] ? 'h_' + CR[c].k : WD[CR[c].w].ic, iconCol('h', CR[c].k)) : '';
+const adi = r => r.id == GL.me ? esc(supaName() || 'Sen') : GL.kind == 'supa' ? esc(r.ad || 'Savaşçı') : 'Savaşçı';
+const ayr = r => `${CR[r.c] ? CR[r.c].n : ''} · ${(r.s | 0) + 1}. aşama · ${fmt(r.t | 0)}`;
+// kalan süre: "2 gün 6 saat", son gün "5 saat 12 dk"
+function kalan(ms) {
+  const d = Math.max(0, ms) / 6e4 | 0, g = d / 1440 | 0, sa = d % 1440 / 60 | 0, dk = d % 60;
+  return g ? g + ' gün ' + sa + ' saat' : sa ? sa + ' saat ' + dk + ' dk' : dk + ' dk';
+}
+
 export function lbRender() {
   if ($G.LBT >= 0 && !heroOn($G.LBT)) $G.LBT = -1; // seçili sekme kadrodan çıkan karakterse Genel
-  const tabs = [-1, ...heroIdx()].map(i => `<button class="${i == $G.LBT ? 'on' : ''}" role=tab aria-selected=${i == $G.LBT} ${A('lbTab', i)} title="${i < 0 ? 'Bütün kahramanlar' : CR[i].n}">${i < 0 ? '<span class="cw all">Σ</span>' : `<span class=cw>${svg(IC['h_' + CR[i].k] ? 'h_' + CR[i].k : WD[CR[i].w].ic, iconCol('h', CR[i].k))}</span>`}<b>${i < 0 ? 'Genel' : CR[i].n}</b></button>`).join('');
-  const ln = r => `<span class=x>${CR[r.c] ? CR[r.c].n : ''} · ${r.m ? (MAPS.find(m => m.k == r.m) || { n: r.m }).n + ' K' + (r.tr || 1) + ' · ' : ''}${(r.s | 0) + 1}. aşama${r.w ? ' ✓' : ''} · ${fmt(r.t | 0)}</span>`,
-    rows = lbRows(),
-    loc = $G.LB.filter(r => $G.LBT < 0 || r.c == $G.LBT);
-  const gl = SET.lbv === 0 ? '<p class=sub>Ortak sıralama ayarlardan gizlendi.</p>' : !GL.db ? '<p class=sub>Ortak sıralama bu sürümde kapalı. Sayfayı Claude içinde açınca ya da Supabase ayarlı bir yayında diğer oyuncularla yarışırsın.</p>' : GL.ok == 0 ? '<p class=sub>Sıralama yükleniyor.</p>' : GL.ok == 3 ? '<p class=sub>Sıralamaya şu an ulaşılamıyor.</p>' : rows.length ? `<div class=lbl>${rows.map((r, i) => `<span class=rk>${i + 1}</span>${GL.kind == 'supa' ? '<span></span>' : `<img class=av data-u="${r.id}" alt="">`}<span class="nm${r.id == GL.me ? ' me' : ''}" data-u="${r.id}">${r.id == GL.me ? 'Sen' : GL.kind == 'supa' ? esc(r.ad || 'Savaşçı') : 'Savaşçı'}</span><span class=k>${r.k}</span>${ln(r)}`).join('')}</div>` : '<p class=sub>Henüz kimse sıralamaya girmedi. İlk sen ol.</p>';
-  const lc = loc.length ? `<div class=lbl>${loc.map((r, i) => `<span class=rk>${i + 1}</span><span></span><span class=nm>${new Date(r.d || 0).toLocaleDateString('tr-TR')}</span><span class=k>${r.k | 0}</span>${ln(r)}`).join('')}</div>` : '<p class=sub>Henüz koşu yok.</p>';
-  // sıralamadaki ad hesabın kullanıcı adıdır (ui/hesap.js); değiştirilemez
-  const nmForm = GL.kind == 'supa' && SET.lbv !== 0 && supaName() ? `<p class=sub>Sıralamada <b>${esc(supaName())}</b> adıyla görünürsün.</p>` : '';
-  ov(`<div class="sx lbx"><header class=sxh><div><p class=kk>Tek koşuda en çok öldürme</p><h2>Sıralama</h2></div><div class=mt><span class=chip>${$G.LBT < 0 ? 'Bütün kahramanlar' : CR[$G.LBT].n}</span></div></header><div class=lbt2 role=tablist aria-label="Kahraman">${tabs}</div><div class=mcols><section><h3>Ortak sıralama</h3>${nmForm}${gl}</section><section><h3>Senin rekorların</h3>${lc}</section></div><footer class=sxf><span class=fnote>✓ çıkış geçidinden çıkan koşu. Meydan okumalı koşular yüklenmez.</span><button class=act ${A('menu')}>Geri dön <kbd>Esc</kbd></button></footer></div>`, OV.querySelector('.lbx') ? 'mid noan' : 'mid');
+  const h = haftalik(),
+    src = kaynak(h);
+  const tabs = [-1, ...heroIdx()].map(i => `<button class="${i == $G.LBT ? 'on' : ''}" role=tab aria-selected=${i == $G.LBT} ${A('lbTab', i)} title="${i < 0 ? 'Bütün kahramanlar' : CR[i].n}">${i < 0 ? '<span class="cw all">Σ</span>' : `<span class=cw>${heroSvg(i)}</span>`}<b>${i < 0 ? 'Genel' : CR[i].n}</b></button>`).join('');
+  const modes = GL.kind == 'supa' && SET.lbv !== 0 ? `<div class="tabs lbmd" role=tablist aria-label="Dönem">${[['h', 'Bu hafta'], ['t', 'Tüm zamanlar']].map(([k, n]) => `<button class="tb${$G.LBM == k ? ' on' : ''}" role=tab aria-selected=${$G.LBM == k} ${A('lbMode', k)}>${n}</button>`).join('')}</div>` : '';
+  const rows = lbRows(h),
+    top = rows.slice(0, 30),
+    meI = rows.findIndex(r => r.id == GL.me),
+    mine = $G.LBT < 0 ? src.mine : src.mine && src.mine.ch[$G.LBT] ? { ...src.mine, ...src.mine.ch[$G.LBT], c: $G.LBT } : null,
+    rank = meI >= 0 ? meI + 1 : mine && $G.LBT < 0 ? src.mrk : 0,
+    tot = $G.LBT < 0 ? Math.max(src.tot, rows.length) : rows.length;
+
+  // ortak tablo: ilk üç podyumda, sonrası liste; kendi satırın listede yoksa altta sabit
+  let gl;
+  if (SET.lbv === 0) gl = '<p class=sub>Ortak sıralama ayarlardan gizlendi.</p>';
+  else if (!GL.db) gl = '<p class=sub>Ortak sıralama bu sürümde kapalı. Sayfayı Claude içinde açınca ya da Supabase ayarlı bir yayında diğer oyuncularla yarışırsın.</p>';
+  else if (GL.ok == 0) gl = '<p class=sub>Sıralama yükleniyor.</p>';
+  else if (GL.ok == 3) gl = '<p class=sub>Sıralamaya şu an ulaşılamıyor.</p>';
+  else if (!rows.length) gl = `<div class=lbbos><b>${h ? 'Bu hafta tahta boş.' : 'Henüz kimse sıralamaya girmedi.'}</b><span>İlk koşuyu bitiren zirveye yerleşir.</span></div>`;
+  else {
+    const pod = [1, 0, 2].map(i => top[i] ? `<div class="pc p${i + 1}${top[i].id == GL.me && supaName() ? ' me' : ''}"><span class=md>${i + 1}</span><span class=hi>${heroSvg(top[i].c)}</span><b class=pn data-u="${top[i].id}">${adi(top[i])}</b><span class=pk>${top[i].k}</span><small>${ayr(top[i])}</small></div>` : '<div class="pc bos"></div>').join('');
+    const satir = (r, i) => `<div class="lr${r.id == GL.me ? ' me' : ''}${i < 10 ? ' t10' : ''}"><span class=rk>${i + 1}</span><span class=hi>${heroSvg(r.c)}</span><span class=nm data-u="${r.id}">${adi(r)}${r.id == GL.me && supaName() ? '<em>sen</em>' : ''}</span><span class=x>${ayr(r)}</span><b class=k>${r.k}</b></div>`;
+    const alt = meI >= 30 ? `<div class=lgap>···</div>${satir(rows[meI], meI)}` : meI < 0 && mine && rank ? `<div class=lgap>···</div>${satir(mine, rank - 1)}` : '';
+    gl = `<div class=pod>${pod}</div>${top.length > 3 ? `<div class=lbl>${top.slice(3).map((r, i) => satir(r, i + 3)).join('')}${alt}</div>` : alt ? `<div class=lbl>${alt}</div>` : ''}`;
+  }
+  const bilgi = GL.db && GL.ok == 1 && SET.lbv !== 0 ? `<p class=lbi>${h ? `<span>Yeni haftaya <b>${kalan(haftaSonu() - Date.now())}</b></span>` : '<span>Her oyuncunun en iyi koşusu</span>'}${tot ? `<span><b>${tot}</b> savaşçı</span>` : ''}</p>` : '';
+  const sampiyon = h && $G.LBT < 0 && GL.prev.length && SET.lbv !== 0 ? `<p class=lbch><span>Geçen haftanın şampiyonları</span>${GL.prev.map((r, i) => `<b class=m${i + 1}>${adi(r)} <small>${r.k}</small></b>`).join('')}</p>` : '';
+
+  // senin yerin: sıra, fark, hedef
+  let yer = '';
+  if (GL.db && GL.ok == 1 && SET.lbv !== 0 && GL.me) {
+    const ad = GL.kind == 'supa' && supaName() ? `<b>${esc(supaName())}</b> adıyla yarışıyorsun.` : '';
+    if (!mine || !rank) {
+      const esik = rows.length >= 10 ? rows[9].k + 1 : 1;
+      yer = `<section class=lbme><h3>Senin yerin</h3><p class=lbmb>${((h ? 'Bu hafta ' : '') + ($G.LBT >= 0 ? CR[$G.LBT].n + ' ile ' : '') + (h ? 'henüz koşmadın.' : 'henüz sıralamada yoksun.')).replace(/^./, c => c.toLocaleUpperCase('tr-TR'))}</p><p class=lbmt>${rows.length >= 10 ? `İlk 10'a girmek için <b>${esik}</b> öldürme yeter.` : 'Bir koşu bitir, tahtaya adını yaz.'}</p><p class=lbmn>${ad}</p></section>`;
+    } else {
+      const ust = meI > 0 ? rows[meI - 1] : null,
+        ilk = rows[0],
+        pct = tot >= 5 && rank / tot <= .5 ? Math.max(1, Math.ceil(rank / tot * 100)) : 0, // yalnız üst yarıda: "ilk %92" övünülecek bir şey değil
+        hedef = rank == 1 ? (rows[1] ? `Zirvedesin. İkinciyle aranda <b>${mine.k - rows[1].k}</b> öldürme var.` : 'Zirvedesin.') : ust ? `Bir üst sıraya <b>${ust.k - mine.k + 1}</b> öldürme (${rank - 1}. <b>${adi(ust)}</b>).` : '',
+        on = rank > 10 && rows[9] ? `İlk 10'a <b>${rows[9].k - mine.k + 1}</b> öldürme.` : rank > 2 && ilk ? `Zirveye <b>${ilk.k - mine.k + 1}</b> öldürme.` : '';
+      yer = `<section class="lbme${rank <= 3 ? ' m' + rank : ''}"><h3>Senin yerin</h3><div class=lbmr><b>${rank}.</b><span><i><b>${mine.k}</b> öldürme</i>${pct ? `<small>ilk %${pct}</small>` : ''}</span></div>${pct ? `<i class=lbmp><em style="width:${100 - pct + 1}%"></em></i>` : ''}<p class=lbmt>${hedef}${on ? ' ' + on : ''}</p><p class=lbmn>${ad}</p></section>`;
+    }
+  }
+  const loc = $G.LB.filter(r => $G.LBT < 0 || r.c == $G.LBT),
+    lc = loc.length ? `<div class=lbl>${loc.map((r, i) => `<div class=lr><span class=rk>${i + 1}</span><span class=hi>${heroSvg(r.c)}</span><span class=nm>${new Date(r.d || 0).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}${r.w ? ' ✓' : ''}</span><span class=x>${r.m ? (MAPS.find(m => m.k == r.m) || { n: r.m }).n + ' K' + (r.tr || 1) + ' · ' : ''}${(r.s | 0) + 1}. aşama · ${fmt(r.t | 0)}</span><b class=k>${r.k | 0}</b></div>`).join('')}</div>` : '<p class=sub>Henüz koşu yok.</p>';
+  const st = OV.querySelector('.lbx') ? OV.scrollTop : 0;
+  ov(`<div class="sx lbx"><header class=sxh><div><p class=kk>Tek koşuda en çok öldürme</p><h2>Sıralama</h2></div><div class=mt>${modes || `<span class=chip>${$G.LBT < 0 ? 'Bütün kahramanlar' : CR[$G.LBT].n}</span>`}</div></header><div class=lbt2 role=tablist aria-label="Kahraman">${tabs}</div><div class=lbg><section class=lbm>${bilgi}${gl}${sampiyon}</section><aside>${yer}<section class=lbloc><h3>Senin rekorların <small>bu cihaz</small></h3>${lc}</section></aside></div><footer class=sxf><span class=fnote>✓ çıkış geçidinden çıkan koşu. Meydan okumalı koşular yüklenmez.</span><button class=act ${A('menu')}>Geri dön <kbd>Esc</kbd></button></footer></div>`, st ? 'mid noan' : OV.querySelector('.lbx') ? 'mid noan' : 'mid');
+  OV.scrollTop = st;
   lbNames();
 }
 

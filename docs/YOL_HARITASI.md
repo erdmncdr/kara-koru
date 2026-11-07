@@ -529,6 +529,13 @@ Kalan açık yok. Kaynaksız: elit çarpanları ve ilk elitin bedava sandığı,
 - **Ölüm vuruşu:** 0.55 sn yavaş çekim, sarsıntı 1.6, altın ve turuncu iki halka, 40 kıvılcım. Boss gövdesi 2.6 sn kalır: öne devrilir (`d.big`), yere çarpınca toz + sarsıntı + iniş sesi, sonra toprağa gömülür.
 - **Boss çubuğu:** final arenasında %75/50/25 evre işaretleri (`#bb.ph`), %25 altında kızıl parlama (`.low`), direkler açıkken mavi ve "korunuyor" etiketi (`.inv`).
 
+### Rekabetçi sıralama: haftalık tablo, podyum, senin yerin (7 Kasım 2026)
+
+- **Haftalık tablo:** `kk_hafta` (hafta, id); hafta Pazartesi 00:00 Türkiye saati (`kk_bu_hafta()`, istemcide `haftaBasi()`). `kk_skor_gonder` yedinci parametre `p_h` ile haftanın en iyisini de birleştirir; `hf` sunucunun haftası değilse yok sayılır (geçen haftadan kalan gönderilmemiş koşu yeni haftaya yazılmaz). `p_h` varsayılanlı: eski istemci altı parametreyle çalışmayı sürdürür. Ortak `kk_ch_temizle` / `kk_ch_birlestir` iki tabloda aynı. PGlite'ta denendi: birleştirme, eski hafta, anon yazma reddi, hesap silinince haftalık satır da silinir.
+- **Ekran:** Bu hafta / Tüm zamanlar seçimi (varsayılan bu hafta), yeni haftaya kalan süre, yarışan oyuncu sayısı (`count=exact`), ilk üç podyumda (altın, gümüş, bronz), listede kahraman simgesi, kendi satırın ilk 30 dışındaysa altta sabit. Sağda "Senin yerin": sıra, üst sıradakiyle fark, ilk 10'a ve zirveye kalan, üst yarıdaysa yüzdelik. Geçen haftanın ilk üçü altta.
+- **Koşu sonu:** gönderimden önceki tabloya göre bu hafta ve tüm zamanlardaki sıra, "↑ N sıra yükseldin" (`lbSonuc`). Koşu sırasındaki hedef haftalık tablo doluysa ona göre.
+- **Açık:** haftalık ödül yok; hile tamamen engellenemez (istemci oyunu).
+
 ### Hesaplar: zorunlu giriş, kayıt hesapta (7 Kasım 2026)
 
 Yayında oyuncu kullanıcı adı ve şifreyle kayıt olur ya da girer; giriş zorunlu (kullanıcı kararı). İlerleme, rekorlar, sıralama satırı ve ayarlar hesapta.

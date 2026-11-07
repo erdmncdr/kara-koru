@@ -22,7 +22,7 @@ import { calc, newW } from '../game/stats.js';
 import { back, buildHTML, hudItems, hudSlots, STI } from './cards.js';
 import { goal } from './hud.js';
 import { svg, iconCol, IC } from './icons.js';
-import { glRank, glSubmit, lbAdd } from './leaderboard.js';
+import { glSubmit, lbAdd, lbSonuc } from './leaderboard.js';
 import { hesap } from './hesap.js';
 import { BIO } from '../world/terrain.js';
 
@@ -608,13 +608,13 @@ export function over(w) {
     d: Date.now()
   };
   // meydan okumalı ve konsol kullanılan koşu sıralamaya girmez; menüde konsolla gümüş ya da kilit alan profil ortak sıralamaya yüklemez
-  const lbOk = !$G.P.chal && !$G.P.con;
+  const lbOk = !$G.P.chal && !$G.P.con,
+    lbs = lbOk && !$G.META.con ? lbSonuc($G.kills) : ''; // gönderimden önceki tabloya göre: yükseliş görünsün
   if (lbOk) {
     lbAdd(rec);
     if (!$G.META.con) glSubmit(rec);
   }
-  const kpm = $G.P.tt > 5 ? Math.round($G.kills / ($G.P.tt / 60)) : 0,
-    rk = glRank($G.kills);
+  const kpm = $G.P.tt > 5 ? Math.round($G.kills / ($G.P.tt / 60)) : 0;
   const svr = [['Öldürmeler' + (sv.swm > 1 ? ' ×' + sv.swm : ''), sv.k], ['Hayatta kalma', sv.t], ['Boss', sv.b], ['Aşama', sv.st], ['Kademe zaferi', sv.w], ['Toplanan gümüş', sv.s]].filter(x => x[1]).map(([a, b]) => `<span>${a} <b>+${b}</b></span>`).join('') + (sv.cm > 1 ? `<span>${$G.P.chal.n} <b>×${sv.cm}</b></span>` : '') + (chalCount() ? `<span>Meydan okuma bonusu <b>+%${chalCount()}</b></span>` : '');
   const wd = Object.entries($G.P.wdmg || {}).sort((a, b) => b[1] - a[1]),
     wmax = wd.length ? wd[0][1] : 1,
@@ -626,7 +626,7 @@ export function over(w) {
   if ($('tip')) $('tip').classList.remove('on'); // koşu sonunda ipucu kutusu ekranı kapatmasın
   ov(`<div class="mn2 ovr"><p class=kk>${mp.n} K${$G.P.tier} · ${$G.P.stage + 1}/${$G.P.tier}. aşama${$G.P.won ? ' · kademe tamamlandı' : ''} · ${CR[$G.CI].n} rütbe ${sv.rk}</p>
  <h1>${head}</h1>
- <p class=orec>${n ? '<b>Yeni öldürme rekoru.</b>' : 'Rekorun ' + $G.bestK + ' öldürme.'}${rk ? ` Ortak sıralamada ${rk}. sıradasın.` : ''}${$G.P.con ? ' <i class=lbno>Konsol kullanıldı: sıralamaya girmedi.</i>' : $G.P.chal ? ' <i class=lbno>Meydan okumalı koşu sıralamaya girmez.</i>' : $G.META.con ? ' <i class=lbno>Bu profilde konsolla gümüş ya da kilit alındı: ortak sıralamaya yüklenmez.</i>' : ''}</p>
+ <p class=orec>${n ? '<b>Yeni öldürme rekoru.</b>' : 'Rekorun ' + $G.bestK + ' öldürme.'}${$G.P.con ? ' <i class=lbno>Konsol kullanıldı: sıralamaya girmedi.</i>' : $G.P.chal ? ' <i class=lbno>Meydan okumalı koşu sıralamaya girmez.</i>' : $G.META.con ? ' <i class=lbno>Bu profilde konsolla gümüş ya da kilit alındı: ortak sıralamaya yüklenmez.</i>' : ''}</p>${lbs}
  <div class=ost><div><span>Öldürülen</span><b>${$G.kills}</b></div><div><span>Süre</span><b>${fmt($G.P.tt)}</b></div><div><span>Seviye</span><b>${$G.P.lv}</b></div><div><span>Dakikada</span><b>${kpm}</b></div></div>
  <div class=svb><b class=sv>${SILV}+${sv.all} gümüş</b><div class=svr>${svr}</div></div>
  ${unlocked.length ? `<div class=oul><h3>Yeni açılanlar</h3><div>${unlocked.map(u => `<span class="chip au">${u}</span>`).join('')}</div></div>` : ''}

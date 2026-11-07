@@ -79,32 +79,69 @@ export function cleanCh(ch) {
 
 const row = r => ({ id: r.id, ad: typeof r.ad == 'string' ? r.ad.slice(0, 20) : '', k: num(r.k, 1e7), c: num(r.c, 63), s: num(r.s, 20), t: num(r.t, 86400), lv: num(r.lv, 1e5), at: Date.parse(r.at) || 0, ch: cleanCh(r.ch) });
 
-// en iyi 200 satır
-export async function supaRows() {
-  const a = await supaReq('/rest/v1/kk_skor?select=id,ad,k,c,s,t,lv,at,ch&order=k.desc&limit=200');
+// ---- hafta: Pazartesi 00:00, Türkiye saati (UTC+3, yaz saati yok). Sunucudaki kk_bu_hafta() ile aynı hesap.
+const TR = 3 * 3600e3, GUN = 864e5;
+export function haftaBasi(ms = Date.now()) {
+  const d = new Date(ms + TR);
+  d.setUTCDate(d.getUTCDate() - (d.getUTCDay() + 6) % 7);
+  return d.toISOString().slice(0, 10);
+}
+// haftanın bittiği an (ms); h verilmezse bu hafta
+export function haftaSonu(h = haftaBasi()) {
+  return Date.parse(h + 'T00:00:00Z') - TR + 7 * GUN;
+}
+export const gecenHafta = () => haftaBasi(Date.now() - 7 * GUN);
+
+// tablo: tüm zamanlar (kk_skor) ya da verilen haftanın satırları (kk_hafta). Eşit skorda önce ulaşan üstte.
+const SEL = 'select=id,ad,k,c,s,t,lv,at,ch',
+  yol = hf => hf ? '/rest/v1/kk_hafta?' + SEL + '&hafta=eq.' + hf : '/rest/v1/kk_skor?' + SEL;
+
+// en iyi n satır (en çok 200)
+export async function supaRows(hf, n = 200) {
+  const a = await supaReq(yol(hf) + '&order=k.desc,at.asc&limit=' + n);
   return (Array.isArray(a) ? a : []).filter(r => r && typeof r.id == 'string').map(row);
 }
 
 // oyuncunun kendi satırı (ilk 200'ün dışında olabilir). Okuma hatası fırlatır; satır yoksa null.
-export async function supaMine() {
+export async function supaMine(hf) {
   const w = who();
   if (!w) return null;
-  const a = await supaReq('/rest/v1/kk_skor?select=id,ad,k,c,s,t,lv,at,ch&id=eq.' + encodeURIComponent(w.id) + '&limit=1');
+  const a = await supaReq(yol(hf) + '&id=eq.' + encodeURIComponent(w.id) + '&limit=1');
   return Array.isArray(a) && a[0] ? row(a[0]) : null;
 }
 
-async function submit(doc) {
+// satır sayısı (k verilirse ondan yüksek skorlu satırlar): yarışan oyuncu sayısı ve ilk 200 dışındaki sıra için
+export async function supaCount(hf, k) {
+  const ctl = typeof AbortController != 'undefined' ? new AbortController() : null,
+    to = ctl ? setTimeout(() => ctl.abort(), 10000) : 0;
+  try {
+    const r = await fetch(BASE + (hf ? '/rest/v1/kk_hafta?select=id&hafta=eq.' + hf : '/rest/v1/kk_skor?select=id') + (k != null ? '&k=gt.' + (k | 0) : ''), {
+      method: 'HEAD',
+      headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, Prefer: 'count=exact', Range: '0-0' },
+      signal: ctl ? ctl.signal : undefined
+    });
+    const m = /\/(\d+)$/.exec(r.headers.get('content-range') || '');
+    return m ? +m[1] : null;
+  } catch (e) {
+    return null;
+  } finally {
+    if (to) clearTimeout(to);
+  }
+}
+
+async function submit(doc, w) {
   const tok = await token();
   if (!tok) throw new Error('oturum yok');
   await supaReq('/rest/v1/rpc/kk_skor_gonder', {
     method: 'POST',
-    body: JSON.stringify({ p_k: doc.k, p_c: doc.c, p_s: doc.s, p_t: doc.t, p_lv: doc.lv, p_ch: doc.ch })
+    body: JSON.stringify({ p_k: doc.k, p_c: doc.c, p_s: doc.s, p_t: doc.t, p_lv: doc.lv, p_ch: doc.ch, p_h: w })
   }, tok);
 }
 
 // ---- giden kutusu: henüz sunucuda olmayan rekorlar. Genel en iyi ve kahraman başına en iyi birlikte tutulur;
 // her gönderimde sunucudaki güncel satırla birleştirilir, böylece hiçbir rekor başka bir gönderimle silinmez.
 // Gönderimler sekme içinde sıralıdır; kutu yalnız gönderilen sürüm (rev) değişmediyse boşaltılır.
+// Bu haftanın en iyisi ayrıca w alanında tutulur ({hf, ...}); hafta değişince gönderilmemiş w atılır.
 // Kutu hesabın kaydına girer (ui/hesap.js), çıkışta temizlenir.
 const OUT = 'kk_lbpend';
 // outFail: son yazım başarısızsa (kota, engelli depolama) bellekteki kopya geçerlidir, diskteki eski değer okunmaz
@@ -120,7 +157,9 @@ function outGet() {
       o = outMem;
     }
   }
-  return o && typeof o == 'object' ? { ...o, ch: cleanCh(o.ch) } : null;
+  if (!o || typeof o != 'object') return null;
+  const w = o.w && typeof o.w == 'object' && typeof o.w.hf == 'string' && typeof o.w.k == 'number' ? { ...o.w, ch: cleanCh(o.w.ch) } : null;
+  return { ...o, ch: cleanCh(o.ch), w };
 }
 
 function outSet(o) {
@@ -149,8 +188,11 @@ const same = (a, b) => a && b && a.k == b.k && JSON.stringify(Object.entries(a.c
 
 // koşu sonu: rekoru kutuya ekler ve göndermeyi dener
 export function supaRecord(r, onSent) {
-  const run = { k: num(r.k, 1e7), c: num(r.c, 63), s: num(r.s, 20), t: num(r.t, 86400), lv: num(r.lv, 1e5), ch: { [num(r.c, 63)]: { k: num(r.k, 1e7), s: num(r.s, 20), t: num(r.t, 86400) } } };
-  outSet({ ...merge(outGet(), run), rev: tok() });
+  const run = { k: num(r.k, 1e7), c: num(r.c, 63), s: num(r.s, 20), t: num(r.t, 86400), lv: num(r.lv, 1e5), ch: { [num(r.c, 63)]: { k: num(r.k, 1e7), s: num(r.s, 20), t: num(r.t, 86400) } } },
+    o = outGet(),
+    hf = haftaBasi(r.d || Date.now()),
+    w0 = o && o.w && o.w.hf == hf ? o.w : null;
+  outSet({ ...merge(o, run), w: { ...merge(w0, run), hf }, rev: tok() });
   return supaFlush(onSent);
 }
 
@@ -172,10 +214,11 @@ export function supaFlush(onSent) {
       return later(onSent, 20000); // sunucudaki satır okunamadan gönderilmez (rekorlar silinmesin)
     }
     if (!allow()) return outSet(null); // okuma sürerken yükleme kapatıldıysa gönderme
-    const doc = merge(srv, o);
-    if (srv && same(doc, srv)) return dropIf(o.rev);
+    const doc = merge(srv, o),
+      w = o.w && o.w.hf == haftaBasi() ? o.w : null; // geçen haftadan kalan haftalık rekor gönderilmez
+    if (srv && same(doc, srv) && !w) return dropIf(o.rev);
     try {
-      await submit(doc);
+      await submit(doc, w);
     } catch (e) {
       return later(onSent, 16000); // 15 sn sınırı ya da ağ: sonra yeniden
     }
