@@ -486,8 +486,9 @@ export function settings(re) {
  ${ck('Ortak sıralamayı göster', 'lbv', SET.lbv !== 0)}
  ${ck('Komut konsolu (oyunda ters tırnak ya da F10)', 'con', SET.con !== 0)}`,
       goruntu: `${seg('Grafik kalitesi', 'q', [[0, 'Düşük'], [1, 'Orta'], [2, 'Yüksek']], 'applyQ();')}
- <p class=hint>Düşük: gölge kapalı, standart çözünürlük. Orta: gölgeler açık. Yüksek: yumuşak gölgeler ve ekranın tam çözünürlüğü. Oyun takılıyorsa kaliteyi düşür.</p>
- ${seg('FPS sınırı', 'fps', [[0, 'Sınırsız'], [60, '60'], [30, '30']])}
+ <p class=hint>Düşük: gölge kapalı, standart çözünürlük. Orta: gölgeler açık. Yüksek: yumuşak gölgeler, ışıma ve yüksek çözünürlük. Oyun takılıyorsa ya da cihaz ısınıyorsa kaliteyi düşür.</p>
+ ${seg('FPS sınırı', 'fps', [[30, '30'], [60, '60'], [0, 'Sınırsız']])}
+ <p class=hint>Isınma ve pil için 60 önerilir; 30 en serinidir. Sınırsız, 120 Hz ekranlarda iki kat kare çizer.</p>
  ${ck('Gölgeler', 'shd', SET.shd !== 0, 'applyQ()')}
  ${ck('Işıma ve renk düzenleme (yalnızca yüksek kalitede)', 'bl', SET.bl !== 0)}
  ${ck('Hareket bulanıklığı (yalnızca yüksek kalite ve ışıma açıkken)', 'mb', SET.mb, 'mbApply()')}

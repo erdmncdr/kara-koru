@@ -31,7 +31,10 @@ export function __init_78() {
 
 export function loop(t) {
   requestAnimationFrame(loop);
-  if (SET.fps > 0 && t - $G.last < 1000 / SET.fps - 1.5) return;
+  // kare sınırı: oyunda ayar (varsayılan 60); menü ve hazır ekranında 30, diğer kaplamalarda (duraklatma, kartlar,
+  // Otağ, sıralama, ayarlar) 20 kare yeter: sahne arkada durur, tam hızda çizmek yalnız ısıtır
+  const cap = $G.S == 'play' ? SET.fps : Math.min(SET.fps || 1e3, $G.S == 'menu' || $G.S == 'ready' || $G.S == 'trans' ? 30 : 20);
+  if (cap > 0 && t - $G.last < 1000 / cap - 1.5) return;
   const raw = (t - $G.last) / 1000 || 0,
     dt = Math.min(.05, raw);
   $G.last = t;
@@ -142,7 +145,9 @@ export function loop(t) {
       DRS.t = 0;
       const k0 = $G.DRK;
       // her adım render hedeflerini yeniden ayırır (kısa takılma): az adım, seyrek
-      if (DRS.ema > .027 && $G.DRK > .6) $G.DRK = Math.max(.6, $G.DRK - .2);else if (DRS.ema < .0155 && $G.DRK < 1) $G.DRK = Math.min(1, $G.DRK + .2);
+      // eşikler hedef kare süresine göre (60'ta 27 / 15.5 ms): 30 FPS sınırındaki oyuncu yavaş sanılıp çözünürlüğü düşmesin
+      const hk = 1 / (SET.fps > 0 ? Math.min(60, SET.fps) : 60);
+      if (DRS.ema > hk * 1.62 && $G.DRK > .6) $G.DRK = Math.max(.6, $G.DRK - .2);else if (DRS.ema < hk * .93 && $G.DRK < 1) $G.DRK = Math.min(1, $G.DRK + .2);
       if ($G.DRK != k0) rs();
     }
   }

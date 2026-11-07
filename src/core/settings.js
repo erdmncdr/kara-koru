@@ -21,7 +21,7 @@ export function __init_7() {
     dn: 1,
     mr: 1,
     bl: 1,
-    fps: 0, // 0 sınırsız, 30, 60
+    fps: 60, // 0 sınırsız, 30, 60 (varsayılan 60: 120 Hz ekranlarda iki kat kare çizip ısıtmasın)
     shd: 1, // gölgeler
     pd: 1, // parçacık yoğunluğu
     po: 1, // parçacık ve mermi saydamlığı
@@ -41,9 +41,23 @@ export function __init_7() {
     mo: 1, // büyük harita saydamlığı (0.3-1)
     mk: 'auto' // makam: auto, hicaz, huseyni, nihavend, rast, segah
   };
+  const dok = typeof matchMedia == 'function' && matchMedia('(pointer:coarse)').matches;
+  let kayit = null;
   try {
-    Object.assign(SET, JSON.parse(localStorage.getItem('kk_set') || '{}'));
+    kayit = JSON.parse(localStorage.getItem('kk_set') || 'null');
   } catch (e) {}
+  if (kayit && typeof kayit == 'object') Object.assign(SET, kayit);
+  // telefon ve tablet: ilk açılışta orta kalite (ışıma yok, çözünürlük en çok 1.5x)
+  if (!kayit && dok) SET.q = 1;
+  // ayar sürümü 2 (7 Kasım 2026): ısınma şikâyeti. Kayıtlı "sınırsız" FPS 60'a, dokunmatikte yüksek kalite ortaya iner; bir kez.
+  if (!(SET.sv >= 2)) {
+    if (kayit) {
+      if (!SET.fps) SET.fps = 60;
+      if (dok && SET.q == 2) SET.q = 1;
+    }
+    SET.sv = 2;
+    if (kayit) saveSet();
+  }
 }
 
 export function saveSet() {

@@ -529,6 +529,24 @@ Kalan açık yok. Kaynaksız: elit çarpanları ve ilk elitin bedava sandığı,
 - **Ölüm vuruşu:** 0.55 sn yavaş çekim, sarsıntı 1.6, altın ve turuncu iki halka, 40 kıvılcım. Boss gövdesi 2.6 sn kalır: öne devrilir (`d.big`), yere çarpınca toz + sarsıntı + iniş sesi, sonra toprağa gömülür.
 - **Boss çubuğu:** final arenasında %75/50/25 evre işaretleri (`#bb.ph`), %25 altında kızıl parlama (`.low`), direkler açıkken mavi ve "korunuyor" etiketi (`.inv`).
 
+### Isınma: kare sınırı, piksel bütçesi, telefonda orta kalite (7 Kasım 2026)
+
+Şikâyet: oyun bilgisayarı ve telefonu ısıtıyor. Ölçüm başsız Chrome + gerçek GPU (Apple M5, ANGLE Metal), `ioreg` "Device Utilization %" (boşta %0-2); 1512×982 retina ve 390×844 dpr 3 dokunmatik.
+
+| Durum | Önce GPU | Sonra GPU |
+|---|---|---|
+| Masaüstü menü | %74 | %28 |
+| Masaüstü oyun | %74 | %56 |
+| Masaüstü duraklatma | %80 | %30 |
+| Telefon menü | %44 | %24 |
+| Telefon oyun | %52 | %47 (30 FPS: %27) |
+
+- **FPS:** varsayılan 60 (önce sınırsız: 120 Hz ekranlarda iki kat kare; başsız ölçüm 60 Hz olduğu için bu kazanç tabloda yok). Oyun dışında kare sınırı: menü, hazır, geçiş 30; duraklatma, kartlar, Otağ, sıralama, ayarlar 20.
+- **Piksel bütçesi:** yüksek kalite ~4.2, orta ~2.1 milyon piksel (retina 14" 3024×1964 → 2542×1651).
+- **Dokunmatik:** ilk açılışta orta kalite (ışıma ve 4× MSAA ara tampon yok, en çok 1.5×). Ayar sürümü `sv: 2`: kayıtlı "sınırsız" FPS bir kez 60'a, dokunmatikte yüksek kalite bir kez ortaya iner.
+- **Hata:** dinamik çözünürlük eşikleri 60 FPS'e göreydi; 30 FPS seçen oyuncunun çözünürlüğü yavaş sanılıp %60'a iniyordu. Eşikler hedef kare süresine bağlandı.
+- **Açık:** oyunda kare başına ~290 çizim, ~940 bin üçgen (gölge geçişi dahil); süs nesneleri (çiçek, eğrelti, taş, çalı) dağınık. Telefonda asıl kazanç ancak süs yoğunluğunu kaliteye bağlamakla gelir (harita üretimi). İşlemci tarafında JS kare başına küçük (profilde oyunda %86 boşta); ses sentezi bir çekirdeğin ~%10'u.
+
 ### Rekabetçi sıralama: haftalık tablo, podyum, senin yerin (7 Kasım 2026)
 
 - **Haftalık tablo:** `kk_hafta` (hafta, id); hafta Pazartesi 00:00 Türkiye saati (`kk_bu_hafta()`, istemcide `haftaBasi()`). `kk_skor_gonder` yedinci parametre `p_h` ile haftanın en iyisini de birleştirir; `hf` sunucunun haftası değilse yok sayılır (geçen haftadan kalan gönderilmemiş koşu yeni haftaya yazılmaz). `p_h` varsayılanlı: eski istemci altı parametreyle çalışmayı sürdürür. Ortak `kk_ch_temizle` / `kk_ch_birlestir` iki tabloda aynı. PGlite'ta denendi: birleştirme, eski hafta, anon yazma reddi, hesap silinince haftalık satır da silinir.
