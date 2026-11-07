@@ -200,13 +200,15 @@ export function nextStage() {
     saveMeta();
     setTimeout(() => toast('Kızıl Bozkır haritası açıldı. Menüden seçebilirsin.'), 3000);
   }
-  ov(`<div class=trn><p>${mp.n} · Kademe ${$G.P.tier} · Aşama ${ns + 1} / ${$G.P.tier}</p><h2>${arena ? 'Final arenası' : BIO[bi].n}</h2><p class=sub>${arena ? 'Küçük bir mühür alanı. Final boss’u burada seni bekliyor; kaçacak yer yok.' : 'Düşmanlar daha güçlü, sandıklar daha değerli. Sayaç sıfırlanmaz; kapıyı bul ve boss’u devir.'}</p></div>`, 'mid');
+  ov(`<div class=trn><p>${mp.n} · Kademe ${$G.P.tier} · Aşama ${ns + 1} / ${$G.P.tier}</p><h2>${arena ? 'Final arenası' : BIO[bi].n}</h2><p class=sub>${arena ? 'Küçük bir mühür alanı. Final boss’u burada seni bekliyor; kaçacak yer yok.' : 'Düşmanlar daha güçlü, sandıklar daha değerli. Sayaç sıfırdan başlar; Boss Kapısı’nı bul ve boss’u devir.'}</p></div>`, 'mid');
   setTimeout(() => {
     $G.P.stage = ns;
     // Aşama saati her aşamada sıfırdan başlar. Eskiden birikiyordu ve boss ölünce stLen() − 10'a atlıyordu; 2. aşama
     // (540 sn) ilk saniyeden "süre doldu" sayılıyor, baştan sona Uzatma'da geçiyor, ara bosslar ve akınlar gelmiyordu.
     // Zorluk, doğuş hızı ve tür listesi aşamayı ayrıca hesaba katar (SF, stage × 240 ...), saat aşama içi süredir.
     $G.P.stT = 0;
+    $G.P.kzN = 0;
+    $G.P.kzQ = '';
     $G.P.swT0 = 0;
     $G.P.swarm = 0;
     $G.P.ghW = 0;
@@ -220,7 +222,7 @@ export function nextStage() {
 
 export function stageReady(bi) {
   const arena = $G.P.tier >= 3 && $G.P.stage >= $G.P.tier - 1,
-    m = arena ? 'Mühür birkaç saniye içinde çözülür ve boss gelir.' : 'Etraftaki kristaller ve altınlar seninle geldi. Sayaç kaldığı yerden sürer.';
+    m = arena ? 'Mühür birkaç saniye içinde çözülür ve boss gelir.' : 'Etraftaki kristaller ve altınlar seninle geldi. Yeni aşamanın sayacı başladı.';
   if (TOUCH) {
     $G.S = 'play';
     OV.classList.add('h');

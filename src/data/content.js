@@ -421,7 +421,7 @@ export function __init_37() {
     curse: { n: 'Lanet Tomu', ic: 'skull', s: 'Lanet', v: .035, lock: 't_curse', d: 'Her seviyede zorluk %3.5 artar, buna karşılık altın ve tecrübe daha bol gelir.' },
     denge: { n: 'Denge Tomu', ic: 'expand', s: 'Her statta küçük bir artış', v: 1, fxl: { dmg: .02, aspd: .02, size: .02, crit: .01, hp: 5, regen: .1, arm: .015, spd: .015, mag: .1, xp: .02, gold: .02, luck: .015 }, d: 'Her seviye bütün temel statlara küçük bir pay ekler.' },
     istif: { n: 'İstifçi Tomu', ic: 'coin', s: 'Her seviyede haritada açık bir sandık belirir', v: 1, fxl: { chest: .01 }, d: 'Her seviye haritada rastgele bir yerde ücretsiz bir sandık belirir.' },
-    kumar: { n: 'Kumar Tomu', ic: 'dice', s: 'Ya hep ya hiç', v: 1, fxl: { dmg: .15, 'hp*': -.05 }, d: 'Her seviye +%15 hasar; azami can %5 azalır (kalan candan, bileşik). (Megabonk Gamba Tome; etki tahmin)' },
+    kumar: { n: 'Kumar Tomu', ic: 'dice', s: 'Ya hep ya hiç', v: 1, fxl: { dmg: .15, 'hp*': -.05 }, d: 'Her seviye +%15 hasar; azami can %5 azalır (kalan candan, bileşik).' },
     chaos: { n: 'Kaos Tomu', ic: 'chaos', s: 'Her seviyede rastgele bir stat', v: 1, rand: 1, lock: 't_chaos', d: 'Her seviye rastgele bir statı yükseltir. Ne geleceğini bilemezsin.' }
   };
   SBD = [['dmg', .12], ['aspd', .06], ['size', .08], ['crit', .05], ['hp', 15], ['regen', .33], ['arm', .05], ['spd', .08], ['mag', .2], ['xp', .075], ['gold', .075], ['luck', .05], ['pspd', .1], ['dur', .08], ['kb', .1], ['shield', 5], ['eva', .05], ['ls', .06], ['thorns', 5], ['curse', .08], ['diff', .08], ['critd', .1], ['jmp', .08], ['fall', .1], ['effdur', .08], ['heal', .08], ['elspawn', .1]]; // Ocak havuzu (survivorsdb)

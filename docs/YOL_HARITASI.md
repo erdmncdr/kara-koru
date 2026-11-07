@@ -529,6 +529,14 @@ Kalan açık yok. Kaynaksız: elit çarpanları ve ilk elitin bedava sandığı,
 - **Ölüm vuruşu:** 0.55 sn yavaş çekim, sarsıntı 1.6, altın ve turuncu iki halka, 40 kıvılcım. Boss gövdesi 2.6 sn kalır: öne devrilir (`d.big`), yere çarpınca toz + sarsıntı + iniş sesi, sonra toprağa gömülür.
 - **Boss çubuğu:** final arenasında %75/50/25 evre işaretleri (`#bb.ph`), %25 altında kızıl parlama (`.low`), direkler açıkken mavi ve "korunuyor" etiketi (`.inv`).
 
+### Kızışma: aşama uzadıkça düşman vuruşu sertleşir (7 Kasım 2026)
+
+- **Sorun:** Erdem Kam ile 1. aşamada 6. dakikayı geçtiğinde hâlâ ölmüyordu. `DMK` (sıradan düşman hasarı) aşama saatini hiç görmüyordu; süreyle yalnız can (`diff`), doğuş hızı ve tür listesi büyüyordu.
+- **Çözüm:** `stats.js kzK`: ilk 2 dk ×1, sonra doğrusal; 1. aşamada 3 dk +%13, 6 dk +%50, 9 dk +%88, 10 dk ×2. 2. aşama sonunda +%50, 3. aşama sonunda +%30 (taban zaten büyük). Son Dalga'da başladığı andaki değerde donar, 10. dakikadan sonra sabit. `DMK` bununla çarpılır.
+- **Bildirim:** 25. saniyede bir kez "Kızışma" ipucu; her 3 dakikada "N. dakika: düşmanlar sertleşti. Vuruşları artık +%X." (aynı karedeki ara boss/akın bildirimini ezmemek için 1 sn gecikmeyle ve ekran yazısı boşalınca). HUD yol çizelgesinde 3/6/9. dakikalar kırmızı çizgi. Final arenasında yok.
+- **Yan düzeltmeler:** Yol çizelgesindeki akın işaretleri sabit 4:00/7:00 yerine `SWT()` (2. ve 3. aşamada yanlış yerdeydi). Aşama geçişindeki "Sayaç sıfırlanmaz" metinleri yanlıştı (sayaç sıfırlanıyor); düzeltildi. Harita seçimindeki ipucu aşama/kapı/geçit akışını anlatıyor. Oyunda görünen üç Megabonk göndermesi (Ocak Başı, Altın Halka, Kumar Tomu açıklamaları) kaldırıldı.
+- **Ölçüm:** Kam bot karşılaştırması (`tests/denge.mjs`, eski/yeni, ölümlü ve ölümsüz) gürültülü: ölümlü bot iki sürümde de 3-4. dakikada ölüyor. Uyarıların zamanlaması adımlı Playwright betiğiyle doğrulandı (25 sn ipucu, 183/361/541 sn bildirimleri). Gerçek oyuncu hissi Erdem'in denemesine kaldı.
+
 ### Isınma: kare sınırı, piksel bütçesi, telefonda orta kalite (7 Kasım 2026)
 
 Şikâyet: oyun bilgisayarı ve telefonu ısıtıyor. Ölçüm başsız Chrome + gerçek GPU (Apple M5, ANGLE Metal), `ioreg` "Device Utilization %" (boşta %0-2); 1512×982 retina ve 390×844 dpr 3 dokunmatik.

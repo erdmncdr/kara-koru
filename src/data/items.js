@@ -56,7 +56,7 @@ export const ITD = {
   ors: { lock: 'ors', n: 'Örs', r: 4, ic: 'anvil', fx: {}, u: 1, d: 'Silah yükseltmeleri bir stat satırı fazla getirir. Tekil.' },
   kazan: { lock: 'kazan', n: 'Kazan', r: 2, ic: 'pot', fx: {}, h: 1, d: 'Silah azami seviyesi +10. Her ek yığın bir eksik verir (en az +2).' },
   kulah: { lock: 'kulah', n: 'Kam Külahı', r: 4, ic: 'hat', fx: {}, h: 1, d: 'Tom azami seviyesi +10. Her ek yığın bir eksik verir (en az +2).' },
-  ocakbasi: { n: 'Ocak Başı', r: 2, ic: 'fire', fx: {}, h: 1, d: 'Durunca saniyede 18 can dolar. (Megabonk Campfire; silah satırı bonusu Örs’te) fazla getirir.' },
+  ocakbasi: { n: 'Ocak Başı', r: 2, ic: 'fire', fx: {}, h: 1, d: 'Durunca saniyede 18 can dolar.' },
   // ---- can, zırh, savunma
   muska: { n: 'Kemik Muska', r: 0, ic: 'bone', fx: { hp: 25 }, d: '+25 azami can.' },
   pehlivanyuzuk: { n: 'Pehlivan Yüzüğü', r: 2, ic: 'ring2', fx: {}, h: 1, d: 'Her 100 azami can için +%20 hasar.' },
@@ -106,6 +106,6 @@ export const ITD = {
   kemikbacak: { lock: 'kemikbacak', n: 'Kemik Bacak', r: 2, cor: 1, ic: 'bone', fx: { diff: .07 }, d: 'Zorluk +%7. Daha çok düşman, daha çok ganimet.' },
   eskimaske: { lock: 'eskimaske', n: 'Eski Maske', r: 2, cor: 1, ic: 'mask3', fx: { elspawn: .15 }, d: 'Elit doğma +%15.' },
   hortlakfener: { lock: 'hortlakfener', n: 'Hortlak Feneri', r: 3, ic: 'lamp2', fx: {}, h: 1, d: 'Her 45 saniyede (yığın başına −3) geniş bir ışık küresi çevreyi yakar, yığın başına +10 m.' },
-  altinhalka: { n: 'Altın Halka', r: 4, ic: 'ring4', fx: {}, d: 'Hiçbir işe yaramıyor gibi... (Megabonk Golden Ring)' },
+  altinhalka: { n: 'Altın Halka', r: 4, ic: 'ring4', fx: {}, d: 'Hiçbir işe yaramıyor gibi...' },
   kafesanahtar: { n: 'Kafes Anahtarı', r: 0, ic: 'key', fx: {}, q: 1, d: 'Korudaki kafesi açar. Görev eşyası.' }
 };

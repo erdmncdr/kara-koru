@@ -261,7 +261,7 @@ function mapPage() {
   const c = CR[$G.CI];
   ov(`<div class="mn2 pg"><header class=mph><span class=stp aria-label="Adım 2 / 2"><i class=on></i><i class=on></i></span><h2>Harita</h2><span class=cur>${c.n}</span></header>
  ${mapHTML()}
- <p class=hint>Kademe N: N aşama ve bir son boss. Üst kademe, alttaki bitince açılır.</p>
+ <p class=hint>Kademe N, aynı haritada art arda N aşamadır. Her aşamada Boss Kapısı’nı bul, boss’u devir, açılan geçitten bir sonraki aşamaya geç. Son aşamanın boss’u devrilince kademe biter ve bir üst kademe açılır. Diğer haritalar ayrı koşudur, görevlerle açılır.</p>
  ${chalHTML()}
  <footer class=row><button class="act alt" ${A('menuPage', 'kahraman')}>Geri <kbd>Esc</kbd></button><button class=act ${A('start')}>Koruya gir <small>${selSum()}</small> <kbd>Enter</kbd></button></footer></div>`, sideCls('harita'));
 }

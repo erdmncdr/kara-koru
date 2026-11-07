@@ -26,7 +26,7 @@ import { qCheck } from './flow.js';
 import { GPK } from './hero-anim.js';
 import { interact, useShrine } from './interact.js';
 import { drop, instHide, mkChest, mkPU, spot } from './objects.js';
-import { DMK, bonus, calc, diffMul, diffPct, ghostSp, need, swT } from './stats.js';
+import { DMK, KZ_ADIM, bonus, calc, diffMul, diffPct, ghostSp, kzK, need, swT } from './stats.js';
 import { slUpd, vxUpd } from './weapon-fx.js';
 import { weapons } from './weapons.js';
 import { ANIM } from '../geo/anim.js';
@@ -447,6 +447,22 @@ export function upd(dt) {
   if ($G.P.swarm) for (const s of [60, 120, 360]) if (swT() >= s && !$G.P['sw' + s]) { $G.P['sw' + s] = 1; inc('sw' + s); }
   // Mahzen temizliği: mühür içindeki her pot kırıldı ve her sandık açıldı (Megabonk Pot görevi)
   if ($G.P.mzK && !$G.P.mzc && ($G.FRC & 15) == 0 && $G.P.mzK.pots.every(p => p.o) && ($G.P.mzOpened || 0) >= $G.P.mzK.ch) { $G.P.mzc = 1; inc('mzclean'); toast('Mahzen tertemiz: her pot ve sandık açıldı'); }
+  // Kızışma uyarısı: 3 dakikada bir düşmanların sertleştiği bildirilir. Akın ya da ara boss bildirimiyle aynı ana
+  // denk gelirse ekrandaki yazı silinene kadar bekler (toast tek satır, üst üste yazınca öncekini siler).
+  if (!$G.P.swarm && !$G.P.final && !$G.ARENA) {
+    if ($G.P.stT >= 25 && $G.P.stT - dt < 25) tip('kizisma', 'Kızışma', 'Aşama uzadıkça düşmanlar sertleşir: her 3 dakikada daha çok gelir ve daha sert vururlar. Boss Kapısı’nı bulup boss’u erken devirmek işini kolaylaştırır.');
+    const n = Math.floor($G.P.stT / KZ_ADIM);
+    if (n > ($G.P.kzN || 0) && $G.P.stT < stLen()) {
+      $G.P.kzN = n;
+      $G.P.kzQ = `${n * 3}. dakika: düşmanlar sertleşti. Vuruşları artık +%${Math.round((kzK() - 1) * 100)}.`;
+      $G.P.kzD = 1;
+    }
+  }
+  if ($G.P.kzQ && ($G.P.kzD -= dt) <= 0 && !document.getElementById('tt').textContent) {
+    toast($G.P.kzQ);
+    $G.P.kzQ = '';
+    sfx('growl');
+  }
   for (const at of SWT()) if (!$G.P.swarm && $G.P.stT >= at && $G.P.stT - dt < at) {
     $G.P.akin = 22;
     $G.P.akN = ($G.P.akN || 0) + 1;

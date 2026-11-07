@@ -10,6 +10,18 @@ import { itemCalc } from './items.js';
 import { TIERM } from './run.js';
 import { BOSSP } from '../data/enemies.js';
 
+// Kızışma: aşama saati ilerledikçe sıradan düşmanların vuruşu sertleşir (canları zaten diff() ile büyüyor).
+// Eskiden DMK aşama saatini hiç görmüyordu: 1. aşamada 6. dakikadaki gulyabani ilk saniyedeki kadar vuruyordu ve
+// güçlü bir kahraman (Kam) baskı hissetmiyordu. İlk 2 dakika değişmez (yeni oyuncunun açılışı aynı kalır), sonra
+// doğrusal artar: 1. aşamada 3 dk +%13, 6 dk +%50, 10 dk ×2; 2. aşama sonunda +%50, 3. aşama sonunda +%30. Aşama
+// tabanı (stage × .5 …) zaten büyüdüğü için üst aşamalarda daha yavaş artar. Son Dalga'da başladığı andaki değerde
+// donar (onun kendi çarpanı swK var); 10. dakikadan sonra sabit (Mezarlık 15 dk, Uzatma'nın da kendi çarpanı var).
+// Ölümlü/ölümsüz bot karşılaştırması (tests/denge.mjs, Kam, 7 Kasım 2026): bot zaten 3-4. dakikada ölüyor, ölçü
+// gürültülü; asıl hedef iyi oyuncunun 6. dakikadan sonra baskı hissetmesi.
+export const KZ_ADIM = 180; // her 3 dakikada bir uyarı
+export const kzT = () => $G.P.swarm ? $G.P.swT0 || 0 : $G.P.stT;
+export const kzK = (t = kzT()) => 1 + Math.max(0, Math.min(600, t) - 120) / (480 + Math.min(2, $G.P.stage) * 360);
+
 export let need, newW, SF, swT, swK, ghostSp, ghostHp, DMK, BN, BOSSN, MBN, diff, diffMul, diffPct, bonus, gdm;
 
 export function __init_53() {
@@ -83,7 +95,7 @@ export function __init_54() {
   // Seviyeyle hem mermi hem sekme kazanan silahlar (Kemik gibi) hasarı seviyenin karesiyle büyütüyor ve Son Dalga'da
   // öldürdükçe seviye atlamaya devam ediliyor; çarpan olmadan güçlü build'ler Albastıları yaklaşmadan öldürüp 40 dakikayı aşıyordu.
   ghostHp = () => 1 + Math.pow(swT() / 240, 3);
-  DMK = () => (1 + $G.P.stage * .5 + .12 * Math.pow($G.P.stage, 1.6)) * Math.sqrt(TIERM[$G.P.tier - 1] || 1) * ($G.P.swarm ? 1.5 + swK() * 1.2 : 1) * (1 + ($G.P.ot || 0) / 600);
+  DMK = () => (1 + $G.P.stage * .5 + .12 * Math.pow($G.P.stage, 1.6)) * Math.sqrt(TIERM[$G.P.tier - 1] || 1) * ($G.P.swarm ? 1.5 + swK() * 1.2 : 1) * (1 + ($G.P.ot || 0) / 600) * kzK();
   // boss adı harita profilinden
   BN = () => {
     const l = BOSSP[$G.P.map] || BOSSP.koru;

@@ -12,8 +12,8 @@ import { PUD, RAR, SHC, SHD, STL, TOUCH } from '../data/content.js';
 import { cam } from '../engine/renderer.js';
 import { tv } from '../engine/vfx.js';
 import { price } from '../game/objects.js';
-import { BN, MBN, diffPct, gdm, swT } from '../game/stats.js';
-import { MBT, stLen } from '../game/run.js';
+import { BN, KZ_ADIM, MBN, diffPct, gdm, swT } from '../game/stats.js';
+import { MBT, SWT, stLen } from '../game/run.js';
 import { hudItems, hudSlots, buildHTML } from './cards.js';
 import { GL, klTarget } from './leaderboard.js';
 import { BIO } from '../world/terrain.js';
@@ -38,7 +38,7 @@ export function goal() {
     return $G.P.ot ? `Uzatma. Kapıya git ve ${b}’ü çağır.` : `Güçlen, sonra kapıyı bul ve ${b}’ü çağır.`;
   }
   if ($G.GATE.st == 1) return `${b}’ü devir.`;
-  return 'Geçit açık. Kapıdan geçip ' + ($G.P.stage + 2) + '. aşamaya ilerle. Sayaç sıfırlanmaz.';
+  return 'Geçit açık. Kapıdan geçip ' + ($G.P.stage + 2) + '. aşamaya ilerle. Sayaç orada sıfırdan başlar.';
 }
 
 export function __init_71() {
@@ -223,7 +223,7 @@ export function yolUpd() {
   if (key != $G.yk) {
     $G.yk = key;
     const mb = MBT();
-    $G.YEV = (sw ? [[60, 'gh', 'Albastılar'], [360, 'gh2', 'Mor Albastılar'], [720, 'gh3', 'Kızıl Albastılar']] : [[mb[0], 'mb', 'Ara boss'], [240, 'ak', 'Akın'], [420, 'ak', 'Akın'], [mb[1], 'mb', 'Ara boss'], [stLen(), 'sd', 'Uzatma']].filter(e => e[0] <= (stLen()))).sort((a, b) => a[0] - b[0]);
+    $G.YEV = (sw ? [[60, 'gh', 'Albastılar'], [360, 'gh2', 'Mor Albastılar'], [720, 'gh3', 'Kızıl Albastılar']] : [[mb[0], 'mb', 'Ara boss'], ...SWT().map(x => [x, 'ak', 'Akın']), [mb[1], 'mb', 'Ara boss'], [stLen(), 'sd', 'Uzatma'], ...($G.ARENA ? [] : Array.from({ length: Math.floor((stLen() - 1) / KZ_ADIM) }, (_, i) => [(i + 1) * KZ_ADIM, 'kz', 'Kızışma']))].filter(e => e[0] <= (stLen()))).sort((a, b) => a[0] - b[0]);
     $('yolt').innerHTML = '<i id=yolf></i>' + $G.YEV.map(([x, k, n]) => `<span class="ev ${k}" style="left:${x / span * 100}%" title="${n}"></span>`).join('');
   }
   $('yolf').style.width = Math.min(100, t / span * 100) + '%';

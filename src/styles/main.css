@@ -214,6 +214,7 @@ kbd{font:700 12px/1 var(--txt);background:rgba(239,227,203,.08);box-shadow:inset
 #yolf{position:absolute;left:0;top:1px;bottom:1px;width:0;background:var(--kilim) 0 50%/20px 10px repeat-x;box-shadow:2px 0 0 var(--bone)}
 #yolt .ev{position:absolute;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;transform:rotate(45deg);background:var(--kece);box-shadow:0 0 0 1.5px var(--dim)}
 #yolt .ev.ak{box-shadow:0 0 0 1.5px var(--ember)}#yolt .ev.mb{box-shadow:0 0 0 1.5px var(--gold)}#yolt .ev.sd,#yolt .ev.gh3{background:var(--blood);box-shadow:0 0 0 1.5px var(--bone)}#yolt .ev.gh{box-shadow:0 0 0 1.5px var(--soul)}#yolt .ev.gh2{box-shadow:0 0 0 1.5px #c79bf0}
+#yolt .ev.kz{width:3px;height:12px;margin:-6px 0 0 -1.5px;transform:none;background:var(--blood);box-shadow:0 0 0 1px rgba(0,0,0,.6)}
 #yolt .ev.done{opacity:.35}
 #yolx{margin:6px 0 0;min-height:18px;font-size:14px;color:var(--bone)}#yolx b{color:var(--ember)}
 #tm.sw~#tml,#tm.sw{color:#f0624c}
