@@ -28,11 +28,13 @@ Tarayıcıda açılan adres oyunu gösterir. Kodu kaydettiğin anda sayfa yenile
 
 ## Ortak sıralama
 
+Yayın: https://kara-koru.netlify.app
+
 Oyun Claude içinde açılınca ortak tabloyu Claude'un paylaşılan veritabanında tutar. Başka bir yerde yayınlarken (kendi sitende, GitHub Pages'te) Supabase kullanılabilir:
 
 1. supabase.com'da ücretsiz bir proje aç.
 2. Panelde **SQL Editor**'e `supabase/siralama.sql` dosyasını yapıştırıp çalıştır.
-3. **Project Settings → API** sayfasından proje adresini ve `anon` anahtarını al; `.env.example` dosyasını `.env` olarak kopyalayıp doldur.
+3. **Project Settings → API Keys** sayfasından proje adresini ve **publishable** anahtarı (`sb_publishable_…`; eski projelerde `anon`) al; `.env.example` dosyasını `.env` olarak kopyalayıp doldur.
 4. `npm run build` ile derle. Adres ve anahtar derlemeye gömülür; anahtar herkese açık olacak biçimde tasarlandı, yazma yetkisi sunucudaki fonksiyonda.
 
 **Netlify'da yayın:** Netlify'da "Add new site → Import an existing project" ile bu GitHub deposunu bağla; derleme ayarları `netlify.toml`'dan okunur (`npm run build`, `dist`). Adres ve anahtarı `.env` yerine **Site configuration → Environment variables** altına `VITE_SUPABASE_URL` ve `VITE_SUPABASE_ANON_KEY` olarak gir, sonra yeniden derlet. Her `main` gönderimi siteyi günceller.
