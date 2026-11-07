@@ -71,7 +71,8 @@ begin
     raise exception 'hesap yok' using errcode = '42501';
   end if;
   if (p_onceki is null and v_eski <> '{}'::jsonb) or (p_onceki is not null and v_t <> p_onceki) then
-    raise exception 'cakisma' using errcode = '40001';
+    -- PT409: PostgREST'e özgü kod, HTTP 409 döner. 40001 (serileştirme hatası) kullanılmaz: PostgREST onu sonsuza dek yeniden dener
+    raise exception 'cakisma' using errcode = 'PT409';
   end if;
   update public.kk_hesap set veri = p_veri, guncel = greatest(now(), v_t + interval '1 microsecond') where id = v_id returning guncel into v_t;
   return v_t;
