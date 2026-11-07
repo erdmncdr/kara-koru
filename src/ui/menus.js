@@ -23,6 +23,7 @@ import { back, buildHTML, hudItems, hudSlots, STI } from './cards.js';
 import { goal } from './hud.js';
 import { svg, iconCol, IC } from './icons.js';
 import { glRank, glSubmit, lbAdd } from './leaderboard.js';
+import { hesap } from './hesap.js';
 import { BIO } from '../world/terrain.js';
 
 export let SFM;
@@ -212,7 +213,9 @@ export function renderMenu(kb) {
   <button class=mi ${A('lbOpen')}><b>Sıralama</b>${$G.bestK ? `<small>rekor ${$G.bestK}</small>` : ''}</button>
   <button class=mi ${A('settings')}><b>Ayarlar</b></button>
   <button class=mi ${A('showHelp')}><b>Nasıl oynanır</b><small>F1</small></button>
+  ${hesap() ? `<button class=mi ${A('hesapCik')}><b>Çıkış yap</b><small>${hesap().ad.replace(/[&<>"']/g, '')}</small></button>` : ''}
  </nav>
+ ${hesap() ? '<p class=sub id=hesapnot role=status aria-live=polite></p>' : ''}
  <p class=tch>Sol yarıda sürükleyerek yürü, sağ yarıda kamerayı çevir. Sandık, sunak ve kapılar yanına gelince açılır.</p></div>`, sideCls('ana'));
   const b = OV.querySelector('.mi');
   b && kb && b.focus();

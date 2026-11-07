@@ -175,7 +175,6 @@ body.nolk.on canvas{cursor:grab}body.nolk.on canvas:active{cursor:grabbing}
 .lbl img:not([src]){visibility:hidden}
 .lbl .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--bone)}
 .lbl .nm.me{color:var(--ember);font-weight:600}
-.lbad{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px}.lbad label{flex-basis:100%;color:var(--dim);font-size:14px}.lbad input{flex:1;min-width:0;padding:8px 10px;background:#141518;color:var(--bone);border:1px solid var(--iron);font:16px var(--txt)}
 .lbl .k{font:600 18px/1 var(--txt);font-variant-numeric:tabular-nums;text-align:right;color:var(--bone)}
 .lbl .x{grid-column:3/5;margin-top:-6px;font-size:13px;color:var(--dim)}
 
@@ -838,3 +837,24 @@ button:focus-visible,.cd:focus-visible,.tb:focus-visible,.hc:focus-visible,.mn2 
 .mn2 .hc .cw{width:52px;height:52px}.mn2 .hc .cw svg{width:48px;height:48px}
 .mn2 .hc b{font-size:13px}
 @media (max-width:520px){.hg2{grid-template-columns:repeat(4,1fr)}.mn2 .hc .cw{width:40px;height:40px}.mn2 .hc .cw svg{width:36px;height:36px}}
+
+/* giriş / kayıt ekranı (ui/hesap.js): oyun yüklenmeden önce, tam ekran */
+#giris{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:24px 16px;overflow:auto;
+ background:radial-gradient(120% 90% at 50% 0%,#1d1e23 0%,#0b0b0d 70%);color:var(--bone);font-family:var(--txt)}
+#giris .gk{width:min(380px,100%);display:flex;flex-direction:column;gap:12px;text-align:left}
+#giris .ins{margin:0;text-align:center;font-family:var(--rune);color:var(--dim);letter-spacing:.2em;font-size:13px}
+#giris h1{margin:0 0 6px;text-align:center;font-family:var(--dsp);font-size:clamp(40px,9vw,56px);letter-spacing:.02em}
+#giris .gsek{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid var(--line,rgba(255,255,255,.08))}
+#giris .gsek button{padding:9px 8px;border:0;border-radius:7px;background:none;color:var(--dim);font:600 15px var(--txt);cursor:pointer}
+#giris .gsek button.on{background:rgba(255,255,255,.1);color:var(--bone)}
+#giris label{display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--dim)}
+#giris label[hidden]{display:none}
+#giris input{padding:11px 12px;border-radius:8px;border:1px solid var(--line2,rgba(255,255,255,.16));background:rgba(0,0,0,.35);color:var(--bone);font:16px var(--txt)}
+#giris input:focus{outline:2px solid rgba(255,255,255,.35);outline-offset:1px}
+#giris .gnot{min-height:1.3em;margin:0;font-size:14px;color:#f0b3a8}
+#giris .gbt{width:100%;justify-content:center;padding:12px}
+#giris .gbt:disabled{opacity:.6;cursor:wait}
+#giris .gip{margin:4px 0 0;font-size:13px;line-height:1.45;color:var(--dim)}
+#giris .glink{align-self:center;padding:6px;border:0;background:none;color:var(--dim);font:14px var(--txt);text-decoration:underline;cursor:pointer}
+#hesapuyari{position:fixed;left:50%;bottom:calc(16px + var(--bot,0px));transform:translateX(-50%);z-index:90;max-width:min(92vw,520px);padding:10px 14px;border-radius:10px;background:rgba(12,12,15,.92);border:1px solid rgba(255,255,255,.14);color:var(--bone);font:14px var(--txt);text-align:center;display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap}
+#hesapuyari button{padding:6px 12px;border-radius:7px;border:0;background:#ececee;color:#111;font:600 14px var(--txt);cursor:pointer}

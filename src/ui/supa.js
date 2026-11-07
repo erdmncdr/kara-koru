@@ -1,82 +1,66 @@
 // ui/supa.js · Kara Koru
-// Claude dışında ortak sıralama: Supabase REST (PostgREST). Paket kullanmaz, fetch ile iki uç: tablo okuma ve kk_gonder.
-// Adres ve anahtar derleme anında gelir (.env: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY); yoksa ortak sıralama kapalı kalır.
-// Şema ve güvenlik kuralları: supabase/siralama.sql. Anon anahtar herkese açık olacak biçimde tasarlandı (yazma sırla korunur).
+// Claude dışında ortak sıralama: Supabase REST (PostgREST). Paket kullanmaz, fetch ile iki uç: tablo okuma ve kk_skor_gonder.
+// Adres ve anahtar derleme anında gelir (.env: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY); yoksa ortak sıralama ve hesaplar kapalı kalır.
+// Şema ve güvenlik kuralları: supabase/siralama.sql. Anahtar herkese açık olacak biçimde tasarlandı; yazma giriş yapmış
+// oyuncunun kendi satırına, sunucudaki fonksiyonla olur. Oturum ui/hesap.js'te; buraya supaAuth ile bağlanır.
 
 const URL0 = (import.meta.env && import.meta.env.VITE_SUPABASE_URL) || '',
   KEY = (import.meta.env && import.meta.env.VITE_SUPABASE_ANON_KEY) || '',
   BASE = String(URL0).replace(/\/+$/, '');
 
 export const supaOn = !!(BASE && KEY && /^(https:\/\/|http:\/\/(localhost|127\.0\.0\.1)[:/])/.test(BASE + "/"));
+export const supaCfg = { base: BASE, key: KEY };
 
-const hdr = () => ({ apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' });
-
-function ls(k, v) {
-  try {
-    if (v === undefined) return localStorage.getItem(k);
-    localStorage.setItem(k, v);
-  } catch (e) {}
-  return null;
+// oturum sağlayıcı (ui/hesap.js): { id, ad } ve geçerli erişim belirteci
+let who = () => null,
+  token = async () => null;
+export function supaAuth(w, t) {
+  who = w;
+  token = t;
 }
 
-const hex = a => [...a].map(b => b.toString(16).padStart(2, '0')).join('');
-
-function rnd(n) {
-  const a = new Uint8Array(n);
-  crypto.getRandomValues(a);
-  return hex(a);
-}
-
-// randomUUID güvenli bağlam ister (file:// ile açılan tek dosya sürümünde yok); yoksa elle v4 uuid
-function uuid() {
-  if (crypto.randomUUID) try { return crypto.randomUUID(); } catch (e) {}
-  const b = new Uint8Array(16);
-  crypto.getRandomValues(b);
-  b[6] = (b[6] & 15) | 64;
-  b[8] = (b[8] & 63) | 128;
-  const h = hex(b);
-  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
-}
-
-// tarayıcıya özgü kimlik ve sır; sır sunucuda yalnız özet olarak saklanır.
-// localStorage kapalıysa oturum boyunca bellekte tutulur (her çağrıda yeni kimlik üretilmesin).
-let ID = null;
-export function supaIdent() {
-  if (ID) return ID;
-  let id = ls('kk_pid'), sir = ls('kk_psir');
-  if (!id || !/^[0-9a-f-]{36}$/.test(id) || !sir || sir.length < 32) {
-    id = uuid();
-    sir = rnd(32);
-    ls('kk_pid', id);
-    ls('kk_psir', sir);
-  }
-  ID = { id, sir };
-  return ID;
-}
-
-let NAME = null;
-export function supaName(v) {
-  if (v !== undefined) {
-    NAME = String(v).replace(/[\u0000-\u001f<>&"]/g, '').trim().slice(0, 20);
-    ls('kk_lbad', NAME);
-    return NAME;
-  }
-  // önce kalıcı ad (başka sekmede değişmiş olabilir); depolama yoksa bellekteki
-  const st = ls('kk_lbad'), n = st != null ? st : NAME;
-  return n || 'Savaşçı ' + supaIdent().id.slice(0, 4).toUpperCase();
-}
-
-async function req(path, opt = {}) {
+// tok verilirse oyuncunun belirteciyle (Authorization), yoksa yalnız herkese açık anahtarla
+export async function supaReq(path, opt = {}, tok = null) {
   const ctl = typeof AbortController != 'undefined' ? new AbortController() : null,
     to = ctl ? setTimeout(() => ctl.abort(), 10000) : 0;
   try {
-    const r = await fetch(BASE + path, { ...opt, headers: hdr(), signal: ctl ? ctl.signal : undefined });
-    if (!r.ok) throw new Error('supabase ' + r.status);
+    const r = await fetch(BASE + path, {
+      ...opt,
+      keepalive: !!opt.keepalive,
+      headers: { apikey: KEY, Authorization: 'Bearer ' + (tok || KEY), 'Content-Type': 'application/json' },
+      signal: ctl ? ctl.signal : undefined
+    });
     const t = await r.text();
-    return t ? JSON.parse(t) : null;
+    let j = null;
+    try {
+      j = t ? JSON.parse(t) : null;
+    } catch (e) {}
+    if (!r.ok) {
+      const e = /** @type {any} */ (new Error('supabase ' + r.status + (j && j.message ? ' ' + j.message : '')));
+      e.status = r.status;
+      e.code = j && j.code;
+      throw e;
+    }
+    return j;
   } finally {
     if (to) clearTimeout(to);
   }
+}
+
+const rnd = n => {
+  const a = new Uint8Array(n);
+  crypto.getRandomValues(a);
+  return [...a].map(b => b.toString(16).padStart(2, '0')).join('');
+};
+
+// oyuncunun kimliği ve adı (hesap); giriş yoksa null
+export function supaIdent() {
+  return who();
+}
+
+export function supaName() {
+  const w = who();
+  return w ? w.ad : '';
 }
 
 const num = (v, mx) => (typeof v == 'number' && isFinite(v) ? Math.max(0, Math.min(mx, Math.floor(v))) : 0);
@@ -97,27 +81,31 @@ const row = r => ({ id: r.id, ad: typeof r.ad == 'string' ? r.ad.slice(0, 20) : 
 
 // en iyi 200 satır
 export async function supaRows() {
-  const a = await req('/rest/v1/kk_skor?select=id,ad,k,c,s,t,lv,at,ch&order=k.desc&limit=200');
+  const a = await supaReq('/rest/v1/kk_skor?select=id,ad,k,c,s,t,lv,at,ch&order=k.desc&limit=200');
   return (Array.isArray(a) ? a : []).filter(r => r && typeof r.id == 'string').map(row);
 }
 
 // oyuncunun kendi satırı (ilk 200'ün dışında olabilir). Okuma hatası fırlatır; satır yoksa null.
 export async function supaMine() {
-  const a = await req('/rest/v1/kk_skor?select=id,ad,k,c,s,t,lv,at,ch&id=eq.' + encodeURIComponent(supaIdent().id) + '&limit=1');
+  const w = who();
+  if (!w) return null;
+  const a = await supaReq('/rest/v1/kk_skor?select=id,ad,k,c,s,t,lv,at,ch&id=eq.' + encodeURIComponent(w.id) + '&limit=1');
   return Array.isArray(a) && a[0] ? row(a[0]) : null;
 }
 
 async function submit(doc) {
-  const { id, sir } = supaIdent();
-  await req('/rest/v1/rpc/kk_gonder', {
+  const tok = await token();
+  if (!tok) throw new Error('oturum yok');
+  await supaReq('/rest/v1/rpc/kk_skor_gonder', {
     method: 'POST',
-    body: JSON.stringify({ p_id: id, p_sir: sir, p_ad: supaName(), p_k: doc.k, p_c: doc.c, p_s: doc.s, p_t: doc.t, p_lv: doc.lv, p_ch: doc.ch })
-  });
+    body: JSON.stringify({ p_k: doc.k, p_c: doc.c, p_s: doc.s, p_t: doc.t, p_lv: doc.lv, p_ch: doc.ch })
+  }, tok);
 }
 
 // ---- giden kutusu: henüz sunucuda olmayan rekorlar. Genel en iyi ve kahraman başına en iyi birlikte tutulur;
 // her gönderimde sunucudaki güncel satırla birleştirilir, böylece hiçbir rekor başka bir gönderimle silinmez.
 // Gönderimler sekme içinde sıralıdır; kutu yalnız gönderilen sürüm (rev) değişmediyse boşaltılır.
+// Kutu hesabın kaydına girer (ui/hesap.js), çıkışta temizlenir.
 const OUT = 'kk_lbpend';
 // outFail: son yazım başarısızsa (kota, engelli depolama) bellekteki kopya geçerlidir, diskteki eski değer okunmaz
 let outMem = null, outFail = false, chain = Promise.resolve(), timer = 0;
@@ -146,7 +134,7 @@ function outSet(o) {
   }
 }
 
-// sürüm belirteci: sekmeler arasında da benzersiz (artan sayı iki sekmede çakışabiliyordu)
+// sürüm belirteci: sekmeler arasında da benzersiz
 const tok = () => Date.now().toString(36) + rnd(6);
 
 // iki kaydı birleştirir: daha yüksek genel skorun alanları ve her kahraman için en yüksek rekor
@@ -162,17 +150,8 @@ const same = (a, b) => a && b && a.k == b.k && JSON.stringify(Object.entries(a.c
 // koşu sonu: rekoru kutuya ekler ve göndermeyi dener
 export function supaRecord(r, onSent) {
   const run = { k: num(r.k, 1e7), c: num(r.c, 63), s: num(r.s, 20), t: num(r.t, 86400), lv: num(r.lv, 1e5), ch: { [num(r.c, 63)]: { k: num(r.k, 1e7), s: num(r.s, 20), t: num(r.t, 86400) } } };
-  const o = outGet();
-  outSet({ ...merge(o, run), ren: o && o.ren ? 1 : 0, rev: tok() });
+  outSet({ ...merge(outGet(), run), rev: tok() });
   return supaFlush(onSent);
-}
-
-// ad değişikliği: rekor değişmese de satırı yeniden gönderir
-export function supaRename(v, onSent) {
-  const n = supaName(v), o = outGet();
-  outSet({ ...(o || { k: 0, c: 0, s: 0, t: 0, lv: 0, ch: {} }), ren: 1, rev: tok() });
-  supaFlush(onSent);
-  return n;
 }
 
 // kutudakini gönderir. allow(): yükleme izni (ayar); kapalıysa kutu silinir, hiçbir şey gönderilmez.
@@ -184,7 +163,7 @@ export function supaAllow(f) {
 export function supaFlush(onSent) {
   chain = chain.then(async () => {
     const o = outGet();
-    if (!o) return;
+    if (!o || !who()) return;
     if (!allow()) return outSet(null);
     let srv;
     try {
@@ -194,7 +173,7 @@ export function supaFlush(onSent) {
     }
     if (!allow()) return outSet(null); // okuma sürerken yükleme kapatıldıysa gönderme
     const doc = merge(srv, o);
-    if (srv && same(doc, srv) && !o.ren) return dropIf(o.rev);
+    if (srv && same(doc, srv)) return dropIf(o.rev);
     try {
       await submit(doc);
     } catch (e) {

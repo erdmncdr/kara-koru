@@ -9,7 +9,7 @@ import { CR, heroIdx, heroOn } from '../game/heroes.js';
 import { MAPS, WD } from '../data/content.js';
 import { A } from './actions.js';
 import { IC, iconCol, svg } from './icons.js';
-import { cleanCh, supaAllow, supaFlush, supaIdent, supaMine, supaName, supaOn, supaRecord, supaRename, supaRows } from './supa.js';
+import { cleanCh, supaAllow, supaFlush, supaIdent, supaMine, supaName, supaOn, supaRecord, supaRows } from './supa.js';
 
 const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
@@ -64,7 +64,7 @@ export function __init_61() {
         if (supaOn) {
           GL.kind = 'supa';
           GL.db = 'supa';
-          GL.me = supaIdent().id;
+          GL.me = (supaIdent() || {}).id || null; // giriş yapmış oyuncunun hesabı (ui/hesap.js)
           supaAllow(() => SET.lbu !== 0);
           supaLoad();
           supaFlush(() => supaLoad(1)); // önceki oturumdan kalan gönderilmemiş rekor
@@ -217,28 +217,9 @@ export function lbRender() {
     loc = $G.LB.filter(r => $G.LBT < 0 || r.c == $G.LBT);
   const gl = SET.lbv === 0 ? '<p class=sub>Ortak sıralama ayarlardan gizlendi.</p>' : !GL.db ? '<p class=sub>Ortak sıralama bu sürümde kapalı. Sayfayı Claude içinde açınca ya da Supabase ayarlı bir yayında diğer oyuncularla yarışırsın.</p>' : GL.ok == 0 ? '<p class=sub>Sıralama yükleniyor.</p>' : GL.ok == 3 ? '<p class=sub>Sıralamaya şu an ulaşılamıyor.</p>' : rows.length ? `<div class=lbl>${rows.map((r, i) => `<span class=rk>${i + 1}</span>${GL.kind == 'supa' ? '<span></span>' : `<img class=av data-u="${r.id}" alt="">`}<span class="nm${r.id == GL.me ? ' me' : ''}" data-u="${r.id}">${r.id == GL.me ? 'Sen' : GL.kind == 'supa' ? esc(r.ad || 'Savaşçı') : 'Savaşçı'}</span><span class=k>${r.k}</span>${ln(r)}`).join('')}</div>` : '<p class=sub>Henüz kimse sıralamaya girmedi. İlk sen ol.</p>';
   const lc = loc.length ? `<div class=lbl>${loc.map((r, i) => `<span class=rk>${i + 1}</span><span></span><span class=nm>${new Date(r.d || 0).toLocaleDateString('tr-TR')}</span><span class=k>${r.k | 0}</span>${ln(r)}`).join('')}</div>` : '<p class=sub>Henüz koşu yok.</p>';
-  // ad kutusundaki yazılmamış taslak ve imleç yeniden çizimde korunur (yükleme ya da gönderim bitince ekran yenilenir)
-  const pin = /** @type {HTMLInputElement} */ (OV.querySelector('#lbad')),
-    draft = pin ? pin.value : null,
-    foc = pin && document.activeElement === pin,
-    sel = pin ? [pin.selectionStart, pin.selectionEnd] : null;
-  const nmForm = GL.kind == 'supa' && SET.lbv !== 0 ? `<form class=lbad><label for=lbad>Sıralamadaki adın</label><input id=lbad maxlength=20 autocomplete=off value="${esc(draft != null ? draft : supaName())}"><button class="act sm" type=submit>Kaydet</button>${GL.note ? `<p class=sub>${esc(GL.note)}</p>` : ''}</form>` : '';
+  // sıralamadaki ad hesabın kullanıcı adıdır (ui/hesap.js); değiştirilemez
+  const nmForm = GL.kind == 'supa' && SET.lbv !== 0 && supaName() ? `<p class=sub>Sıralamada <b>${esc(supaName())}</b> adıyla görünürsün.</p>` : '';
   ov(`<div class="sx lbx"><header class=sxh><div><p class=kk>Tek koşuda en çok öldürme</p><h2>Sıralama</h2></div><div class=mt><span class=chip>${$G.LBT < 0 ? 'Bütün kahramanlar' : CR[$G.LBT].n}</span></div></header><div class=lbt2 role=tablist aria-label="Kahraman">${tabs}</div><div class=mcols><section><h3>Ortak sıralama</h3>${nmForm}${gl}</section><section><h3>Senin rekorların</h3>${lc}</section></div><footer class=sxf><span class=fnote>✓ çıkış geçidinden çıkan koşu. Meydan okumalı koşular yüklenmez.</span><button class=act ${A('menu')}>Geri dön <kbd>Esc</kbd></button></footer></div>`, OV.querySelector('.lbx') ? 'mid noan' : 'mid');
-  const f = OV.querySelector('form.lbad');
-  if (f && foc) {
-    const ni = /** @type {HTMLInputElement} */ (f.querySelector('input'));
-    ni.focus();
-    try {
-      ni.setSelectionRange(sel[0], sel[1]);
-    } catch (e) {}
-  }
-  if (f) f.addEventListener('submit', async ev => {
-    ev.preventDefault();
-    const i = f.querySelector('input');
-    i.value = supaRename(i.value, () => supaLoad(1));
-    GL.note = 'Ad kaydedildi.';
-    lbRefresh();
-  });
   lbNames();
 }
 
