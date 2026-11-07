@@ -46,8 +46,11 @@ revoke all on function public.kk_yeni_hesap() from public, anon, authenticated;
 drop trigger if exists kk_yeni_hesap on auth.users;
 create trigger kk_yeni_hesap after insert on auth.users for each row execute function public.kk_yeni_hesap();
 
--- oyuncunun kaydını yazar; dönüş: sunucu zamanı (istemci son eşitlemeyi buna göre tutar)
-create or replace function public.kk_kaydet(p_veri jsonb) returns timestamptz
+-- oyuncunun kaydını yazar. p_onceki: istemcinin bildiği son sunucu zamanı (guncel). Hesap o zamandan beri başka
+-- cihazdan yazıldıysa 'cakisma' döner ve hiçbir şey yazılmaz (eski cihaz yeni ilerlemeyi geri almasın).
+-- Dönüş: yeni sunucu zamanı.
+drop function if exists public.kk_kaydet(jsonb);
+create or replace function public.kk_kaydet(p_veri jsonb, p_onceki timestamptz) returns timestamptz
 language plpgsql
 security definer
 set search_path = ''
@@ -55,6 +58,7 @@ as $$
 declare
   v_id uuid := auth.uid();
   v_t timestamptz;
+  v_eski jsonb;
 begin
   if v_id is null then
     raise exception 'giris gerekli' using errcode = '42501';
@@ -62,15 +66,19 @@ begin
   if p_veri is null or jsonb_typeof(p_veri) <> 'object' or pg_column_size(p_veri) >= 262144 then
     raise exception 'gecersiz kayit' using errcode = '22023';
   end if;
-  update public.kk_hesap set veri = p_veri, guncel = now() where id = v_id returning guncel into v_t;
-  if v_t is null then
+  select guncel, veri into v_t, v_eski from public.kk_hesap where id = v_id for update;
+  if not found then
     raise exception 'hesap yok' using errcode = '42501';
   end if;
+  if (p_onceki is null and v_eski <> '{}'::jsonb) or (p_onceki is not null and v_t <> p_onceki) then
+    raise exception 'cakisma' using errcode = '40001';
+  end if;
+  update public.kk_hesap set veri = p_veri, guncel = greatest(now(), v_t + interval '1 microsecond') where id = v_id returning guncel into v_t;
   return v_t;
 end;
 $$;
-revoke all on function public.kk_kaydet(jsonb) from public, anon;
-grant execute on function public.kk_kaydet(jsonb) to authenticated;
+revoke all on function public.kk_kaydet(jsonb, timestamptz) from public, anon;
+grant execute on function public.kk_kaydet(jsonb, timestamptz) to authenticated;
 
 -- ---- ortak sıralama
 create table if not exists public.kk_skor (
