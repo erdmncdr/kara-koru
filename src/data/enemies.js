@@ -111,6 +111,8 @@ export const BOSSP = {
     { n: 'Yargıç Erlik', k: 'erlik', p: ['disable', 'pylons', 'ice'], hp: 8000, d: 40, sp: .6 }
   ],
   mezarlik: [
-    { n: 'Dev Hortlak', k: 'hortlakboss', p: ['ghosts', 'lava'], hp: 130000, d: 40 } // süre çarpanıyla (tabutlar dahil) 5. dk ~510 bin, 8. dk ~590 bin, en çok 780 bin; eski sabit değer 500 bin
+    // Üç Diyar finali: aşama çarpanı BOSS_ST[2] = 6 ve süre çarpanı (bossTime) üstüne. Tek başına harita ve 1. aşamayken
+    // 130 bindi (×1); final aşamasında aynı can için 130000 / 6. Değer tests/denge.mjs ölçümüyle (bkz. YOL_HARITASI).
+    { n: 'Dev Hortlak', k: 'hortlakboss', p: ['ghosts', 'lava'], hp: 22000, d: 40 }
   ]
 };

@@ -1,6 +1,6 @@
 # Kara Koru
 
-Türk mitolojisi temalı, tarayıcıda çalışan 3B hayatta kalma oyunu. Alp, Kam, Gölge ve kilidi açılan diğer kahramanlarla koruya gir, Tepegöz'ü devir, aşamalar arasında döngüye gir.
+Türk mitolojisi temalı, tarayıcıda çalışan 3B hayatta kalma oyunu. Alp, Kam, Gölge ve kilidi açılan diğer kahramanlarla Üç Diyar'ı geç: Kara Koru'da Tepegöz'ü, Kızıl Bozkır'da Erlik'i devir, Mühürlü Mahzen'de dört tabutun anahtarıyla Dev Hortlak'ı çağır, sonra Son Dalga'da dayanabildiğin kadar dayan. Kademe zorluğu belirler.
 
 Oyun three.js ile çizilir. Karakterler, yaratıklar ve harita prosedürel olarak üretilir. Sesler ve Hicaz makamındaki müzik oyun açılışında bir Worker içinde sentezlenir, dışarıdan dosya yüklenmez.
 

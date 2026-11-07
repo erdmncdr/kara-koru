@@ -43,7 +43,7 @@ export function __init_29() {
   }, {
     k: 'golge', n: 'Gölge', d: 'Hafif ve hızlı bir suikastçı. Kaçmakta ustadır.', w: 'katana',
     p: '%25 hasar, %5 kaçınma, %15 hız, %20 zıplama, yarı düşme hasarı, havada çift zıplama', ps: 'Gölge adımı: kaçındığın saldırıyı yapan düşman infaz edilir. Tavşan sıçraması: yere değer değmez zıplarsan her sıçrama %8 hız katar; her rütbede +%0.5 kaçınma',
-    b: { dmg: .25, eva: .05, spd: .15, jmp: .2, fall: .5, mag: .3, air: 1 }, pr: { eva: .005 }, lock: 'golge', cost: 32, ud: 'Kızıl Bozkır Kademe 1’i bitir ve Yatağan’ı aç.'
+    b: { dmg: .25, eva: .05, spd: .15, jmp: .2, fall: .5, mag: .3, air: 1 }, pr: { eva: .005 }, lock: 'golge', cost: 32, ud: 'Kızıl Bozkır’ın boss’unu devir ve Yatağan’ı aç.'
   }, {
     k: 'bahadir', n: 'Bahadır', d: 'Bozkırın baltacısı. Ganimet biriktirdikçe güçlenir.', w: 'axe',
     p: '%10 hasar, +40 can, %5 zırh, −%6 hız, −%1 şans', ps: 'Ganimet: cebindeki her 10 altın %1 hasar verir, en çok %60; her rütbede +%1.5 hasar',
@@ -51,7 +51,7 @@ export function __init_29() {
   }, {
     k: 'boru', off: 1, n: 'Börü', d: 'Kurt postlu bozkır savaşçısı. Kan kokusu aldıkça azar.', w: 'blood',
     p: '%5 kaçınma, %5 can çalma, %4 hız, %20 zıplama', ps: 'Kan kokusu: her rütbede +%1 can çalma; her 100 öldürme %1 hasar, en çok %50',
-    b: { eva: .05, ls: .05, spd: .04, jmp: .2, mag: .5 }, pr: { ls: .01 }, lock: 'boru', cost: 32, ud: 'Kızıl Bozkır Kademe 2’yi bitir ve Kan Büyüsü’nü aç.'
+    b: { eva: .05, ls: .05, spd: .04, jmp: .2, mag: .5 }, pr: { ls: .01 }, lock: 'boru', cost: 32, ud: 'Kızıl Bozkır’da Erlik’i devir ve Kan Büyüsü’nü aç.'
   }, {
     k: 'ayaz', off: 1, n: 'Ayaz', d: 'Kuzeyin buz şamanı. Düşmanı yavaşlatıp parçalar.', w: 'ice',
     p: '%5 kaçınma, %7.5 hız, %30 zıplama, %50 toplama', ps: 'Dondurucu: yavaşlayan düşmanlara %30 fazla hasar; her rütbede +%0.75 alan',
@@ -59,11 +59,11 @@ export function __init_29() {
   }, {
     k: 'karahan', off: 1, n: 'Kara Han', d: 'Erlik’e and içmiş bir han. Lanet onu güçlendirir.', w: 'corrupt',
     p: '+50 can, %20 zırh, −%3 hız, %10 zorluk', ps: 'Lanetli kan: her rütbede +%1 zorluk',
-    b: { hp: 50, arm: .2, spd: -.03, diff: .1 }, pr: { diff: .01 }, lock: 'karahan', cost: 33, ud: 'Kara Koru Kademe 3’ü bitir ve Erlik Kılıcı’nı aç.'
+    b: { hp: 50, arm: .2, spd: -.03, diff: .1 }, pr: { diff: .01 }, lock: 'karahan', cost: 33, ud: 'Kademe 3’ü bitir ve Erlik Kılıcı’nı aç.'
   }, {
     k: 'tunc', off: 1, n: 'Tunç', d: 'Bakırdan dövülmüş bir otomaton. Gözü keskin, eli titremez.', w: 'rifle',
     p: '−60 can, 50 kalkan, %7 hız, %20 zıplama, yarı düşme hasarı', ps: 'Keskin göz: her rütbede +%1 kritik şansı',
-    b: { hp: -60, shield: 50, spd: .07, jmp: .2, fall: .5, mag: .3 }, pr: { crit: .01 }, lock: 'tunc', cost: 14, ud: 'Kara Koru Kademe 1’i bitir ve Tüfek’i aç.'
+    b: { hp: -60, shield: 50, spd: .07, jmp: .2, fall: .5, mag: .3 }, pr: { crit: .01 }, lock: 'tunc', cost: 14, ud: 'Kademe 1’i bitir ve Tüfek’i aç.'
   }, {
     k: 'kemik', n: 'Kemik', d: 'Mezardan kalkmış bir iskelet. Durmadıkça hızlanır.', w: 'bone',
     p: '%15 hız, %15 zıplama, %30 toplama', ps: 'Hız şeytanı: hızın zamanla %60’a kadar artar, vurulunca dörtte biri gider; hızın yarısı hasara döner; her rütbede +%0.75 hasar',
@@ -111,7 +111,7 @@ export function __init_29() {
   }, {
     k: 'okcu', off: 1, n: 'Okçu', d: 'Bozkırın okçusu. Altını uzaktan görür.', w: 'bolt',
     p: '%7.5 hız, %30 zıplama, çeyrek düşme hasarı, %5 altın', ps: 'Kâr: her rütbede +%1 altın',
-    b: { spd: .075, jmp: .3, fall: .25, mag: .3, gold: .05 }, pr: { gold: .01 }, lock: 'okcu', cost: 18, ud: 'Kara Koru Kademe 2’yi bitir.'
+    b: { spd: .075, jmp: .3, fall: .25, mag: .3, gold: .05 }, pr: { gold: .01 }, lock: 'okcu', cost: 18, ud: 'Kademe 2’yi bitir.'
   }, {
     k: 'orakci', off: 1, n: 'Orakçı', d: 'Tırpanıyla ruh biçer. Hayaletler ona armağan getirir.', w: 'scythe',
     p: '%15 kaçınma, %4 hız, %20 zıplama, %40 toplama', ps: 'Hayalet armağanı: her 60-120 saniyede yanında ücretsiz bir sandık belirir',
@@ -132,7 +132,7 @@ export function heroOn(ci) {
 export const SKINS = [
   { k: 'gold', n: 'Altın', d: 'Rütbe 100', cost: 4, f: ci => rankOf(ci) >= 100 },
   { k: 'dark', n: 'Kara', d: 'Bu karakterle 15.000 öldürme', cost: 1, f: ci => cnt('kc' + ci) >= 15000 },
-  { k: 'fire', n: 'Alev', d: 'Bu karakterle bir Kademe 3 final boss’u devir', cost: 4, f: ci => cnt('k3c' + ci) >= 1 },
+  { k: 'fire', n: 'Alev', d: 'Bu karakterle Kademe 3’te Dev Hortlak’ı devir', cost: 4, f: ci => cnt('k3c' + ci) >= 1 },
   { k: 'acid', n: 'Asit', d: 'Bu karakterle ilk boss’u 6 dakikadan önce devir', cost: 4, f: ci => cnt('fast6c' + ci) >= 1 },
   { k: 'crypt', n: 'Mahzen', d: 'Bu karakterle Mezarlık’ın ilk Mahzen’ini süre eşiğinden önce aç', cost: 4, f: ci => cnt('crypt' + ci) >= 1 },
   // Kızıl ve Beyaz eskiden yalnız Şahmeran'ındı; Şahmeran kadrodan çıkınca Anka'ya geçti
@@ -145,9 +145,9 @@ export const CRYPT_N = { tulpar: 16, kemik: 18, yaban: 18, ayaz: 19, orakci: 19,
 
 // Şapkalar: başarımla açılır (QD içindeki h_* görevleri META.l['hat_<k>'] açar), kozmetik.
 export const HATS = [
-  { k: 'kurbaga1', n: 'Yeşil Kurbağa', d: 'Kara Koru 1. aşamadaki gizli kurbağayı yakala' },
-  { k: 'kurbaga2', n: 'Mavi Kurbağa', d: 'Kara Koru 2. aşamadaki gizli kurbağayı yakala' },
-  { k: 'kurbaga3', n: 'Kızıl Kurbağa', d: 'Kara Koru 3. aşamadaki gizli kurbağayı yakala' },
+  { k: 'kurbaga1', n: 'Yeşil Kurbağa', d: 'Kara Koru’daki gizli kurbağayı yakala' },
+  { k: 'kurbaga2', n: 'Mavi Kurbağa', d: 'Kızıl Bozkır’daki gizli kurbağayı yakala' },
+  { k: 'kurbaga3', n: 'Kızıl Kurbağa', d: 'Mühürlü Mahzen’deki gizli kurbağayı yakala' },
   { k: 'tuccar', n: 'Kara Tüccar Şapkası', d: 'Sıradan tüccardan 100 eşya al' },
   { k: 'tuccar2', n: 'Mavi Tüccar Şapkası', d: 'Seçkin tüccardan 80 eşya al' },
   { k: 'tuccar3', n: 'Mor Tüccar Şapkası', d: 'Destansı tüccardan 60 eşya al' },
@@ -157,17 +157,17 @@ export const HATS = [
   { k: 'tac', n: 'Taç', d: 'Her karakterde rütbe 100' },
   { k: 'kulah', n: 'Kam Külahı', d: 'Kam Külahı eşyasıyla bir koşu bitir' },
   { k: 'soytari', n: 'Soytarı Şapkası', d: 'Kam ile Şaman Maskesi takarken 500 öldür' },
-  { k: 'peynir', n: 'Peynir Şapkası', d: '8 Küflü Peynir ve 1 Yılan taşırken bir Kademe 3 final boss’u devir' },
+  { k: 'peynir', n: 'Peynir Şapkası', d: '8 Küflü Peynir ve 1 Yılan taşırken Kademe 3’te Dev Hortlak’ı devir' },
   { k: 'fes', n: 'Uzun Fes', d: 'Kara Koru’da tek koşuda 300.000 öldürme' },
   { k: 'silindir', n: 'Silindir Şapka', d: 'Kara Koru’da tek koşuda 100.000 öldürme' },
   { k: 'comlek', n: 'Çömlek', d: 'Kemik ile bir koşuda 4 Kazan taşı' },
   { k: 'baret', n: 'Baret', d: 'Bahadır ile bir koşuda 20 sandık aç' },
-  { k: 'tolga', n: 'Demir Tolga', d: 'Alp ile Kılıç, Alp Kılıcı, Erlik Kılıcı ve Tırpan taşırken Kara Koru Kademe 3 final boss’unu devir' },
+  { k: 'tolga', n: 'Demir Tolga', d: 'Alp ile Kılıç, Alp Kılıcı, Erlik Kılıcı ve Tırpan taşırken Kademe 3’te Dev Hortlak’ı devir' },
   { k: 'noel', n: 'Noel Başlığı', d: 'Kara Koru’daki gizli hediyeyi aç' },
-  { k: 'gunes', n: 'Güneş Gözlüğü', d: 'Kemik ile Mezarlık final boss’unu 60 saniyede devir' },
+  { k: 'gunes', n: 'Güneş Gözlüğü', d: 'Kemik ile Dev Hortlak’ı 60 saniyede devir' },
   { k: 'serif', n: 'Şerif Şapkası', d: 'Çalı ile bir boss ya da ara bossu 1 saniyede devir' },
   { k: 'pilot', n: 'Pilot Miğferi', d: 'Anka ile havadayken Kapan ile 1.000 düşman öldür' },
-  { k: 'kavuk', n: 'Kavuk', d: 'Tulpar ile Kızıl Bozkır Kademe 3 final boss’unu devir' },
+  { k: 'kavuk', n: 'Kavuk', d: 'Tulpar ile Kademe 3’ü bitir' },
   { k: 'migfer', n: 'Boynuzlu Miğfer', d: 'Bahadır ile tek koşuda 10.000 düşman öldür' },
   { k: 'sarik', n: 'Sarık', d: 'Kam ile Ateş Topu, Yıldırım ve Kan Büyüsü’nü 40. seviyeye çıkar' },
   { k: 'bork', n: 'Börk', d: 'Alp ile can çalmayla toplam 10.000 can iyileş' },

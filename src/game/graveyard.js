@@ -61,8 +61,10 @@ export function gyKefen() {
 // Tabut bekçisinin canı, tabutun açıldığı ana göre büyür: (aşama süresi / 4 dk)³, en az 1, en çok 60.
 // Sabit canla (1.100-9.000) bekçiler geç açıldığında yarım saniyede ölüyordu (tests/denge.mjs). Megabonk'ta
 // bekçilerin giderek güçlendiği yazılı, sayı yok; eğri ölçümle seçildi.
+// Üç Diyar'da Mahzen 3. aşamadır ve oyuncu iki diyar boyunca güçlenmiş gelir: aşama başına +1 kat (finalde ×3).
+// Çarpansız bekçiler botta 0,3-12 sn'de, ×6 ile 9-109 sn'de düşüyordu (tests/denge.mjs, 8 Kasım 2026).
 export function guardMul() {
-  return Math.max(1, Math.min(60, Math.pow($G.P.stT / 240, 3)));
+  return Math.max(1, Math.min(60, Math.pow($G.P.stT / 240, 3))) * (1 + Math.min(2, $G.P.stage));
 }
 
 // tabut: ara boss çıkar, ölünce anahtar düşürür
@@ -88,11 +90,11 @@ export function gyKill(e) {
     }
     if (e.boss && e.bp && e.bp.n == 'Dev Hortlak') inc('hortlak');
   }
-  if (e.kind == 'baba' && !$G.META.l.mezarlik) {
+  // Kemik'in Babası görevi: Bozkır'daki mezar olayıyla çağrılan baba (Mezarlık'ta ara boss olarak da gelir, o sayılmaz)
+  if (e.kind == 'baba' && mapOf().k == 'bozkir') {
     $G.META.l.mezarlik = 1;
     saveMeta();
     inc('baba');
-    setTimeout(() => toast('Mezarlık haritası açıldı. Menüden seçebilirsin.'), 1200);
   }
   if (e.kind == 'cali') {
     inc('cali');

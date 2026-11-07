@@ -10,7 +10,7 @@ import { SET, saveSet } from '../core/settings.js';
 import { OV, fmt } from '../core/state.js';
 import { ACHD, ACHM, ITD, MAPS, ML, MU, QD, RAR, STATS, TDF, TY, WD, cnt, fmtC, fmtS, fmtU, inc, mu, saveMeta, stl, unl } from '../data/content.js';
 import { BOSSP, KINDS } from '../data/enemies.js';
-import { mapOf, mapOpen, selChal, selMap, tierOpen } from '../game/run.js';
+import { ASAMA, ROTA, YOL, mapOf, selChal, selMap, tierOpen } from '../game/run.js';
 import { A, call } from './actions.js';
 import { CHAL } from '../data/challenges.js';
 import { chalCount, chalDone, chalOf, chalSilver } from '../game/challenge.js';
@@ -54,19 +54,18 @@ export function menuPage(k) {
 
 function selSum() {
   const c = CR[$G.CI],
-    m = MAPS.find(x => x.k == $G.MSEL.map) || MAPS[0],
     ch = $G.MSEL.chal;
-  return `${c.n} · ${m.n} K${$G.MSEL.tier}${ch ? ' · ' + chalOf(ch).n : ''}`;
+  return `${c.n} · Üç Diyar K${$G.MSEL.tier}${ch ? ' · ' + chalOf(ch).n : ''}`;
 }
 
+// Üç Diyar: tek rota (Kara Koru → Kızıl Bozkır → Mühürlü Mahzen), kademe yalnız zorluk
 export function mapHTML() {
-  return `<div class=mg role=group aria-label="Harita ve kademe">${MAPS.map(m => {
-    const open = mapOpen(m),
-      sel = $G.MSEL.map == m.k,
-      best = $G.META.tier[m.k] || 0,
-      ts = m.tiers || 3;
-    return `<div class="mc${sel ? ' on' : ''}${open ? '' : ' lk'}"><div class=mch><b>${m.n}</b><small>${open ? best ? `en yüksek kademe ${best}` : 'henüz bitirilmedi' : 'kilitli'}</small></div><p>${open ? m.d : 'Açmak için: ' + m.ud}</p>${open ? `<span class=tiers>${Array.from({ length: ts }, (_, i) => i + 1).map(t => `<button class="tb${sel && $G.MSEL.tier == t ? ' on' : ''}" ${tierOpen(m.k, t) ? '' : 'disabled'} ${A('pickMap', m.k, t)} title="${tierOpen(m.k, t) ? (t == 1 ? '1 aşama + boss' : t + ' aşama, son boss ' + (t == 3 ? 'arenada' : 'kapıda')) : 'Önce Kademe ' + (t - 1) + ' bitirilmeli'}">Kademe ${t}</button>`).join('')}</span>` : ''}</div>`;
-  }).join('')}</div>`;
+  const best = $G.META.tier[YOL] || 0,
+    ad = { mezarlik: 'Mühürlü Mahzen' },
+    zr = ['Düşmanlar olağan güçte.', 'Düşmanlar daha dayanıklı ve sert, gümüş +%10.', 'En zor: düşmanlar çok dayanıklı ve sert, gümüş +%20.'];
+  return `<div class=mg role=group aria-label="Rota ve kademe"><div class="mc on"><div class=mch><b>Üç Diyar</b><small>${best ? `en yüksek kademe ${best}` : 'henüz bitirilmedi'}</small></div>
+<ol class=rota>${ROTA.map((k, i) => { const m = MAPS.find(x => x.k == k); return `<li><b>${i + 1}. ${ad[k] || m.n}</b><span>${k == 'mezarlik' ? 'Final: mührü kır, dört tabutun bekçisini devir, anahtarlarla Dev Hortlak’ı çağır.' : m.d}</span></li>`; }).join('')}</ol>
+<span class=tiers>${[1, 2, 3].map(t => `<button class="tb${$G.MSEL.tier == t ? ' on' : ''}" ${tierOpen(YOL, t) ? '' : 'disabled'} ${A('pickMap', YOL, t)} title="${tierOpen(YOL, t) ? zr[t - 1] : 'Önce Kademe ' + (t - 1) + ' bitirilmeli'}">Kademe ${t}</button>`).join('')}</span></div></div>`;
 }
 
 // Seçili karakter için kostüm ve şapka seçici
@@ -261,7 +260,7 @@ function mapPage() {
   const c = CR[$G.CI];
   ov(`<div class="mn2 pg"><header class=mph><span class=stp aria-label="Adım 2 / 2"><i class=on></i><i class=on></i></span><h2>Harita</h2><span class=cur>${c.n}</span></header>
  ${mapHTML()}
- <p class=hint>Kademe N, aynı haritada art arda N aşamadır. Her aşamada Boss Kapısı’nı bul, boss’u devir, açılan geçitten bir sonraki aşamaya geç. Son aşamanın boss’u devrilince kademe biter ve bir üst kademe açılır. Diğer haritalar ayrı koşudur, görevlerle açılır.</p>
+ <p class=hint>Her koşu üç diyardan geçer. Her diyarda Boss Kapısı’nı bul, boss’u devir, açılan geçitten sonraki diyara geç. Mahzen’in boss’u devrilince Son Dalga başlar: dayanabildiğin kadar dayan, öldürmelerin sıralamaya girer. Kademe yalnız zorluğu belirler; bitirdiğin kademe bir üstünü açar.</p>
  ${chalHTML()}
  <footer class=row><button class="act alt" ${A('menuPage', 'kahraman')}>Geri <kbd>Esc</kbd></button><button class=act ${A('start')}>Koruya gir <small>${selSum()}</small> <kbd>Enter</kbd></button></footer></div>`, sideCls('harita'));
 }
@@ -401,7 +400,7 @@ export function bestHTML() {
         fx = d.fx ? Object.keys(d.fx).map(f => fxn[f] || f).join(', ') : '';
       return `<div class="mrow q${seen ? ' dn' : ''}"><div><b>${seen ? d.n : '???'}</b><span>${seen ? `${cls[d.t]} · can ${hp} · hız ${sp} · hasar ${dm}${d.ghost ? ' · hayalet' : ''}${fx ? ' · ' + fx : ''}` : 'Henüz görülmedi'}</span></div><span></span><span class=rw>${seen ? n + ' öldürme' : ''}</span></div>`;
     }).join(''),
-    bosses = Object.entries(BOSSP).flatMap(([m, l]) => l.map((b, i) => `<div class="mrow q${cnt('bossk_' + m + i) ? ' dn' : ''}"><div><b>${b.n}</b><span>${(MAPS.find(x => x.k == m) || { n: m }).n} · Kademe ${i + 1}${b.p.length ? ' · ' + b.p.map(p => ({ charge: 'hücum', laser: 'dönen lazer', pylons: 'iyileştiren direkler', disable: 'silah kilidi', summon: 'akrep çağırır', sand: 'bataklık kum', ice: 'donduran mermi', ghosts: 'güdümlü hayalet', lava: 'alev gölü' })[p]).join(', ') : ''}</span></div><span></span><span class=rw>${cnt('bossk_' + m + i) ? cnt('bossk_' + m + i) + ' kez devrildi' : ''}</span></div>`)).join('');
+    bosses = Object.entries(BOSSP).flatMap(([m, l]) => l.map((b, i) => [m, b, i])).filter(([m, b, i]) => m == 'mezarlik' || i < 2).map(([m, b, i]) => `<div class="mrow q${cnt('bossk_' + m + i) ? ' dn' : ''}"><div><b>${b.n}</b><span>${(MAPS.find(x => x.k == m) || { n: m }).n} · ${m == 'mezarlik' ? 'final' : i ? 'Kademe 2-3' : 'Kademe 1'}${b.p.length ? ' · ' + b.p.map(p => ({ charge: 'hücum', laser: 'dönen lazer', pylons: 'iyileştiren direkler', disable: 'silah kilidi', summon: 'akrep çağırır', sand: 'bataklık kum', ice: 'donduran mermi', ghosts: 'güdümlü hayalet', lava: 'alev gölü' })[p]).join(', ') : ''}</span></div><span></span><span class=rw>${cnt('bossk_' + m + i) ? cnt('bossk_' + m + i) + ' kez devrildi' : ''}</span></div>`).join('');
   return `<h3>Düşmanlar ${all.length - unseen}/${all.length}</h3>${rows ? `<div class=achl>${rows}</div>` : ''}${unseen ? `<p class=osub>${unseen} tür henüz görülmedi.</p>` : ''}<h3>Bosslar</h3><div class=achl>${bosses}</div>`;
 }
 
@@ -625,7 +624,7 @@ export function over(w) {
     qd = $G.P.qDone,
     head = $G.P.exited ? 'Korudan çıktın' : 'Öldün';
   if ($('tip')) $('tip').classList.remove('on'); // koşu sonunda ipucu kutusu ekranı kapatmasın
-  ov(`<div class="mn2 ovr"><p class=kk>${mp.n} K${$G.P.tier} · ${$G.P.stage + 1}/${$G.P.tier}. aşama${$G.P.won ? ' · kademe tamamlandı' : ''} · ${CR[$G.CI].n} rütbe ${sv.rk}</p>
+  ov(`<div class="mn2 ovr"><p class=kk>${mp.n} · K${$G.P.tier} · ${$G.P.stage + 1}/${ASAMA}. aşama${$G.P.won ? ' · kademe tamamlandı' : ''} · ${CR[$G.CI].n} rütbe ${sv.rk}</p>
  <h1>${head}</h1>
  <p class=orec>${n ? '<b>Yeni öldürme rekoru.</b>' : 'Rekorun ' + $G.bestK + ' öldürme.'}${$G.P.con ? ' <i class=lbno>Konsol kullanıldı: sıralamaya girmedi.</i>' : $G.P.chal ? ' <i class=lbno>Meydan okumalı koşu sıralamaya girmez.</i>' : $G.META.con ? ' <i class=lbno>Bu profilde konsolla gümüş ya da kilit alındı: ortak sıralamaya yüklenmez.</i>' : ''}</p>${lbs}
  <div class=ost><div><span>Öldürülen</span><b>${$G.kills}</b></div><div><span>Süre</span><b>${fmt($G.P.tt)}</b></div><div><span>Seviye</span><b>${$G.P.lv}</b></div><div><span>Dakikada</span><b>${kpm}</b></div></div>
@@ -681,7 +680,7 @@ export function pause() {
   const g = goal();
   ov(`<div class="sx pzx">
  <aside class=pmn><p class=kk>Duraklatıldı</p><h2>${BIO[$G.BI].n}</h2>
-  <div class=pmt><span class=chip title="Aşama süresi">${CLK}${fmt($G.P.stT)}</span><span class=chip>SVY ${$G.P.lv}</span><span class="chip au">${COIN}${$G.P.gold}</span><span class=chip>${$G.P.stage + 1}/${$G.P.tier}. aşama</span></div>
+  <div class=pmt><span class=chip title="Aşama süresi">${CLK}${fmt($G.P.stT)}</span><span class=chip>SVY ${$G.P.lv}</span><span class="chip au">${COIN}${$G.P.gold}</span><span class=chip>${$G.P.stage + 1}/${ASAMA}. aşama</span></div>
   ${g ? `<p class=pgo>${g}</p>` : ''}
   <nav class=mnav2>
    <button class="mi pri" ${A('resume')}><b>Devam et</b><small>Esc · P</small></button>

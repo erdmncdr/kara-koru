@@ -556,7 +556,7 @@ export function setupStage() {
     const [kx, kz] = spot(0, 0, 60, 200, 10);
     drop(kx, kz, 'ky', 1);
   }
-  if (mk2 == 'koru' && !$G.META.l['hat_kurbaga' + (Math.min(2, $G.P.stage) + 1)]) {
+  if (!$G.META.l['hat_kurbaga' + (Math.min(2, $G.P.stage) + 1)]) { // her diyarda bir gizli kurbağa
     // gizli kurbağa (Megabonk Frog): uzak bir köşede, yaklaşınca zıplayarak kaçar
     const [fx2, fz2] = spot(0, 0, 120, 225, 10);
     spawn('kurbaga', { x: fx2, z: fz2, nodrop: 1 });

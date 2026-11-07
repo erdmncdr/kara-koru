@@ -1,9 +1,12 @@
 // game/run.js · Kara Koru
-// Koşu yapısı: harita, kademe, aşama akışı, uzatma, final arenası, zafer ve çıkış.
+// Koşu yapısı: Üç Diyar rotası, kademe, aşama akışı, uzatma, zafer ve çıkış.
 //
-// Kademe N = N aşama. Her aşamanın Boss Kapısı var; boss devrilince son aşama değilse
-// Sonraki Aşama Geçidi (GATE.st 2), son aşamaysa zafer: Çıkış Geçidi (GATE.st 3) ve Son Dalga.
-// Kademe 3'ün son aşaması küçük bir arenadır. Aşama sayacı dolarsa Uzatma: sonsuz uçan dalga.
+// Üç Diyar rotası (8 Kasım 2026): her koşu üç aşamadır ve her aşama başka bir diyardadır: Kara Koru → Kızıl Bozkır →
+// Mezarlık (Mühürlü Mahzen finali). Kademe yalnız zorluğu belirler (TIERM), aşama sayısını değil. Her aşamanın Boss
+// Kapısı var; boss devrilince son aşama değilse Sonraki Aşama Geçidi (GATE.st 2), son aşamaysa zafer: Çıkış Geçidi
+// (GATE.st 3) ve Son Dalga. Finalde kapı mühürlüdür: dört tabutun bekçisini devirip dört anahtar toplanır (graveyard.js).
+// Aşama sayacı dolarsa Uzatma: sonsuz uçan dalga.
+// Eskiden kademe N = N aşamaydı, bütün aşamalar seçilen haritada geçiyordu ve Kademe 3'ün sonu direkli bir arenaydı.
 
 import { $G } from '../core/store.js';
 import { THREE } from '../engine/three.js';
@@ -33,12 +36,25 @@ export function bossTime() {
 }
 export const ARENA_R = 40;
 
+// Rota: aşama sırasıyla diyarlar. Kademe kaydı, meydan okuma anahtarı ve menü seçimi tek anahtar kullanır (YOL);
+// eski kayıtlarla uyumlu olsun diye 'koru' (Kara Koru kademeleri rota kademesi sayılır).
+export const ROTA = ['koru', 'bozkir', 'mezarlik'];
+export const YOL = 'koru';
+export const ASAMA = ROTA.length;
+
+// Aşama boss'u: diyarın profil listesinden. Koru ve Bozkır'da Kademe 1 hafif biçim, Kademe 2-3 ağır biçim (Ulu
+// Tepegöz, Erlik). Listelerin üçüncü biçimleri (Kadim Tepegöz, Yargıç Erlik: direk ve silah kilidi) eski final
+// arenası içindi, rotada kullanılmıyor. Mezarlık'ta tek boss: Dev Hortlak.
+export function bossIdx(map = $G.P.map, tier = $G.P.tier) {
+  return map == 'mezarlik' ? 0 : Math.min(1, (tier || 1) - 1);
+}
+
 export function mapOf() {
   return MAPS.find(m => m.k == ($G.P ? $G.P.map : $G.MSEL.map)) || MAPS[0];
 }
 
 export function tierOpen(mk, t) {
-  return t <= 1 || ($G.META.tier[mk] || 0) >= t - 1;
+  return t <= 1 || ($G.META.tier[YOL] || 0) >= t - 1;
 }
 
 export function mapOpen(m) {
@@ -49,16 +65,14 @@ export function __init_59c() {
   $G.MSEL = { map: 'koru', tier: 1, chal: '' };
   try {
     const m = JSON.parse(localStorage.getItem('kk_map') || 'null');
-    if (m && MAPS.find(x => x.k == m.map)) $G.MSEL = { map: m.map, tier: Math.max(1, Math.min(3, m.tier | 0 || 1)), chal: m.chal || '' };
+    if (m) $G.MSEL = { map: YOL, tier: Math.max(1, Math.min(3, m.tier | 0 || 1)), chal: m.chal || '' };
   } catch (e) {}
-  const m = MAPS.find(x => x.k == $G.MSEL.map);
-  if (!mapOpen(m)) $G.MSEL.map = 'koru';
-  if (!tierOpen($G.MSEL.map, $G.MSEL.tier)) $G.MSEL.tier = 1;
+  if (!tierOpen(YOL, $G.MSEL.tier)) $G.MSEL.tier = 1;
 }
 
 export function selMap(k, t) {
-  const m = MAPS.find(x => x.k == k);
-  if (!m || !mapOpen(m) || !tierOpen(k, t)) {
+  k = YOL; // tek rota: harita seçimi yok, yalnız kademe
+  if (!tierOpen(k, t)) {
     sfx('deny');
     return;
   }
@@ -77,34 +91,34 @@ export function selChal(k) {
   sfx('ui');
 }
 
-// ara boss zamanları (aşama sayacına göre, saniye)
-// aşama süresi (Megabonk: 10 / 9 / 8 dk; meydan okuma kısaltabilir)
+// aşama süresi: Koru 10 dk, Bozkır 9 dk; Mezarlık finali 10 dk (mühür, dört tabut ve bekçiler zaman ister).
+// Meydan okuma kısaltabilir.
 export function stLen() {
   if ($G.P.stl) return $G.P.stl;
-  if ($G.ARENA) return 600; // final arenası 10 dk
-  if ($G.P.map == 'mezarlik') return 900; // Mezarlık 15 dk
+  if ($G.P.map == 'mezarlik') return 600;
   return [600, 540, 480][Math.min(2, $G.P.stage)];
 }
 
-// ara boss zamanları: 1-2. aşamada 7:00 ve 2:00 kala, 3. aşamada 6:30 ve 1:30 kala
-// (megabonk.wiki Bosses: "7:00 or 2:00 (6:30 or 1:30 for tier 3)"; eskiden 3:00 kalaydı, kaynaklar çelişiyordu)
+// ara boss zamanları (aşama sayacına göre, saniye): Koru 3:00 ve 8:00, Bozkır 2:00 ve 7:00;
+// Mezarlık 2:30 ve 7:30 (ilk iki dakika mühürlü mahzende geçer)
 export function MBT() {
-  if ($G.P.map == 'mezarlik') return [120, 360, 720]; // 13:00, 9:00, 3:00 kala
+  if ($G.P.map == 'mezarlik') return [150, 450];
   return [[180, 480], [120, 420], [90, 390]][Math.min(2, $G.P.stage)];
 }
 
-// akın zamanları: 1-2. aşamada 6:00 ve 3:00 kala, 3. aşamada 5:30 ve 4:00 kala
+// akın zamanları: Koru 4:00 ve 7:00, Bozkır 3:00 ve 6:00, Mezarlık 4:00 ve 7:00
 export function SWT() {
-  if ($G.P.map == 'mezarlik') return [180, 420, 780]; // 12:00, 8:00, 2:00 kala
+  if ($G.P.map == 'mezarlik') return [240, 420];
   return [[240, 420], [180, 360], [150, 240]][Math.min(2, $G.P.stage)];
 }
 
 export function isLast() {
-  return $G.P.stage >= $G.P.tier - 1;
+  return $G.P.stage >= ASAMA - 1;
 }
 
+// eski direkli final arenası rotada yok (final Mühürlü Mahzen); arena kodu Mezarlık mührü için duruyor
 export function isArena() {
-  return $G.P.tier >= 3 && isLast();
+  return false;
 }
 
 // Son aşamanın boss'u devrildi: kademe kaydedilir, Çıkış Geçidi açılır, Son Dalga başlar.
@@ -112,13 +126,13 @@ export function winRun() {
   const P = $G.P;
   P.won = 1;
   P.final = 1;
-  const m = mapOf();
-  $G.META.tier[m.k] = Math.max($G.META.tier[m.k] || 0, P.tier);
+  const m = MAPS.find(x => x.k == YOL);
+  $G.META.tier[YOL] = Math.max($G.META.tier[YOL] || 0, P.tier);
   if (P.tier >= 3) inc('k3c' + $G.CI);
-  inc('win_' + m.k + P.tier + '_' + CR[$G.CI].k);
+  inc('win_' + YOL + P.tier + '_' + CR[$G.CI].k);
   const ck = CR[$G.CI].k;
   if (P.tier >= 3 && (P.I.peynir || 0) >= 8 && P.I.yilan) inc('cheesy'); // Peynir Şapkası: karaktersiz (eskiden Şahmeran)
-  if (P.tier >= 3 && m.k == 'koru' && ck == 'alp' && ['slash', 'hero', 'corrupt', 'scythe'].every(w => P.W.some(x => x.k == w))) inc('ironhelm');
+  if (P.tier >= 3 && ck == 'alp' && ['slash', 'hero', 'corrupt', 'scythe'].every(w => P.W.some(x => x.k == w))) inc('ironhelm');
   if (P.chal) {
     const ck = chalKey(P.chal, m.k, P.tier);
     if (!$G.META.chal[ck]) {
@@ -136,7 +150,7 @@ export function winRun() {
   P.swarm = 1;
   tip('swarm', 'Son Dalga', 'Kademe zaferi sonrası sonsuz hayalet dalgası: 90 saniyede bir gümüş çarpanı +1 (en çok 8×). Dayanabildiğin kadar dayan, sonra Çıkış Geçidi’nden çık.');
   P.swT0 = P.stT;
-  toast(`${m.n} Kademe ${P.tier} tamamlandı. Çıkış geçidi açıldı; kalırsan Son Dalga başlar, gümüş çarpanı büyür.`);
+  toast(`Üç Diyar Kademe ${P.tier} tamamlandı. Çıkış geçidi açıldı; kalırsan Son Dalga başlar, gümüş çarpanı büyür.`);
   sfx('portal');
 }
 

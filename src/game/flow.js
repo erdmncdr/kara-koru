@@ -5,8 +5,8 @@ import { $G } from '../core/store.js';
 import { aInit, sfx } from '../audio/engine.js';
 import { lockP, ov, skFree, toast } from '../core/helpers.js';
 import { OV } from '../core/state.js';
-import { ACHD, ACHM, QD, TOUCH, inc, mu, saveMeta, unl } from '../data/content.js';
-import { mapOf } from './run.js';
+import { ACHD, ACHM, MAPS, QD, TOUCH, inc, mu, saveMeta, unl } from '../data/content.js';
+import { ASAMA, ROTA, mapOf } from './run.js';
 import { itemsClear } from './items.js';
 import { chalApply } from './challenge.js';
 import { sc } from '../engine/renderer.js';
@@ -60,7 +60,7 @@ export function resetRun() {
     opened: 0,
     chests: 0,
     shUsed: 0,
-    map: $G.MSEL.map,
+    map: ROTA[0],
     tier: $G.MSEL.tier,
     rr: 1 + mu('rr'),
     bn: mu('bn'),
@@ -191,18 +191,19 @@ export function nextStage() {
   sfx('portal');
   const ns = $G.P.stage + 1,
     mp = mapOf(),
-    bi = mp.bi,
-    arena = $G.P.tier >= 3 && ns >= $G.P.tier - 1;
-  // Kızıl Bozkır: Kara Koru Kademe 2'de 2. aşamaya geçince açılır
-  if (mp.k == 'bozkir' && $G.P.stage == 0 && ($G.P.bossCurN || 0) >= 2 && CR[$G.CI].k == 'golge') inc('headset'); // bossCur boss çağrılınca sıfırlandığı için koşul hiç sağlanamıyordu
-  if (mp.k == 'koru' && $G.P.tier >= 2 && ns >= 1 && !$G.META.l.bozkir) { // eskiden yalnız Tunç ile; Tunç kadrodan çıktı
+    nk = ROTA[Math.min(ROTA.length - 1, ns)],
+    nm = MAPS.find(m => m.k == nk) || mp,
+    bi = nm.bi,
+    fin = nk == 'mezarlik';
+  if (mp.k == 'bozkir' && ($G.P.bossCurN || 0) >= 2 && CR[$G.CI].k == 'golge') inc('headset'); // bossCur boss çağrılınca sıfırlandığı için koşul hiç sağlanamıyordu
+  if (nk == 'bozkir' && !$G.META.l.bozkir) { // görev: Kızıl Bozkır'a ulaş
     $G.META.l.bozkir = 1;
     saveMeta();
-    setTimeout(() => toast('Kızıl Bozkır haritası açıldı. Menüden seçebilirsin.'), 3000);
   }
-  ov(`<div class=trn><p>${mp.n} · Kademe ${$G.P.tier} · Aşama ${ns + 1} / ${$G.P.tier}</p><h2>${arena ? 'Final arenası' : BIO[bi].n}</h2><p class=sub>${arena ? 'Küçük bir mühür alanı. Final boss’u burada seni bekliyor; kaçacak yer yok.' : 'Düşmanlar daha güçlü, sandıklar daha değerli. Sayaç sıfırdan başlar; Boss Kapısı’nı bul ve boss’u devir.'}</p></div>`, 'mid');
+  ov(`<div class=trn><p>Üç Diyar · Kademe ${$G.P.tier} · Aşama ${ns + 1} / ${ASAMA}</p><h2>${fin ? 'Mühürlü Mahzen' : BIO[bi].n}</h2><p class=sub>${fin ? 'Son diyar, Erlik’in eşiği. Mührü kır, dört tabutun bekçisini devir, anahtarlarla Boss Kapısı’nı aç.' : 'Yeni diyar: düşmanlar daha güçlü, sandıklar daha değerli. Sayaç sıfırdan başlar; Boss Kapısı’nı bul ve boss’u devir.'}</p></div>`, 'mid');
   setTimeout(() => {
     $G.P.stage = ns;
+    $G.P.map = nk;
     // Aşama saati her aşamada sıfırdan başlar. Eskiden birikiyordu ve boss ölünce stLen() − 10'a atlıyordu; 2. aşama
     // (540 sn) ilk saniyeden "süre doldu" sayılıyor, baştan sona Uzatma'da geçiyor, ara bosslar ve akınlar gelmiyordu.
     // Zorluk, doğuş hızı ve tür listesi aşamayı ayrıca hesaba katar (SF, stage × 240 ...), saat aşama içi süredir.
@@ -221,16 +222,16 @@ export function nextStage() {
 }
 
 export function stageReady(bi) {
-  const arena = $G.P.tier >= 3 && $G.P.stage >= $G.P.tier - 1,
-    m = arena ? 'Mühür birkaç saniye içinde çözülür ve boss gelir.' : 'Etraftaki kristaller ve altınlar seninle geldi. Yeni aşamanın sayacı başladı.';
+  const fin = $G.P.map == 'mezarlik',
+    m = fin ? 'Mahzen mühürlü: iki dakika içinde 30 düşman devir, yoksa Kara Kefen uyanır.' : 'Etraftaki kristaller ve altınlar seninle geldi. Yeni aşamanın sayacı başladı.';
   if (TOUCH) {
     $G.S = 'play';
     OV.classList.add('h');
-    toast((arena ? 'Final arenası' : BIO[bi].n) + '. ' + m);
+    toast((fin ? 'Mühürlü Mahzen' : BIO[bi].n) + '. ' + m);
     return;
   }
   $G.S = 'ready';
-  ov(`<div class=trn><p>Aşama ${$G.P.stage + 1} / ${$G.P.tier} hazır</p><h2>${arena ? 'Final arenası' : BIO[bi].n}</h2><p class=sub>${m}</p><div class=row style="justify-content:center"><button class=act ${A('goReady')}>Devam et <kbd>E</kbd></button></div></div>`, 'mid');
+  ov(`<div class=trn><p>Aşama ${$G.P.stage + 1} / ${ASAMA} hazır</p><h2>${fin ? 'Mühürlü Mahzen' : BIO[bi].n}</h2><p class=sub>${m}</p><div class=row style="justify-content:center"><button class=act ${A('goReady')}>Devam et <kbd>E</kbd></button></div></div>`, 'mid');
 }
 
 export function goReady() {

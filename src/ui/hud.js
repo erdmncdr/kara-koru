@@ -13,7 +13,7 @@ import { cam } from '../engine/renderer.js';
 import { tv } from '../engine/vfx.js';
 import { price } from '../game/objects.js';
 import { BN, KZ_ADIM, MBN, diffPct, gdm, swT } from '../game/stats.js';
-import { MBT, SWT, stLen } from '../game/run.js';
+import { ASAMA, MBT, ROTA, SWT, stLen } from '../game/run.js';
 import { hudItems, hudSlots, buildHTML } from './cards.js';
 import { GL, klTarget } from './leaderboard.js';
 import { BIO } from '../world/terrain.js';
@@ -34,11 +34,11 @@ export function goal() {
   if (mz && mz.keys < 4 && $G.GATE.st == 0) return `Dört tabutu aç, anahtarları topla: ${mz.keys}/4. Sonra mühürlü kapıda ${b}’u çağır.`;
   if ($G.GATE.st == 3) return 'Kademe tamamlandı. Çıkış geçidinden çık ve puanını al ya da Son Dalga’da kal, gümüş çarpanı büyüsün.';
   if ($G.GATE.st == 0) {
-    if (Math.hypot($G.GATE.x - $G.P.x, $G.GATE.z - $G.P.z) < 30) tip('gate', 'Boss kapısı', 'E ile boss’u çağırırsın. Boss ölünce kalan süre düşer ve geçit açılır; son aşamada final arenasına geçersin.');
+    if (Math.hypot($G.GATE.x - $G.P.x, $G.GATE.z - $G.P.z) < 30) tip('gate', 'Boss kapısı', 'E ile boss’u çağırırsın. Boss ölünce geçit açılır ve sonraki diyara geçersin: Kara Koru, Kızıl Bozkır, sonra Mühürlü Mahzen.');
     return $G.P.ot ? `Uzatma. Kapıya git ve ${b}’ü çağır.` : `Güçlen, sonra kapıyı bul ve ${b}’ü çağır.`;
   }
   if ($G.GATE.st == 1) return `${b}’ü devir.`;
-  return 'Geçit açık. Kapıdan geçip ' + ($G.P.stage + 2) + '. aşamaya ilerle. Sayaç orada sıfırdan başlar.';
+  return 'Geçit açık. Kapıdan geçip ' + (ROTA[$G.P.stage + 1] == 'mezarlik' ? 'Mühürlü Mahzen’e' : 'Kızıl Bozkır’a') + ' ilerle. Sayaç orada sıfırdan başlar.';
 }
 
 export function __init_71() {
@@ -223,7 +223,7 @@ export function yolUpd() {
   if (key != $G.yk) {
     $G.yk = key;
     const mb = MBT();
-    $G.YEV = (sw ? [[60, 'gh', 'Albastılar'], [360, 'gh2', 'Mor Albastılar'], [720, 'gh3', 'Kızıl Albastılar']] : [[mb[0], 'mb', 'Ara boss'], ...SWT().map(x => [x, 'ak', 'Akın']), [mb[1], 'mb', 'Ara boss'], [stLen(), 'sd', 'Uzatma'], ...($G.ARENA ? [] : Array.from({ length: Math.floor((stLen() - 1) / KZ_ADIM) }, (_, i) => [(i + 1) * KZ_ADIM, 'kz', 'Kızışma']))].filter(e => e[0] <= (stLen()))).sort((a, b) => a[0] - b[0]);
+    $G.YEV = (sw ? [[60, 'gh', 'Albastılar'], [360, 'gh2', 'Mor Albastılar'], [720, 'gh3', 'Kızıl Albastılar']] : [[mb[0], 'mb', 'Ara boss'], ...SWT().map(x => [x, 'ak', 'Akın']), [mb[1], 'mb', 'Ara boss'], [stLen(), 'sd', 'Uzatma'], ...(Array.from({ length: Math.floor((stLen() - 1) / KZ_ADIM) }, (_, i) => [(i + 1) * KZ_ADIM, 'kz', 'Kızışma']))].filter(e => e[0] <= (stLen()))).sort((a, b) => a[0] - b[0]);
     $('yolt').innerHTML = '<i id=yolf></i>' + $G.YEV.map(([x, k, n]) => `<span class="ev ${k}" style="left:${x / span * 100}%" title="${n}"></span>`).join('');
   }
   $('yolf').style.width = Math.min(100, t / span * 100) + '%';
@@ -245,7 +245,7 @@ export function hud() {
     $G.hk = s;
     $('tm').textContent = $G.P.swarm ? '+' + fmt(swT()) : rem <= 0 ? '+' + fmt(-rem) : fmt(rem);
     $('tm').className = $G.P.swarm || rem <= 0 ? 'sw' : '';
-    $('stn').textContent = `${BIO[$G.BI].n} K${$G.P.tier}, ${$G.P.stage + 1}/${$G.P.tier}. aşama · Zorluk +%${diffPct()}`;
+    $('stn').textContent = `${BIO[$G.BI].n} K${$G.P.tier}, ${$G.P.stage + 1}/${ASAMA}. aşama · Zorluk +%${diffPct()}`;
     $('tml').textContent = $G.P.swarm ? 'son dalgada' : rem <= 0 ? 'uzatmada' : 'uzatmaya';
     $('lvb').textContent = $G.P.lv;
     $('hpt').textContent = Math.ceil(Math.max(0, $G.P.hp)) + ' / ' + $G.P.mh;
@@ -344,7 +344,7 @@ export function wlUpd() {
     if ($G.GATE) {
       const d = Math.hypot($G.GATE.x - $G.P.x, $G.GATE.z - $G.P.z),
         b = BN();
-      if (d < 30 || $G.GATE.st == 1) add($G.GATE.x, $G.GATE.m.position.y + 11.5, $G.GATE.z, TOUCH && $G.GATE.st == 0 && d < 12 ? `<span class=gt>Boss kapısı</span><small><button class="tb sm" ${A('summonBoss')}>${b}’ü çağır</button></small>` : $G.GATE.st == 3 ? `<span class=pt>Çıkış geçidi</span><small>${d < 12 ? E_ + 'koşuyu bitir, puanını al' : Math.round(d) + ' m'}</small>` : $G.GATE.st == 2 ? `<span class=pt>Geçit açık</span><small>${d < 12 ? E_ + ($G.P.tier >= 3 && $G.P.stage + 1 >= $G.P.tier - 1 ? 'final arenasına' : ($G.P.stage + 2) + '. aşamaya') + ' geç' : Math.round(d) + ' m'}</small>` : `<span class=gt>Boss kapısı</span><small>${$G.GATE.st == 1 ? b + '’ü devir' : d < 12 ? E_ + b + '’ü çağır' : Math.round(d) + ' m'}</small>`, 600);
+      if (d < 30 || $G.GATE.st == 1) add($G.GATE.x, $G.GATE.m.position.y + 11.5, $G.GATE.z, TOUCH && $G.GATE.st == 0 && d < 12 ? `<span class=gt>Boss kapısı</span><small><button class="tb sm" ${A('summonBoss')}>${b}’ü çağır</button></small>` : $G.GATE.st == 3 ? `<span class=pt>Çıkış geçidi</span><small>${d < 12 ? E_ + 'koşuyu bitir, puanını al' : Math.round(d) + ' m'}</small>` : $G.GATE.st == 2 ? `<span class=pt>Geçit açık</span><small>${d < 12 ? E_ + (ROTA[$G.P.stage + 1] == 'mezarlik' ? 'Mühürlü Mahzen’e' : 'Kızıl Bozkır’a') + ' geç' : Math.round(d) + ' m'}</small>` : `<span class=gt>Boss kapısı</span><small>${$G.GATE.st == 1 ? b + '’ü devir' : d < 12 ? E_ + b + '’ü çağır' : Math.round(d) + ' m'}</small>`, 600);
     }
     for (const c of $G.CH) {
       const q = c.m.position,

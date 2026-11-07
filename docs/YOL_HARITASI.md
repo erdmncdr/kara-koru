@@ -529,6 +529,16 @@ Kalan açık yok. Kaynaksız: elit çarpanları ve ilk elitin bedava sandığı,
 - **Ölüm vuruşu:** 0.55 sn yavaş çekim, sarsıntı 1.6, altın ve turuncu iki halka, 40 kıvılcım. Boss gövdesi 2.6 sn kalır: öne devrilir (`d.big`), yere çarpınca toz + sarsıntı + iniş sesi, sonra toprağa gömülür.
 - **Boss çubuğu:** final arenasında %75/50/25 evre işaretleri (`#bb.ph`), %25 altında kızıl parlama (`.low`), direkler açıkken mavi ve "korunuyor" etiketi (`.inv`).
 
+### Üç Diyar rotası: her aşama başka diyar, kademe zorluk, final Mühürlü Mahzen (8 Kasım 2026)
+
+- **Karar (Erdem):** Koşu akışı Megabonk'unkine benzesin ama birebir olmasın. Eski yapı Megabonk'la aynıydı: kademe N = aynı haritada N aşama, Kademe 3'ün sonu direkli final arenası (boss %75/50/25'te dokunulmaz, direkler).
+- **Yeni yapı:** Her koşu üç aşama, her aşama başka diyar: Kara Koru → Kızıl Bozkır → Mezarlık (Mühürlü Mahzen). `run.js ROTA`, `nextStage` geçişte `P.map`'i değiştirir; `setupStage` dünyayı, düşman listesini, sunakları ve boss'u diyara göre kurar. Kademe yalnız zorluk (`TIERM`); harita seçimi kalktı, menüde tek "Üç Diyar" kartı ve kademe düğmeleri.
+- **Final:** Mahzen'in kendi mekaniği: başta mühür (2 dk'da 30 öldürme, yoksa Kara Kefen), dört tabutun bekçileri, dört anahtar, mühürlü kapıda Dev Hortlak. Ardından Çıkış Geçidi ve Son Dalga. Direkli arena kapalı (`isArena()` false); Kadim Tepegöz ve Yargıç Erlik biçimleri kullanılmıyor.
+- **Bosslar:** `bossIdx`: Koru ve Bozkır'da K1 hafif biçim (Tepegöz, Küçük Erlik), K2-3 ağır biçim (Ulu Tepegöz, Erlik). Dev Hortlak canı 130 bin → 22 bin (final aşama çarpanı ×6 yüzünden). Mahzen süresi 15 → 10 dk; ara bosslar 2:30 ve 7:30, akınlar 4:00 ve 7:00. Tabut bekçisi canı aşama başına +1 kat (finalde ×3).
+- **Kayıt ve görevler:** Kademe kaydı `META.tier.koru` (eski Kara Koru kademeleri rota kademesi sayılır). Haritaya bağlı görevler rotaya çevrildi; eski Bozkır sayaçları (win_bozkir2/3, tier.bozkir) hâlâ sayılıyor. Bozkır/Mezarlık harita kilitleri anlamsız: "Kızıl Bozkır'ı aç" → "Kızıl Bozkır'a ulaş", Kemik'in Babası görevi artık harita açmıyor. Kurbağa şapkaları her diyarda bir. Çalı yumağı (yalnız Bozkır) önce Yatağan'ı, sonra K2+'da Çakaralmaz'ı düşürür. Başarımlar a_m_bozkir/mezarlik kaldırıldı.
+- **Ölçüm (tests/denge.mjs, ölümsüz bot, rotaya uyarlandı):** Kam, Alp, Bahadır K1-K3: üç diyar ve Dev Hortlak devrildi; aşama bossları 20-280 sn (çoğu 60-160), Dev Hortlak 16-158 sn; tabut bekçileri ×3 ile 0,3-57 sn. Ölümsüz bot K3'te tek karede gelen ani hasarla iki kez öldü (yavaşlatılmışken tank sürüsü). Smoke 74/74; shader sayımı diyar geçişlerini hariç tutuyor (yeni biyomun programları geçiş ekranında derleniyor).
+- **Açık:** Kademe 1'de yeni oyuncu artık 2. ve 3. aşama zorluğunu da görüyor; gerçek oyuncu denemesi gerekiyor. Sıralama kademeyi ayırmıyor.
+
 ### Kızışma: aşama uzadıkça düşman vuruşu sertleşir (7 Kasım 2026)
 
 - **Sorun:** Erdem Kam ile 1. aşamada 6. dakikayı geçtiğinde hâlâ ölmüyordu. `DMK` (sıradan düşman hasarı) aşama saatini hiç görmüyordu; süreyle yalnız can (`diff`), doğuş hızı ve tür listesi büyüyordu.

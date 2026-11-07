@@ -58,7 +58,7 @@ const vis = await pg.evaluate(() => {
   menuPage('kahraman'); o.hero = see(/Devam/) && document.querySelectorAll('.hc').length === heroIdx().length && !!document.querySelector('.hc.on');
   // kadro gezinmesi (ok tuşu = selC(CI ± 1)): Bahadır'dan (3) ileri Kemik'e (8) atlar, Alp'ten geri Tulpar'a sarar
   { const c0 = CI; selC(3, 1); selC(CI + 1, 1); const fw = CR[CI].k; selC(0, 1); selC(CI - 1, 1); const bw = CR[CI].k; o.nav = fw + '/' + bw; selC(c0, 1); }
-  menuPage('harita'); o.map = see(/Koruya gir/) && document.querySelectorAll('.mc').length === MAPS.length;
+  menuPage('harita'); o.map = see(/Koruya gir/) && see(/Üç Diyar/) && document.querySelectorAll('.mc').length === 1 && document.querySelectorAll('.rota li').length === 3;
   return o;
 });
 ok('menü sayfaları: Oyna, kahraman, harita, kadro gezinmesi', vis.ana && vis.pg0 === 'ana' && vis.hero && vis.nav === 'kemik/tulpar' && vis.map, vis);
@@ -414,7 +414,8 @@ const f5 = await pg.evaluate(() => {
 ok('düşman türleri, boss profilleri, güçler', f5.kinds >= 35 && f5.pud === 7 && f5.bio === 'Mezarlık' && f5.pick === 'string' && f5.poi && f5.akrepFx && f5.staticOk && f5.rollMoved && f5.wdis === 1 && f5.pylons >= 2 && f5.wdisAfter === 0 && f5.fast === 1 && f5.laser && f5.bossName === 'erlik' && f5.nuke >= 10, f5);
 // Mezarlık: mühürlü mahzen, tabutlar, anahtarlar, Dev Hortlak
 const gy = await pg.evaluate(() => {
-  META.l.mezarlik = 1; selMap('mezarlik', 1); start(); P.inv = 1e9;
+  // Üç Diyar: Mahzen rotanın 3. aşaması; test doğrudan oraya kurar
+  selMap('koru', 1); start(); P.inv = 1e9; P.stage = 2; P.map = 'mezarlik'; setupStage();
   const out = { mz: !!P.mz, arena: ARENA, coffins: SH.filter(s => s.t === 10).length };
   out.mzK = P.mzK ? { pots: P.mzK.pots.length, ch: P.mzK.ch } : null; { const c0 = cnt('mzclean'); for (const p of P.mzK.pots) p.o = 1; P.mzOpened = P.mzK.ch; for (let i = 0; i < 20; i++) upd(1 / 60); out.mzClean = cnt('mzclean') - c0; }
   for (let i = 0; i < 32; i++) { spawn(0, { x: P.x + 4, z: P.z + 4 }); const e = E[E.length - 1]; e.hp = 0; killE(e) } E = E.filter(e => !e.dead); upd(1 / 60);
@@ -431,13 +432,13 @@ const gy = await pg.evaluate(() => {
   // harita yatırımı: her biyomun kendi süs seti kuruluyor (instanced mesh geometri anahtarları)
   const keys = () => { const k = new Set(); WG.traverse(c => { if (c.geometry && c.geometry.userData && c.geometry.userData.key) k.add(c.geometry.userData.key) }); return k };
   const km = keys(); out.mzKeys = ['tomb0', 'tomb1', 'tomb2', 'fence', 'lantern', 'rt_dead1', 'rt_dead4'].every(k => km.has(k)) && !km.has('spire1') && !km.has('cactus'); out.mzLm = LMS.some(l => l.t === 'kurgan') && !LMS.some(l => l.t === 'mesa'); out.mzFog = WG.children.filter(c => c.material && c.material.isShaderMaterial).length;
-  META.l.bozkir = 1; selMap('bozkir', 1); start(); P.inv = 1e9; const kb = keys(); out.bzKeys = ['cactus', 'outcrop', 'spire1', 'agave'].every(k => kb.has(k)) && !kb.has('tomb0') && LMS.some(l => l.t === 'lostcaravan'); delete META.l.bozkir;
-  selMap('koru', 3); start(); P.inv = 1e9; delete META.l.mezarlik;
+  start(); P.inv = 1e9; P.stage = 1; P.map = 'bozkir'; setupStage(); const kb = keys(); out.bzKeys = ['cactus', 'outcrop', 'spire1', 'agave'].every(k => kb.has(k)) && !kb.has('tomb0') && LMS.some(l => l.t === 'lostcaravan');
+  selMap('koru', 3); start(); P.inv = 1e9;
   const kk = keys(); out.koKeys = ['pstone', 'rt_pine1', 'rl_pine1', 'rt_broad1', 'rl_autumn9', 'rt_dead1', 'rk_moss1', 'rg_green1', 'rb_broad1'].every(k => kk.has(k)) && !kk.has('tomb0');
   return out;
 });
 ok('harita süs setleri: Mezarlık, Bozkır, Koru', gy.mzKeys && gy.mzLm && gy.bzKeys && gy.koKeys, { mzKeys: gy.mzKeys, mzLm: gy.mzLm, mzFog: gy.mzFog, bzKeys: gy.bzKeys, koKeys: gy.koKeys });
-ok('Mezarlık akışı', gy.mz && gy.mzK && gy.mzK.pots >= 8 && gy.mzK.ch >= 2 && gy.mzClean === 1 && gy.arena === 30 && gy.coffins === 4 && gy.open === 1 && gy.arenaAfter === 0 && gy.hid && gy.hidUl && gy.mini && gy.gm === '1,1,8,60' && gy.gHp === 1100 * 8 && gy.keys === 1 && gy.mbRot === 'baba,hayaletbeyi,baba' && gy.mbAt === '780,540,180' && gy.gateLocked && gy.gate === 1 && gy.boss === 'Dev Hortlak' && gy.bn === 'Dev Hortlak', gy);
+ok('Mezarlık akışı', gy.mz && gy.mzK && gy.mzK.pots >= 8 && gy.mzK.ch >= 2 && gy.mzClean === 1 && gy.arena === 30 && gy.coffins === 4 && gy.open === 1 && gy.arenaAfter === 0 && gy.hid && gy.hidUl && gy.mini && gy.gm === '3,3,24,180' && gy.gHp === 1100 * 24 && gy.keys === 1 && gy.mbRot === 'baba,hayaletbeyi' && gy.mbAt === '450,150' && gy.gateLocked && gy.gate === 1 && gy.boss === 'Dev Hortlak' && gy.bn === 'Dev Hortlak', gy);
 
 // Faz 6: görev sayısı, eşya kilitleri, Toggler, dükkân görev kapıları, meydan okumalar, başarımlar
 const f6 = await pg.evaluate(() => {
@@ -494,7 +495,7 @@ const f8 = await pg.evaluate(() => {
   out.aip = typeof AfterimagePass == 'function' && 'mb' in SET; const q0 = SET.q, b0 = SET.bl;
   SET.q = 2; SET.bl = 1; SET.mb = 1; gfxInit(); out.aipOn = !!(AIP && AIP.enabled); SET.mb = 0; mbApply(); out.aipOff = !AIP || !AIP.enabled; gfxFree(); SET.q = q0; SET.bl = b0; applyQ();
   // bestiyer
-  const h = bestHTML(); out.best = (h.match(/class="mrow/g) || []).length; out.bestBoss = /Kademe 3/.test(h) && /Erlik/.test(h);
+  const h = bestHTML(); out.best = (h.match(/class="mrow/g) || []).length; out.bestBoss = /Kademe 2-3/.test(h) && /Erlik/.test(h) && /final/.test(h) && !/Yargıç Erlik/.test(h);
   inc('k_kind_akrep'); out.bestSeen = /Akrep<\/b>/.test(bestHTML());
   // meydan okuma koşulları
   const ch0 = META.chal; META.chal = { a: 1, b: 1, c: 1, d: 1, e: 1, f: 1 }; const l0 = META.l.vortex; META.l.vortex = 1;
@@ -772,11 +773,13 @@ ok('bildirim boss çubuğunu örtmüyor', !grave.overlap);
 
 // aşama geçişi, hazır ekranı, kapı etiketi
 // boss ölünce saat 590'a atlar; yeni aşamada saat sıfırdan başlamalı (yoksa 540 sn'lik 2. aşama baştan Uzatma'da geçer)
+// Diyar değişince yeni biyomun programları geçiş ekranında derlenir; shader sayımı geçişleri dışarıda bırakır
+const warmA = await pg.evaluate(() => R.info.programs.length);
 await pg.evaluate(() => { for (const e of E.slice()) { e.hp = 0; killE(e) } E = []; P.xp = 0; if (S === 'choice') back(); S = 'play'; GATE.st = 2; P.stT = 590; nextStage() });
 await sleep(4000);
 await pg.screenshot({ path: out + '/3_stage2.png', timeout: 180000 });
 const st = await pg.evaluate(() => ({ S, stage: P.stage, biome: BIO[BI].n, stT: Math.round(P.stT), ot: P.ot || 0 }));
-ok('2. aşamaya geçildi, aşama saati sıfırdan', st.stage === 1 && st.biome === 'Kara Koru' && st.stT < 60 && st.ot === 0, st);
+ok('2. aşamaya geçildi (Kızıl Bozkır), aşama saati sıfırdan', st.stage === 1 && st.biome === 'Kızıl Bozkır' && st.stT < 60 && st.ot === 0, st);
 await pg.keyboard.press('e');
 ok('hazır ekranı E ile kapanıyor', await pg.evaluate(() => S === 'play' || S === 'choice'));
 // 2. aşamada ara boss kendi anında gelir ve Uzatma başlamaz
@@ -785,22 +788,23 @@ ok('2. aşamada ara boss geliyor, Uzatma yok', s2.mini && s2.at === 120 && s2.ot
 await pg.evaluate(() => { back(); S = 'play'; GATE.st = 2; P.x = GATE.x + 4; P.z = GATE.z + 4; P.y = groundTop(P.x, P.z) + 1; P.inv = 1e9 });
 await sleep(2500);
 const lab = await pg.evaluate(() => { S = 'play'; cam.position.set(GATE.x, GATE.m.position.y + 9, GATE.z + 18); cam.lookAt(GATE.x, GATE.m.position.y + 6, GATE.z); cam.updateMatrixWorld(); wlUpd(); return [...document.querySelectorAll('.wl')].filter(e => e.style.display != 'none').map(e => e.textContent).find(t => /Geçit/.test(t)) || '' });
-ok('kapı etiketi final arenasını gösteriyor', /final arenasına geç/.test(lab), lab);
+ok('kapı etiketi Mühürlü Mahzen’i gösteriyor', /Mühürlü Mahzen’e geç/.test(lab), lab);
 
 // uzatma, sandık fiyatı, zorluk göstergesi
 const ot = await pg.evaluate(() => { S = 'play'; P.opened = 0; const pr = price(); const st0 = P.stT; P.stT = STL + .5; upd(1 / 60); const o = { pr, ot: P.ot > 0, bats: E.filter(e => e.t === 1).length, diff: diffPct() }; P.stT = st0; P.ot = 0; return o });
 ok('uzatma ve sandık fiyatı', ot.pr === 30 && ot.ot && ot.bats >= 4 && ot.diff > 0, ot);
 
-// final arenası: K3 son aşama, mühür duvarı, boss otomatik gelir, zafer ve çıkış
+// Mühürlü Mahzen: 3. aşama Mezarlık, mühür (arena 30), anahtarlar, Dev Hortlak, zafer ve çıkış
 await pg.evaluate(() => { for (const e of E.slice()) { e.hp = 0; killE(e) } E = []; for (const o of G) o.c = 1; G = []; gSync(); P.xp = 0; if (S === 'choice') back(); S = 'play'; GATE.st = 2; nextStage() });
 await sleep(4000);
 await pg.keyboard.press('e');
 await sleep(300);
-const ar = await pg.evaluate(() => ({ S: (S === 'choice' ? (back(), P.xp = 0, S) : S), stage: P.stage, arena: ARENA, wall: !!ARW, gateSt: GATE.st }));
-ok('final arenası kuruldu', ar.S === 'play' && ar.stage === 2 && ar.arena === 40 && ar.wall && ar.gateSt === 0, ar);
+const ar = await pg.evaluate(() => ({ S: (S === 'choice' ? (back(), P.xp = 0, S) : S), stage: P.stage, map: P.map, biome: BIO[BI].n, arena: ARENA, wall: !!ARW, gateSt: GATE.st, mz: !!P.mz }));
+const warmB = await pg.evaluate(() => R.info.programs.length);
+ok('Mühürlü Mahzen kuruldu', ar.S === 'play' && ar.stage === 2 && ar.map === 'mezarlik' && ar.biome === 'Mezarlık' && ar.arena === 30 && ar.wall && ar.mz && ar.gateSt === 0, ar);
 // başsız çizim yavaş, kare süresi .05'e kırpılıyor: oyun saatini doğrudan ilerlet
-const ar2 = await pg.evaluate(() => { for (let i = 0; i < 270; i++) upd(1 / 60); P.x = 60; P.z = 0; upd(1 / 60); return { boss: E.some(e => e.t === 3 && e.boss), gateSt: GATE.st, r: +Math.hypot(P.x, P.z).toFixed(1) } });
-ok('arena boss’u geldi ve oyuncu mühür içinde', ar2.boss && ar2.gateSt === 1 && ar2.r < 40, ar2);
+const ar2 = await pg.evaluate(() => { P.mz.kills = P.mz.need; upd(1 / 60); const open = P.mz.open === 1 && !ARENA; summonBoss(); const locked = GATE.st === 0; P.mz.keys = 4; summonBoss(); const b = E.find(e => e.t === 3 && e.boss); return { open, locked, boss: !!b, bn: b && b.bp && b.bp.n, gateSt: GATE.st } });
+ok('mühür kırıldı, anahtarlarla Dev Hortlak geldi', ar2.open && ar2.locked && ar2.boss && ar2.bn === 'Dev Hortlak' && ar2.gateSt === 1, ar2);
 const win = await pg.evaluate(() => { P.inv = 1e9; for (const e of E) if (e.t === 3) { e.hp = 0; killE(e) } E = E.filter(e => !e.dead); return { gateSt: GATE.st, won: P.won, swarm: P.swarm, tier: META.tier.koru, final: P.final } });
 ok('kademe zaferi ve çıkış geçidi', win.gateSt === 3 && win.won === 1 && win.swarm === 1 && win.tier === 3 && win.final === 1, win);
 await pg.evaluate(() => { if (S === 'choice') back(); P.xp = 0; for (const o of G) o.c = 1; G = []; gSync(); P.stT = P.swT0 + 200; exitRun() });
@@ -893,7 +897,7 @@ const snd = await pg.evaluate(() => typeof AB === 'object' ? Object.keys(AB).len
 ok('ses bankası doluyor', snd > 20, snd);
 
 const warm1 = await pg.evaluate(() => ({ prog: R.info.programs.length, p0: 0 }));
-ok('koşu boyunca yeni shader programı derlenmedi', warm1.prog - warm0.prog <= 3, { before: warm0.prog, after: warm1.prog });
+ok('oynanış sırasında yeni shader programı derlenmedi (diyar geçişleri hariç)', (warmA - warm0.prog) + (warm1.prog - warmB) <= 3, { before: warm0.prog, preTrans: warmA, postTrans: warmB, after: warm1.prog });
 ok('sayfa hatası yok', errs.length === 0, errs.slice(0, 5));
 R.errors = errs;
 fs.writeFileSync(out + '/report.json', JSON.stringify(R, null, 1));

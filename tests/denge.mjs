@@ -5,14 +5,14 @@
 //   node tests/denge.mjs http://localhost:4173/ [kademeler=1,2,3] [bossAnı=300] [tohum=4242]
 //   bossAnı: ilk aşamada boss'un çağrıldığı saniye; sonraki aşamalarda LATER (varsayılan 120) sn sonra çağrılır
 //   TIERM=1,1.6,2.15 node tests/denge.mjs ...   kademe çarpanını o koşu için değiştirir (aday denemek için)
-//   MAP=bozkir node tests/denge.mjs ...           haritayı seçer (koru, bozkir, mezarlik)
+//   Üç Diyar (8 Kasım 2026): her kademe üç aşama, Kara Koru → Kızıl Bozkır → Mühürlü Mahzen; kademeler yalnız zorluk.
 //   CHAL=<anahtar> node tests/denge.mjs ...       meydan okumayla koşar (data/challenges.js)
 //   HERO=kam ALL=1 node tests/denge.mjs ...       kahramanı seçer; ALL=1 bütün silah, tom, eşya ve kahraman kilitlerini açar
 //   (8 kahramanlık etkin kadroyla tarama: her biri için bir koşu; sayfa hatası, NaN ve sıfır hasar aranır)
 //   MORTAL=1 node tests/denge.mjs ...             bot ölümlü oynar: can doldurulmaz (yenilenme, can çalma, kalkan işler), ilk ölümde koşu biter
 //   OUT=dosya.json                                 sonuç dosyası (paralel taramada çakışmasın)
 //   Tarama örneği (7 Kasım 2026, YOL_HARITASI "Bot denge taraması"): 8 kahraman × 3 harita × 2 tohum, ölümlü ve ölümsüz
-//   Mezarlık tek kademedir: bot boss anında dört tabutu sırayla açar, bekçileri devirip anahtarları toplar, sonra Dev Hortlak'ı çağırır.
+//   Mahzen (3. aşama): bot boss anında dört tabutu sırayla açar, bekçileri devirip anahtarları toplar, sonra Dev Hortlak'ı çağırır.
 //
 // Bot: en yakın düşmana yürür, yanındayken daire çizer (kristalleri toplar, sürüyü peşinde gezdirir). Seviye kartında önce boş silah
 // slotunu doldurur, sonra silah yükseltmesi ile tomu dönüşümlü seçer. Altını yettiğinde en yakın sandığı açar.
@@ -23,10 +23,10 @@ import { chromium } from 'playwright';
 import fs from 'node:fs';
 
 const url = process.argv[2] || 'http://localhost:4173/';
-const tiers = (process.env.MAP == 'mezarlik' ? '1' : process.argv[3] || '1,2,3').split(',').map(Number);
+const tiers = (process.argv[3] || '1,2,3').split(',').map(Number);
 const bossAt = +(process.argv[4] || 300), seed = +(process.argv[5] || 4242);
 const TM = process.env.TIERM ? process.env.TIERM.split(',').map(Number) : null;
-const MAP = process.env.MAP || 'koru';
+const MAP = 'koru'; // rota hep Kara Koru'dan başlar
 const HERO = process.env.HERO || '', ALL = !!process.env.ALL, CHALK = process.env.CHAL || '';
 const MORTAL = !!process.env.MORTAL;
 const LATER = +(process.env.LATER || 120); // sonraki aşamalarda boss'un çağrıldığı an (aşama başından sn)
@@ -166,7 +166,7 @@ for (const tier of tiers) {
   const mp = await pg.evaluate(() => { S = 'pause'; window.__bot = null; return P.map + ' K' + P.tier + (P.chal ? ' ' + P.chal.k : ''); });
   if (CHALK && !mp.endsWith(CHALK)) { console.log('meydan okuma uygulanmadı:', mp); await pg.close(); continue; }
   if (!mp.startsWith(MAP)) { console.log('harita açılamadı:', mp); await pg.close(); continue; }
-  for (let stage = 0; stage < tier; stage++) {
+  for (let stage = 0; stage < 3; stage++) {
     // boss anına kadar oyna
     // ilk aşamada bossAt saniye, sonraki aşamalarda 120 saniye güçlenme süresi (koşu saatiyle)
     const t0 = await pg.evaluate(() => P.tt), until = t0 + (stage == 0 ? bossAt : LATER);
@@ -175,7 +175,7 @@ for (const tier of tiers) {
     if (r.stop != 'bossAnı') { out.push({ tier, stage: stage + 1, hata: r.stop, ...r }); if (r.death) console.log('ÖLÜM', JSON.stringify(r.death)); break; }
     let pre = r;
     // Mezarlık: dört tabut, dört bekçi, dört anahtar
-    if (MAP == 'mezarlik') {
+    if (await pg.evaluate(() => P.map) == 'mezarlik') {
       const tab = [];
       for (let i = 0; i < 4; i++) {
         const t0 = r.tt;
@@ -203,7 +203,7 @@ for (const tier of tiers) {
     });
     console.log(JSON.stringify(out[out.length - 1]));
     if (!killed) console.log('TEŞHİS', r.stop, JSON.stringify(r.dbg));
-    if (!killed || stage == tier - 1) break;
+    if (!killed || stage == 2) break;
     // sonraki aşama: geçit gerçek zamanlı 2.4 sn bekler
     // geçiş gerçek zamanlı akar (bot adımlamaz); bu sürede alınan hasar ölçüme girmesin
     await pg.evaluate(() => { S = 'play'; window.__bot.d60 = null; P.inv = 1e9; nextStage(); });

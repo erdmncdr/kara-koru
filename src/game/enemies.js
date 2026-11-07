@@ -21,7 +21,7 @@ import { iskinMat } from '../engine/iskin.js';
 import { graveDone } from './features.js';
 import { BDMAT, GDMAT, GHM2, GHM3, GHMAT, SVMAT, drop, mkChest } from './objects.js';
 import { BN, DMK, MBN, diff, diffMul, ghostHp } from './stats.js';
-import { BOSS_ST, TIERM, bossTime, isLast, stLen, winRun } from './run.js';
+import { BOSS_ST, TIERM, bossIdx, bossTime, isLast, stLen, winRun } from './run.js';
 import { CR } from './heroes.js';
 import { KINDS, ROSTER } from '../data/enemies.js';
 import { bossDied } from './bosses.js';
@@ -388,9 +388,9 @@ export function killE(e) {
       if (!others && !$G.P.final && !$G.ARENA && $G.P.stT < stLen() - 10) {
         // Megabonk: boss ölünce kalan süre gider, 10 saniye sonra Son Dalga başlar
         $G.P.stT = stLen() - 10;
-        toast('Boss devrildi: 10 saniye sonra Son Dalga. Geçit açık.');
+        if (!isLast()) toast('Boss devrildi: 10 saniye sonra Uzatma. Geçit açık, sonraki diyara geç.');
       }
-      inc('bossk_' + $G.P.map + Math.min(($G.P.tier || 1) - 1, $G.P.stage));
+      inc('bossk_' + $G.P.map + bossIdx());
       if (!Object.keys($G.P.I).length && !$G.P.puN && !$G.P.shUsed) inc('pure');
       if (bossEl < 300) inc('fast');
       if (bossEl < 30) inc('boss30');

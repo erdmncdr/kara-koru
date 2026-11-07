@@ -71,7 +71,7 @@ Arayüz artık köprüye dayanmaz (6 Kasım 2026). Menüler HTML'i şablon dizgi
 | `ui/supa.js` | Ortak sıralama: Supabase REST'e paketsiz `fetch` (tüm zamanlar `kk_skor`, haftalık `kk_hafta`, `count=exact` ile oyuncu sayısı; yazma `kk_skor_gonder`), hafta hesabı (`haftaBasi`), gönderilmemiş rekorlar için giden kutusu. Kimlik ve belirteç `ui/hesap.js`'ten (`supaAuth`); şema `supabase/siralama.sql`. |
 | `ui/hesap.js` | Oyuncu hesabı: kullanıcı adı + şifre (Supabase Auth), giriş/kayıt ekranı, oturum yenileme, çıkış. `hesapKapisi()` oyun modülleri başlamadan önce çalışır (`main.js`): hesabın kaydını indirip tarayıcıya yazar; sonra kayıt anahtarları (`HESAP_ANAHTAR`) yoklanır, değişince `kk_kaydet` ile gönderilir. Supabase ayarı yoksa kapalı. |
 | `ui/console.js` | Komut konsolu (varsayılan açık, ayardan kapatılır). Ters tırnak ya da F10 açar; Tab tamamlar (komut, eşya/silah/tom/tür anahtarı), ↑↓ geçmiş, `yardim KOMUT` açıklar; `fps` köşe göstergesi, `kapi` ışınlanma, `kilit`, `turler`, `kisayollar`, `ipuclari sifirla`; `altin`, `gumus`, `seviye`, `esya`, `silah`, `tom`, `dogur`, `boss`, `asama`, `zaman`, `temizle`, `achepsi`, `gorevler`. Açıkken klavye oyuna gitmez. |
-| `game/run.js` | Koşu yapısı (Faz 1): harita ve kademe seçimi (`$G.MSEL`, `kk_map`), `TIERM` kademe çarpanı, `winRun` (son boss → Çıkış Geçidi, Son Dalga), `exitRun`, `otTick` (uzatma: sayaç dolunca uçan dalga), arena (`arenaBuild`/`arenaTrim`/`arenaTick`), `MBT` ara boss zamanları. |
+| `game/run.js` | Koşu yapısı: Üç Diyar rotası `ROTA` (aşama → harita: koru, bozkir, mezarlik; `nextStage` `P.map`'i değiştirir), `ASAMA` = 3, kademe yalnız zorluk (`$G.MSEL.tier`, `kk_map`; kayıt anahtarı `YOL` = 'koru'), `bossIdx` (Koru/Bozkır K1 hafif, K2-3 ağır biçim; Mezarlık Dev Hortlak), `TIERM` kademe çarpanı, `winRun` (son boss → Çıkış Geçidi, Son Dalga), `exitRun`, `otTick` (uzatma: sayaç dolunca uçan dalga), arena (`arenaBuild`/`arenaTrim`/`arenaTick`; yalnız Mahzen mührü kullanır, eski direkli final arenası kapalı: `isArena()` false), `MBT` ara boss zamanları. |
 
 Kurallar:
 
@@ -98,7 +98,7 @@ Kurallar:
 | Tom | `data/content.js` içinde `TDF` (`v` seviye başına, `lock`, `rand` kaos) | `game/stats.js` içinde `calc()`; `fx` taşıyan tomlar rastgele stat biriktirir |
 | Eşya | `data/items.js` içinde `ITD` | `fx` alanı `calc()` ile otomatik uygulanır; tetikli davranış `game/items.js` içinde `IH` (aynı anahtar) |
 | Düşman türü | `data/enemies.js` içinde `KINDS` ve `ROSTER` (taban sınıf `data/content.js` içinde `TY`) | model taban sınıftan, `tint` ile boyanır; ek davranış `fx` bayraklarıyla `game/update.js` içinde |
-| Boss | `data/enemies.js` içinde `BOSSP` (harita → aşama) | saldırılar `game/bosses.js` içinde `bossTick` |
+| Boss | `data/enemies.js` içinde `BOSSP` (harita → biçim, `run.js bossIdx` seçer) | saldırılar `game/bosses.js` içinde `bossTick` |
 | Harita | `data/content.js` içinde `MAPS` | biyom `world/terrain.js` içinde `BIO` (indeks `MAPS.bi`), boss adları `data/enemies.js` içinde `BOSSP` |
 | Sunak | `data/content.js` içinde `SHD`/`SHC` | model `game/objects.js` içinde `mkSh` (9+ için taban model eşlemesi), etki `game/interact.js` içinde `useShrine` |
 | Güç | `data/content.js` içinde `PUD` | etki `game/update.js` içindeki toplama dalı |

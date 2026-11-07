@@ -7,7 +7,7 @@ import { chalStats } from './challenge.js';
 import { addStats, newLayers, resolveStats } from '../data/stats.js';
 import { CR, heroCalc, rankOf } from './heroes.js';
 import { itemCalc } from './items.js';
-import { TIERM } from './run.js';
+import { TIERM, bossIdx } from './run.js';
 import { BOSSP } from '../data/enemies.js';
 
 // Kızışma: aşama saati ilerledikçe sıradan düşmanların vuruşu sertleşir (canları zaten diff() ile büyüyor).
@@ -99,7 +99,7 @@ export function __init_54() {
   // boss adı harita profilinden
   BN = () => {
     const l = BOSSP[$G.P.map] || BOSSP.koru;
-    return l[Math.min(l.length - 1, $G.P.stage)].n;
+    return l[Math.min(l.length - 1, bossIdx())].n;
   };
   BOSSN = BOSSP;
   MBN = {

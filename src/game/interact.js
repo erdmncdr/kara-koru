@@ -17,7 +17,7 @@ import { BN, calc, itemOf, rollItemR } from './stats.js';
 import { back, buildHTML, card, choose, itemOpt, mkOpt, sbOpt, showItem } from '../ui/cards.js';
 import { rmObs } from '../world/terrain.js';
 import { addItem, fireHook, remItem } from './items.js';
-import { exitRun } from './run.js';
+import { bossIdx, exitRun } from './run.js';
 import { BOSSP } from '../data/enemies.js';
 import { bushUse, cageUse, coffinUse, gyKeysOk } from './graveyard.js';
 import { chalApply, chalDone, chalFlag } from './challenge.js';
@@ -291,7 +291,7 @@ export function summonBoss() {
   $G.GATE.rn.material = BMc(0xff7a3a);
   const fin = $G.P.stage >= 1,
     bl = BOSSP[$G.P.map] || BOSSP.koru,
-    pr = bl[Math.min(bl.length - 1, $G.P.stage)];
+    pr = bl[Math.min(bl.length - 1, bossIdx())];
   spawn(3, {
     x: $G.GATE.x + Math.sin($G.GATE.ry) * 10,
     z: $G.GATE.z + Math.cos($G.GATE.ry) * 10,

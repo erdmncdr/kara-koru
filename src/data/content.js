@@ -31,7 +31,7 @@ export function __init_37() {
     tiers: 3,
     lock: 'bozkir',
     d: 'Açık düzlük, hortumlar, kum fırtınası.',
-    ud: 'Kara Koru Kademe 2’de 2. aşamaya geç.'
+    ud: 'Rotanın 2. diyarı.'
   }, {
     k: 'mezarlik',
     n: 'Mezarlık',
@@ -700,7 +700,7 @@ export function __init_37() {
     f: () => [$G.META.st.b + runV('bosses'), 1]
   }, {
     k: 'st2',
-    n: 'Kızıl Bozkır’ı aç',
+    n: 'Kızıl Bozkır’a ulaş',
     r: 60,
     f: () => [$G.META.l.bozkir ? 1 : 0, 1]
   }, {
@@ -760,7 +760,7 @@ export function __init_37() {
     f: () => [$G.META.st.k + runK(), 3000]
   }, {
     k: 'st3',
-    n: 'Herhangi bir haritada Kademe 3’ü bitir',
+    n: 'Kademe 3’ü bitir',
     r: 100,
     f: () => [Object.values($G.META.tier).some(t => t >= 3) ? 1 : 0, 1]
   }, {
@@ -817,7 +817,7 @@ export function __init_37() {
   { k: 'w_dexe', n: 'Kılıç Savuruşu ile 12.500 düşman öldür. Cellat Palası açılır', r: 60, ul: 'dexe', f: () => [cnt('k_slash'), 12500] },
   { k: 'w_sniper', n: 'Keskinlik Tomu’nu 10. seviyeye çıkar. Uzun Menzilli açılır', r: 50, ul: 'sniper', f: () => [tomLv('crit'), 10] },
   { k: 'w_ice', n: 'Buz Küpü ile düşmanları 1.000 kez dondur. Ayaz silahı açılır', r: 50, ul: 'ice', f: () => [cnt('frz_buzkup'), 1000] },
-  { k: 'w_noodle', n: 'Tulpar ile Kızıl Bozkır Kademe 2’yi bitir. Işık Hüzmesi açılır', r: 60, ul: 'noodle', f: () => [cnt('win_bozkir2_tulpar'), 1] },
+  { k: 'w_noodle', n: 'Tulpar ile Kademe 2’yi bitir. Işık Hüzmesi açılır', r: 60, ul: 'noodle', f: () => [Math.min(1, cnt('win_bozkir2_tulpar') + cnt('win_koru2_tulpar')), 1] },
   { k: 'w_dragon', n: 'Kam ile 1.000 Ruh Alevi öldür. Ejder Nefesi açılır', r: 50, ul: 'dragon', f: () => [cnt('kam_ruhalevi'), 1000] },
   { k: 'w_mines', n: 'Havai Fişek ile 7.500 düşman öldür. Kapan açılır', r: 60, ul: 'mines', f: () => [cnt('k_rocket'), 7500] },
   { k: 'w_flask', n: 'Akrep Ana’yı 3 kez öldür. Zehir Şişesi açılır', r: 40, ul: 'flask', f: () => [cnt('k_kind_akrepana'), 3] },
@@ -841,12 +841,12 @@ export function __init_37() {
   { k: 't_curse', n: 'Bir aşama boss’unu aşamanın 5. dakikasından önce devir. Lanet Tomu açılır', r: 60, ul: 't_curse', f: () => [cnt('fast'), 1] },
   { k: 't_chaos', n: 'Kademe 3’te üç aşamada da bütün ocakları, alanından hiç çıkmadan doldur. Kaos Tomu açılır', r: 80, ul: 't_chaos', f: () => [$G.P && $G.P.tier >= 3 ? [0, 1, 2].filter(i => runC('chgall' + i)).length : 0, 3] },
   // ---- karakter koşulları: tamamlanınca Otağ'da gümüşle satın alınır (ul: q_<karakter>)
-  { k: 'c_golge', n: 'Kızıl Bozkır Kademe 1’i bitir ve Yatağan’ı aç. Gölge satın alınabilir', r: 40, ul: 'q_golge', f: () => [($G.META.tier.bozkir >= 1 ? 1 : 0) + ($G.META.l.katana ? 1 : 0), 2] },
+  { k: 'c_golge', n: 'Kızıl Bozkır’ın boss’unu devir ve Yatağan’ı aç. Gölge satın alınabilir', r: 40, ul: 'q_golge', f: () => [($G.META.tier.bozkir >= 1 || cnt('bossk_bozkir0') + cnt('bossk_bozkir1') ? 1 : 0) + ($G.META.l.katana ? 1 : 0), 2] },
   { k: 'c_bahadir', n: '15.000 Gulyabani öldür ve Balta’yı aç. Bahadır satın alınabilir', r: 40, ul: 'q_bahadir', f: () => [Math.min(cnt('kt0'), 15000) + ($G.META.l.axe ? 1 : 0), 15001] },
-  { k: 'c_boru', n: 'Kızıl Bozkır Kademe 2’yi bitir ve Kan Büyüsü’nü aç', r: 50, f: () => [($G.META.tier.bozkir >= 2 ? 1 : 0) + ($G.META.l.blood ? 1 : 0), 2] },
+  { k: 'c_boru', n: 'Kızıl Bozkır’da Erlik’i devir ve Kan Büyüsü’nü aç', r: 50, f: () => [($G.META.tier.bozkir >= 2 || cnt('bossk_bozkir1') ? 1 : 0) + ($G.META.l.blood ? 1 : 0), 2] },
   { k: 'c_ayaz', n: 'Cadı kazanında 3 kez Buz Kristali çoğalt ve Ayaz silahını aç', r: 40, f: () => [Math.min(3, cnt('kz3_buzkristal') ? 3 : $G.P && $G.P.IS && $G.P.IS.kzLast == 'buzkristal' ? $G.P.IS.kzRun : 0) + ($G.META.l.ice ? 1 : 0), 4] },
-  { k: 'c_karahan', n: 'Kara Koru Kademe 3’ü bitir ve Erlik Kılıcı’nı aç', r: 60, f: () => [($G.META.tier.koru >= 3 ? 1 : 0) + ($G.META.l.corrupt ? 1 : 0), 2] },
-  { k: 'c_tunc', n: 'Kara Koru Kademe 1’i bitir ve Tüfek’i aç', r: 30, f: () => [($G.META.tier.koru >= 1 ? 1 : 0) + ($G.META.l.rifle ? 1 : 0), 2] },
+  { k: 'c_karahan', n: 'Kademe 3’ü bitir ve Erlik Kılıcı’nı aç', r: 60, f: () => [($G.META.tier.koru >= 3 ? 1 : 0) + ($G.META.l.corrupt ? 1 : 0), 2] },
+  { k: 'c_tunc', n: 'Kademe 1’i bitir ve Tüfek’i aç', r: 30, f: () => [($G.META.tier.koru >= 1 ? 1 : 0) + ($G.META.l.rifle ? 1 : 0), 2] },
   { k: 'c_kemik', n: '1.000 İskelet okçu öldür. Kemik satın alınabilir', r: 30, ul: 'q_kemik', f: () => [cnt('kt4'), 1000] },
   { k: 'c_pehlivan', n: 'Güç Tomu’nu 7. seviyeye çıkar ve Kor Halkası’nı aç', r: 30, f: () => [Math.min(7, tomLv('dmg')) + ($G.META.l.aura ? 1 : 0), 8] },
   { k: 'c_yaban', n: 'Korudaki kafesi Kafes Anahtarı ile aç', r: 40, f: () => [cnt('cage'), 1] },
@@ -855,7 +855,7 @@ export function __init_37() {
   { k: 'c_gokce', n: 'Girdap’ı aç ve 6 meydan okuma tamamla', r: 40, f: () => [Math.min(6, Object.keys($G.META.chal).length) + ($G.META.l.vortex ? 1 : 0), 7] },
   { k: 'c_sahmeran', n: 'Küflü Peynir ile 50.000 düşman zehirle ve Zehir Şişesi’ni aç', r: 60, f: () => [Math.min(50000, cnt('poisoned')) + ($G.META.l.flask ? 1 : 0), 50001] },
   { k: 'c_anka', n: 'Bozkır hortumuyla havadayken 100 düşman öldür ve Hortum’u aç. Anka satın alınabilir', r: 40, ul: 'q_anka', f: () => [Math.min(100, cnt('tork')) + ($G.META.l.tornado ? 1 : 0), 101] },
-  { k: 'm_mezarlik', n: 'Kemik ile Kızıl Bozkır’da dört mezarı huzura erdir ve Kemik’in Babası’nı devir. Mezarlık haritası açılır', r: 80, ul: 'mezarlik', f: () => [cnt('baba'), 1] },
+  { k: 'm_mezarlik', n: 'Kemik ile Kızıl Bozkır’da dört mezarı huzura erdir ve Kemik’in Babası’nı devir', r: 80, f: () => [cnt('baba'), 1] },
   { k: 'w_scythe2', n: 'Mezarlık’ta Dev Hortlak’ı devir. Tırpan açılır', r: 60, ul: 'scythe', f: () => [cnt('hortlak'), 1] },
   { k: 'w_boom', n: 'Kara Koru’da gizli Parlak Muz’u bul. Kemik Bumerang açılır', r: 40, ul: 'boom', f: () => [cnt('banana'), 1] },
   { k: 'w_nova', n: 'Dönen Kılıçlar ile 3.000 düşman öldür. Şok Dalgası açılır', r: 40, ul: 'nova', f: () => [cnt('k_orbit'), 3000] },
@@ -863,12 +863,12 @@ export function __init_37() {
   { k: 'w_rocket', n: 'Çalı ile 15.000 düşman öldür. Havai Fişek açılır', r: 60, ul: 'rocket', f: () => [cnt('kc' + CR.findIndex(c => c.k == 'cali')), 15000] },
   { k: 'c_cali', n: 'Korudaki şüpheli çalıyı dürt ve Çalı’yı yen, Uzun Menzilli’yi aç. Çalı satın alınabilir', r: 30, ul: 'q_cali', f: () => [Math.min(1, cnt('cali')) + ($G.META.l.sniper ? 1 : 0), 2] },
   { k: 'c_tulpar', n: 'Uçan Hançer’i aç ve 2 meydan okuma tamamla. Tulpar satın alınabilir', r: 40, ul: 'q_tulpar', f: () => [($G.META.l.dagger ? 1 : 0) + Math.min(2, Object.keys($G.META.chal).length), 3] },
-  { k: 'c_okcu', n: 'Kara Koru Kademe 2’yi bitir', r: 30, f: () => [$G.META.tier.koru || 0, 2] },
+  { k: 'c_okcu', n: 'Kademe 2’yi bitir', r: 30, f: () => [$G.META.tier.koru || 0, 2] },
   { k: 'c_orakci', n: 'Tırpan’ı aç ve Mezarlık’ta Kara Kefen’i infazla öldür', r: 60, f: () => [($G.META.l.scythe ? 1 : 0) + Math.min(1, cnt('k_kind_kefen')), 2] },
   // ---- şapkalar (ul: hat_<k>)
-  { k: 'h_kurbaga1', n: 'Kara Koru 1. aşamadaki gizli kurbağayı yakala. Yeşil Kurbağa şapkası', r: 10, ul: 'hat_kurbaga1', f: () => [cnt('frog0'), 1] },
-  { k: 'h_kurbaga2', n: 'Kara Koru 2. aşamadaki gizli kurbağayı yakala. Mavi Kurbağa şapkası', r: 10, ul: 'hat_kurbaga2', f: () => [cnt('frog1'), 1] },
-  { k: 'h_kurbaga3', n: 'Kara Koru 3. aşamadaki gizli kurbağayı yakala. Kızıl Kurbağa şapkası', r: 10, ul: 'hat_kurbaga3', f: () => [cnt('frog2'), 1] },
+  { k: 'h_kurbaga1', n: 'Kara Koru’daki gizli kurbağayı yakala. Yeşil Kurbağa şapkası', r: 10, ul: 'hat_kurbaga1', f: () => [cnt('frog0'), 1] },
+  { k: 'h_kurbaga2', n: 'Kızıl Bozkır’daki gizli kurbağayı yakala. Mavi Kurbağa şapkası', r: 10, ul: 'hat_kurbaga2', f: () => [cnt('frog1'), 1] },
+  { k: 'h_kurbaga3', n: 'Mühürlü Mahzen’deki gizli kurbağayı yakala. Kızıl Kurbağa şapkası', r: 10, ul: 'hat_kurbaga3', f: () => [cnt('frog2'), 1] },
   { k: 'h_tuccar', n: 'Sıradan tüccardan 100 eşya al. Kara Tüccar Şapkası', r: 10, ul: 'hat_tuccar', f: () => [cnt('buyT0'), 100] },
   { k: 'h_tuccar2', n: 'Seçkin tüccardan 80 eşya al. Mavi Tüccar Şapkası', r: 10, ul: 'hat_tuccar2', f: () => [cnt('buyT2'), 80] },
   { k: 'h_tuccar3', n: 'Destansı tüccardan 60 eşya al. Mor Tüccar Şapkası', r: 10, ul: 'hat_tuccar3', f: () => [cnt('buyT3'), 60] },
@@ -878,21 +878,21 @@ export function __init_37() {
   { k: 'h_tac', n: 'Her karakterde rütbe 100’e ulaş. Taç', r: 50, ul: 'hat_tac', f: () => [heroIdx().filter(i => rankOf(i) >= 100).length, heroIdx().length] },
   { k: 'h_kulah', n: 'Kam Külahı eşyasıyla bir koşu bitir. Kam Külahı şapkası', r: 10, ul: 'hat_kulah', f: () => [cnt('hat_kulah'), 1] },
   { k: 'h_soytari', n: 'Kam ile Şaman Maskesi takarken 500 düşman öldür. Soytarı Şapkası', r: 10, ul: 'hat_soytari', f: () => [cnt('maskk'), 500] },
-  { k: 'h_peynir', n: '8 Küflü Peynir ve 1 Yılan taşırken bir Kademe 3 final boss’u devir. Peynir Şapkası', r: 20, ul: 'hat_peynir', f: () => [cnt('cheesy'), 1] },
-  { k: 'h_fes', n: 'Kara Koru’da tek koşuda 300.000 düşman öldür. Uzun Fes', r: 40, ul: 'hat_fes', f: () => [$G.P && $G.P.map == 'koru' ? runK() : 0, 300000] },
-  { k: 'h_silindir', n: 'Kara Koru’da tek koşuda 100.000 düşman öldür. Silindir Şapka', r: 30, ul: 'hat_silindir', f: () => [$G.P && $G.P.map == 'koru' ? runK() : 0, 100000] },
+  { k: 'h_peynir', n: '8 Küflü Peynir ve 1 Yılan taşırken Kademe 3’te Dev Hortlak’ı devir. Peynir Şapkası', r: 20, ul: 'hat_peynir', f: () => [cnt('cheesy'), 1] },
+  { k: 'h_fes', n: 'Tek koşuda 300.000 düşman öldür. Uzun Fes', r: 40, ul: 'hat_fes', f: () => [$G.P ? runK() : 0, 300000] },
+  { k: 'h_silindir', n: 'Tek koşuda 100.000 düşman öldür. Silindir Şapka', r: 30, ul: 'hat_silindir', f: () => [$G.P ? runK() : 0, 100000] },
   { k: 'h_comlek', n: 'Kemik ile bir koşuda 4 Kazan taşı. Çömlek', r: 10, ul: 'hat_comlek', f: () => [$G.P && CR_K() == 'kemik' ? $G.P.I.kazan || 0 : 0, 4] },
   { k: 'h_baret', n: 'Bahadır ile bir koşuda 20 sandık aç. Baret', r: 20, ul: 'hat_baret', f: () => [$G.P && CR_K() == 'bahadir' ? $G.P.chests : 0, 20] },
-  { k: 'h_tolga', n: 'Alp ile Kılıç, Alp Kılıcı, Erlik Kılıcı ve Tırpan taşırken Kara Koru Kademe 3 final boss’unu devir. Demir Tolga', r: 30, ul: 'hat_tolga', f: () => [cnt('ironhelm'), 1] },
-  { k: 'h_gunes', n: 'Kemik ile Mezarlık final boss’unu 60 saniyede devir. Güneş Gözlüğü', r: 20, ul: 'hat_gunes', f: () => [cnt('sunglasses'), 1] },
+  { k: 'h_tolga', n: 'Alp ile Kılıç, Alp Kılıcı, Erlik Kılıcı ve Tırpan taşırken Kademe 3’te Dev Hortlak’ı devir. Demir Tolga', r: 30, ul: 'hat_tolga', f: () => [cnt('ironhelm'), 1] },
+  { k: 'h_gunes', n: 'Kemik ile Dev Hortlak’ı 60 saniyede devir. Güneş Gözlüğü', r: 20, ul: 'hat_gunes', f: () => [cnt('sunglasses'), 1] },
   { k: 'h_serif', n: 'Çalı ile bir boss ya da ara bossu 1 saniyede devir. Şerif Şapkası', r: 20, ul: 'hat_serif', f: () => [cnt('sheriff'), 1] },
   { k: 'h_pilot', n: 'Anka ile havadayken Kapan ile 1.000 düşman öldür. Pilot Miğferi', r: 20, ul: 'hat_pilot', f: () => [cnt('pilot'), 1000] },
   { k: 'h_noel', n: 'Kara Koru’daki gizli hediyeyi aç. Noel Başlığı', r: 10, ul: 'hat_noel', f: () => [cnt('present'), 1] },
-  { k: 'h_kavuk', n: 'Tulpar ile Kızıl Bozkır Kademe 3 final boss’unu devir. Kavuk', r: 30, ul: 'hat_kavuk', f: () => [cnt('win_bozkir3_tulpar'), 1] },
+  { k: 'h_kavuk', n: 'Tulpar ile Kademe 3’ü bitir. Kavuk', r: 30, ul: 'hat_kavuk', f: () => [Math.min(1, cnt('win_bozkir3_tulpar') + cnt('win_koru3_tulpar')), 1] },
   { k: 'h_migfer', n: 'Bahadır ile tek koşuda 10.000 düşman öldür. Boynuzlu Miğfer', r: 20, ul: 'hat_migfer', f: () => [$G.P && CR_K() == 'bahadir' ? runK() : 0, 10000] },
   { k: 'h_sarik', n: 'Kam ile Ateş Topu, Yıldırım ve Kan Büyüsü’nü 40. seviyeye çıkar. Sarık', r: 30, ul: 'hat_sarik', f: () => [$G.P && CR_K() == 'kam' ? ['fire', 'zap', 'blood'].filter(k => wLv(k) >= 40).length : 0, 3] },
   { k: 'h_bork', n: 'Alp ile can çalmayla toplam 10.000 can iyileş. Börk', r: 20, ul: 'hat_bork', f: () => [Math.floor(cnt('lsheal_alp')), 10000] },
-  { k: 'h_kalpak', n: 'Gölge ile Kızıl Bozkır 1. aşamayı en az 2 Kara sunak açıkken bitir. Kalpak', r: 20, ul: 'hat_kalpak', f: () => [cnt('headset'), 1] },
+  { k: 'h_kalpak', n: 'Gölge ile Kızıl Bozkır aşamasını en az 2 Kara sunak açıkken bitir. Kalpak', r: 20, ul: 'hat_kalpak', f: () => [cnt('headset'), 1] },
   { k: 'h_tulbent', n: 'Gölge ile 500 düşman dondur. Tülbent', r: 20, ul: 'hat_tulbent', f: () => [cnt('frz_golge'), 500] },
   // ---- eşya kilitleri (ul: eşya anahtarı)
   { k: 'i_serbet', n: 'Toplam 100 kritik vur. Yasak Şerbet açılır', r: 20, ul: 'serbet', f: () => [cnt('crit'), 100] },
@@ -912,7 +912,7 @@ export function __init_37() {
   // meydan okuma görevleri (Megabonk Challenges kategorisi): her meydan okuma bir kez tamamlansın
   ...CHAL.map(c => ({ k: 'ch_' + c.k, n: `“${c.n}” meydan okumasını tamamla`, r: 25, f: () => [Object.keys($G.META.chal).some(x => x.split(':')[0] == c.k) ? 1 : 0, 1] })),
   // kostüm görevleri (Megabonk Skins kategorisi): etkin kadrodaki her karakterle bir Kademe 3 final boss'u devir
-  ...heroIdx().map(i => ({ k: 's_' + CR[i].k, n: `${CR[i].n} ile bir Kademe 3 final boss’u devir. Alev kostümü satın alınabilir`, r: 20, f: () => [cnt('k3c' + i), 1] })),
+  ...heroIdx().map(i => ({ k: 's_' + CR[i].k, n: `${CR[i].n} ile Kademe 3’te Dev Hortlak’ı devir. Alev kostümü satın alınabilir`, r: 20, f: () => [cnt('k3c' + i), 1] })),
   // genel ekler
   { k: 'g_k100k', n: 'Toplam 100.000 düşman öldür', r: 100, f: () => [$G.META.st.k + runK(), 100000] },
   { k: 'g_k250k', n: 'Toplam 250.000 düşman öldür', r: 150, f: () => [$G.META.st.k + runK(), 250000] },
@@ -987,7 +987,8 @@ export function __init_37() {
     for (const n of [1, 5, 10, 25, 50, 100]) add('a_b' + n, `${n} boss devir`, () => [$G.META.st.b + ($G.P && !$G.P.banked ? $G.P.bosses : 0), n]);
     for (const n of [1, 10, 50, 100, 250]) add('a_r' + n, `${n} koşu tamamla`, () => [$G.META.st.r, n]);
     for (const n of [1, 5, 10, 25, 50]) add('a_w' + n, `${n} kademe zaferi`, () => [$G.META.st.w, n]);
-    for (const m of MAPS) for (let t = 1; t <= m.tiers; t++) add(`a_m_${m.k}${t}`, `${m.n} Kademe ${t}’yi bitir`, () => [($G.META.tier[m.k] || 0) >= t ? 1 : 0, 1]);
+    // Üç Diyar kademeleri (anahtar eski Kara Koru kademeleriyle aynı: a_m_koru1-3); Bozkır ve Mezarlık ayrı harita değil
+    for (let t = 1; t <= 3; t++) add(`a_m_koru${t}`, `Üç Diyar Kademe ${t}’i bitir`, () => [($G.META.tier.koru || 0) >= t ? 1 : 0, 1]);
     // karakter başına başarımlar yalnız etkin kadro üzerinden (kaldırılanlar CR'de off: 1 ile durur)
     const HI = heroIdx();
     for (const i of HI) add('a_c_' + CR[i].k, `${CR[i].n} ile bir kademe zaferi`, () => [cnt('wc' + i), 1]);

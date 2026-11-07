@@ -449,7 +449,7 @@ export function upd(dt) {
   if ($G.P.mzK && !$G.P.mzc && ($G.FRC & 15) == 0 && $G.P.mzK.pots.every(p => p.o) && ($G.P.mzOpened || 0) >= $G.P.mzK.ch) { $G.P.mzc = 1; inc('mzclean'); toast('Mahzen tertemiz: her pot ve sandık açıldı'); }
   // Kızışma uyarısı: 3 dakikada bir düşmanların sertleştiği bildirilir. Akın ya da ara boss bildirimiyle aynı ana
   // denk gelirse ekrandaki yazı silinene kadar bekler (toast tek satır, üst üste yazınca öncekini siler).
-  if (!$G.P.swarm && !$G.P.final && !$G.ARENA) {
+  if (!$G.P.swarm && !$G.P.final) {
     if ($G.P.stT >= 25 && $G.P.stT - dt < 25) tip('kizisma', 'Kızışma', 'Aşama uzadıkça düşmanlar sertleşir: her 3 dakikada daha çok gelir ve daha sert vururlar. Boss Kapısı’nı bulup boss’u erken devirmek işini kolaylaştırır.');
     const n = Math.floor($G.P.stT / KZ_ADIM);
     if (n > ($G.P.kzN || 0) && $G.P.stT < stLen()) {
@@ -577,7 +577,8 @@ export function upd(dt) {
       if ((b.ty == 'kb' || b.ty == 'kbb') && CR[$G.CI].k == 'anka' && $G.BRK.every(x => (x.ty != 'kb' && x.ty != 'kbb') || x.o)) inc('allpumpkin');
       if (b.ty == 'tw') {
         for (let i = 0; i < 4; i++) drop(q.x + rn(-2, 2), q.z + rn(-2, 2), 'xp', 3 + $G.P.stage * 2, q.y - .8);
-        const w = $G.P.stage == 0 ? 'katana' : $G.P.stage == 1 && $G.P.tier >= 2 ? 'shotgun' : null;
+        // çalı yumağı yalnız Kızıl Bozkır'da (rotanın 2. aşaması): önce Yatağan, o açıksa Kademe 2+'da Çakaralmaz
+        const w = !$G.META.l.katana ? 'katana' : $G.P.tier >= 2 ? 'shotgun' : null;
         if (w && !$G.META.l[w] && Math.random() < .05) {
           inc('drop_' + w);
           toast('Çalı yumağından bir silah çıktı: ' + (w == 'katana' ? 'Yatağan' : 'Çakaralmaz'));
