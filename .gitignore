@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dist-single/
+test-results/
+.DS_Store
+.env
+.env.local
+
+# yerel araç ayarları
+.claude/

@@ -1,0 +1,26 @@
+# Netlify: GitHub deposu bağlanınca her main gönderiminde derleyip yayınlar.
+# Ortak sıralama için Netlify panelinde (Site configuration → Environment variables) iki değişken:
+#   VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY  (README, Ortak sıralama). Yoksa oyun yalnız yerel rekorla çalışır.
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Vite çıktısındaki dosya adları içerik özetli: uzun süre önbellekte kalabilir
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# sayfanın kendisi her açılışta yeniden doğrulanır (yeni sürüm hemen gelsin)
+[[headers]]
+  for = "/"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"

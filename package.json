@@ -1,0 +1,24 @@
+{
+  "name": "kara-koru",
+  "private": true,
+  "version": "0.23.0",
+  "type": "module",
+  "description": "Kara Koru: Türk mitolojisi temalı 3B hayatta kalma oyunu",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:single": "vite build --mode single",
+    "preview": "vite preview",
+    "test": "node tests/smoke.mjs",
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "three": "^0.187.0"
+  },
+  "devDependencies": {
+    "playwright": "^1.64.1",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.5",
+    "vite-plugin-singlefile": "^2.3.4"
+  }
+}
