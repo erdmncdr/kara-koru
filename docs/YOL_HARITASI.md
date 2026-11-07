@@ -545,7 +545,9 @@ Kalan açık yok. Kaynaksız: elit çarpanları ve ilk elitin bedava sandığı,
 - **Piksel bütçesi:** yüksek kalite ~4.2, orta ~2.1 milyon piksel (retina 14" 3024×1964 → 2542×1651).
 - **Dokunmatik:** ilk açılışta orta kalite (ışıma ve 4× MSAA ara tampon yok, en çok 1.5×). Ayar sürümü `sv: 2`: kayıtlı "sınırsız" FPS bir kez 60'a, dokunmatikte yüksek kalite bir kez ortaya iner.
 - **Hata:** dinamik çözünürlük eşikleri 60 FPS'e göreydi; 30 FPS seçen oyuncunun çözünürlüğü yavaş sanılıp %60'a iniyordu. Eşikler hedef kare süresine bağlandı.
-- **Açık:** oyunda kare başına ~290 çizim, ~940 bin üçgen (gölge geçişi dahil); süs nesneleri (çiçek, eğrelti, taş, çalı) dağınık. Telefonda asıl kazanç ancak süs yoğunluğunu kaliteye bağlamakla gelir (harita üretimi). İşlemci tarafında JS kare başına küçük (profilde oyunda %86 boşta); ses sentezi bir çekirdeğin ~%10'u.
+- **Süs yoğunluğu:** `vegInst` gölgesiz ve 20'den kalabalık kümeleri (çiçek, eğrelti, saz, mantar, patika taşı, çimen) orta kalitede %60, düşükte %40'a seyreltir; engel fn içinde öğe başına kurulduğu için atılan öğenin görünmez engeli kalmaz. Koru'da süs üçgeni 238 bin → 113 bin, sahne toplamı −%16.
+- **Kare başına GPU süresi** (EXT_disjoint_timer_query_webgl2, M5): yüksek kalite 2542×1651'de ~12.5 ms; ışıma kapalı ~7.5 ms (ışıma ~%40), MSAA 0 yalnız −1 ms, gölge geçişi ihmal edilebilir, ışımayı yarım/çeyrek çözünürlükte hesaplamak kazandırmadı (maliyet tam çözünürlük adımlarında). Orta kalite telefon boyunda ~5 ms, çoğu sabit (çizim/üçgen): piksel 1/4'e inince yalnız −1 ms. Geçiş başına zamanlayıcı ANGLE/Metal'de güvenilmez çıktı.
+- **Açık:** ışımanın tam çözünürlük maliyeti (UnrealBloomPass'ın MSAA ara tampona harmanlaması olabilir) incelenmedi; telefonda sabit maliyet için gölgeli nesnelerin parça boyu (`BK=300`, uzak parçalar elenemiyor) ve arazinin 115 bin üçgeni sıradaki adaylar. İşlemci tarafında JS kare başına küçük (profilde oyunda %86 boşta); ses sentezi bir çekirdeğin ~%10'u.
 
 ### Rekabetçi sıralama: haftalık tablo, podyum, senin yerin (7 Kasım 2026)
 

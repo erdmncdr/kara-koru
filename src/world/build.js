@@ -367,8 +367,17 @@ export function __init_25() {
   $G.SMV = [];
 }
 
+// süs yoğunluğu kaliteye göre: orta (telefon varsayılanı) %60, düşük %40. Yalnız gölgesiz ve kalabalık kümeler (çiçek, eğrelti,
+// saz, mantar, patika taşı, çimen) seyrelir; fn öğe başına çağrıldığı için atılan öğenin engeli de oluşmaz.
+// Gölge düşüren (ağaç, kaya, kütük, mezar) ve 20'den az öğeli simge kümeleri dokunulmaz.
+export const SUS = () => SET.q == 2 ? 1 : SET.q == 1 ? .6 : .4;
 export function vegInst(geo, arr, fn, cols, cast, small) {
   if (!arr.length) return;
+  if (!cast && arr.length > 20 && SUS() < 1) {
+    const y = SUS();
+    arr = arr.filter(() => Math.random() < y);
+    if (!arr.length) return;
+  }
   const d = new THREE.Object3D(),
     c = new THREE.Color(),
     bk = {};
