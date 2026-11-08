@@ -1,6 +1,7 @@
 // ui/menus.js · Kara Koru
 // Bu dosya tek dosyalık sürümden (v22) otomatik ayrıldı. Ortak oyun durumu core/store.js içindeki $G nesnesinde.
 
+import { glbHero } from '../engine/glbhero.js';
 import { $G } from '../core/store.js';
 import { aVol, sfx } from '../audio/engine.js';
 import { ov, skFree, toast } from '../core/helpers.js';
@@ -285,6 +286,7 @@ export function selC(i, kb, keep) {
   $G.H = hero($G.CI);
   $G.H.g.traverse(o => o.castShadow = true);
   sc.add($G.H.g);
+  glbHero($G.H, CR[$G.CI].k);
   $G.P.W = [newW(CR[$G.CI].w)];
   calc();
   $G.P.hp = $G.P.mh;

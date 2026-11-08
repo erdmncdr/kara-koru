@@ -12,6 +12,7 @@ import { eyeSync } from '../engine/eyes.js';
 import { dnUpd } from '../engine/vfx.js';
 import { featTick } from '../game/features.js';
 import { animH } from '../game/hero-anim.js';
+import { glbTick } from '../engine/glbhero.js';
 import { upd } from '../game/update.js';
 import { padTick } from '../input/gamepad.js';
 import { bigDraw } from '../ui/bigmap.js';
@@ -88,7 +89,7 @@ export function loop(t) {
     $G.pit += ($G.pitT - $G.pit) * lr;
   }
   if ($G.P) {
-    if ($G.S == 'play' || mn) animH($G.HS > 0 ? dt * .08 : dt);
+    if ($G.S == 'play' || mn) animH($G.HS > 0 ? dt * .08 : dt), glbTick($G.HS > 0 ? dt * .08 : dt);
     $G.FX += ($G.P.x - $G.FX) * Math.min(1, dt * 22);
     $G.FZ += ($G.P.z - $G.FZ) * Math.min(1, dt * 22);
     $G.FY += ($G.P.y - $G.FY) * Math.min(1, dt * 9);

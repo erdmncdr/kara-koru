@@ -1,6 +1,7 @@
 // game/flow.js · Kara Koru
 // Bu dosya tek dosyalık sürümden (v22) otomatik ayrıldı. Ortak oyun durumu core/store.js içindeki $G nesnesinde.
 
+import { glbHero } from '../engine/glbhero.js';
 import { $G } from '../core/store.js';
 import { aInit, sfx } from '../audio/engine.js';
 import { lockP, ov, skFree, toast } from '../core/helpers.js';
@@ -34,6 +35,7 @@ export function resetRun() {
   $G.H = hero($G.CI);
   $G.H.g.traverse(o => o.castShadow = true);
   sc.add($G.H.g);
+  glbHero($G.H, CR[$G.CI] && CR[$G.CI].k);
   DN.forEach(n => n.el.remove());
   DN.length = 0;
   $G.P = {
