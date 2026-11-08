@@ -265,7 +265,7 @@ export function openChalShrine() {
   }
   $G.S = 'chalsh';
   const m = $G.P.map, t = $G.P.tier;
-  ov(`<div class="sx chx"><header class=sxh><div><p class=kk>Bu koşu için bir zorluk seç</p><h2>Meydan okuma sunağı</h2></div><div class=mt><span class=chip>Tamamlarsan kalıcı +%1 gümüş</span></div></header><div class=chg2>${CHAL.map(c => `<button class="chc${chalDone(c, m, t) ? ' dn' : ''}" ${A('chalShrinePick', c.k)}><b>${c.n}</b><i>×${c.m}</i><span>${c.d}</span></button>`).join('')}</div><footer class=sxf><span class=fnote>✓ bu harita ve kademede tamamlanmış. Meydan okumalı koşu sıralamaya yüklenmez.</span><button class="act alt" ${A('closeOv')}>Vazgeç <kbd>E</kbd></button></footer></div>`, 'mid');
+  ov(`<div class="sx chx"><header class=sxh><div><p class=kk>Bu koşu için bir zorluk seç</p><h2>Meydan okuma sunağı</h2></div><div class=mt><span class=chip>Tamamlarsan kalıcı +%1 gümüş</span></div></header><div class=chg2>${CHAL.map(c => `<button class="chc${chalDone(c, m, t) ? ' dn' : ''}" ${A('chalShrinePick', c.k)}><b>${c.n}</b><i>×${c.m}</i><span>${c.d}</span></button>`).join('')}</div><footer class=sxf><span class=fnote><b class=ck>✓</b> İşaretliler bu harita ve kademede tamamlandı. Meydan okumalı koşu sıralamaya yüklenmez.</span><button class="act alt" ${A('closeOv')}>Vazgeç <kbd>E</kbd></button></footer></div>`, 'mid');
 }
 
 export function chalShrinePick(k) {
@@ -330,6 +330,8 @@ export function openShop(n) {
         // kademe tüccarın şapkasıyla belli; şans işlemez
         k = itemOf(n.tier || 0);
       } while (n.offer.some(x => x.k == k) && g++ < 20);
+      // kademede farklı eşya kalmadıysa aynı eşyayı ikinci kez önerme
+      if (n.offer.some(x => x.k == k)) break;
       n.offer.push({
         k,
         pr: Math.max(5, Math.round([25, 0, 55, 100, 170][ITD[k].r] * (1 + $G.P.stage * .6) * Math.max(.2, 1 - ($G.P.C.shopp || 0)) / 5) * 5)

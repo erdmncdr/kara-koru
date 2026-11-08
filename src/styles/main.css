@@ -562,7 +562,7 @@ kbd{border-radius:4px;background:rgba(0,0,0,.25);box-shadow:inset 0 0 0 1px var(
 #rt{top:calc(22px + var(--top));right:16px}
 #rth{display:flex;align-items:baseline;justify-content:flex-end;gap:18px;margin:0 0 10px;white-space:nowrap;text-shadow:0 1px 0 #000,0 2px 5px rgba(0,0,0,.9)}
 #lvb{display:block;order:0;min-width:0;height:auto;padding:0;background:none;box-shadow:none;font:700 38px/1 var(--dsp);color:#ededef}
-#lvb::before{content:'SVY ';font:800 16px/1 var(--txt);letter-spacing:.08em;color:var(--bone)}
+#lvb::before{content:'SV ';font:800 16px/1 var(--txt);letter-spacing:.08em;color:var(--bone)}
 #aun{display:block!important;margin:0;font:800 20px/1 var(--txt);font-variant-numeric:tabular-nums;color:#bfc0c3}
 #aun i{display:flex;align-items:center;gap:6px;font-style:normal}#aun i.ok{color:#f0c45a}#aun svg{width:20px;height:20px}
 #itr{left:16px;right:16px;bottom:calc(14px + var(--bot));max-width:none;gap:9px 10px;flex-wrap:wrap-reverse;align-content:flex-start;max-height:104px;overflow:hidden;padding:0 8px 6px 0}
@@ -1126,3 +1126,24 @@ button:focus-visible,.cd:focus-visible,.tb:focus-visible,.hc:focus-visible,.chc:
  #ov .lu .cd .sr{padding:1px 0}
  .chb{margin-top:8px;padding-top:6px}
 }
+
+/* UI/UX kontrolü (8 Kasım 2026) */
+/* yan menü (duraklatma, sunak, ölüm) açıkken HUD altından sızmasın; dokunmatik düğmeler hiçbir menünün üstüne binmesin */
+body:has(#ov.side:not(.h)) #hud,body:has(#ov.side:not(.h)) #wls{visibility:hidden}
+body:has(#ov:not(.h)) .mb{display:none!important}
+/* dar ya da alçak ekranda ortadaki pencere de HUD'un üstüne biner: HUD gizlenir */
+@media (max-width:760px),(max-height:520px){body:has(#ov:not(.h)) #hud,body:has(#ov:not(.h)) #wls{visibility:hidden}}
+/* büyük başlıkta Ö, Ü, İ noktaları üst satıra binmesin */
+.ovr h1{padding-top:.14em}
+/* tek kelimelik yetim satır kalmasın */
+.sub,.lead,.orec,.trn p,.mn2.home h1+p,#ov .lu>.sub{text-wrap:balance}
+p,.cd .d{text-wrap:pretty}
+/* kısayollardaki dokunmatik ve kumanda paragrafı listeyle aynı hizada */
+.pz.narrow>.sub,.pz.narrow>h3{text-align:left;margin-left:0;margin-right:0;max-width:none}
+.fnote .ck{margin-right:5px}
+/* koleksiyonda açılmamışlar okunur kalsın: üstü çizili değil, soluk ve gri */
+.ci.off{opacity:.5}.ci.off .ika{filter:grayscale(1) brightness(.7)}.ci.off small{text-decoration:none}
+/* tecrübe çubuğu boşken kara şerit gibi durmasın */
+#xpw{background:rgba(0,0,0,.45)!important;box-shadow:inset 0 -1px 0 rgba(255,255,255,.12)!important}
+/* geniş pencereler (meydan okuma sunağı, sıralama) soldaki HUD'un üstüne taşar: HUD gizlenir */
+body:has(#ov.mid:not(.h) .sx) #hud,body:has(#ov.mid:not(.h) .sx) #wls{visibility:hidden}

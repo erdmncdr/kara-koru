@@ -680,7 +680,7 @@ export function pause() {
   const g = goal();
   ov(`<div class="sx pzx">
  <aside class=pmn><p class=kk>Duraklatıldı</p><h2>${BIO[$G.BI].n}</h2>
-  <div class=pmt><span class=chip title="Aşama süresi">${CLK}${fmt($G.P.stT)}</span><span class=chip>SVY ${$G.P.lv}</span><span class="chip au">${COIN}${$G.P.gold}</span><span class=chip>${$G.P.stage + 1}/${ASAMA}. aşama</span></div>
+  <div class=pmt><span class=chip title="Aşama süresi">${CLK}${fmt($G.P.stT)}</span><span class=chip>SV ${$G.P.lv}</span><span class="chip au">${COIN}${$G.P.gold}</span><span class=chip>${$G.P.stage + 1}/${ASAMA}. aşama</span></div>
   ${g ? `<p class=pgo>${g}</p>` : ''}
   <nav class=mnav2>
    <button class="mi pri" ${A('resume')}><b>Devam et</b><small>Esc · P</small></button>
