@@ -10,6 +10,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as T from 'three';
 import { $G } from '../core/store.js';
 import { SKINF } from '../game/heroes.js';
+import { RIMU } from './renderer.js';
 
 const U = n => new URL(`../assets/model/${n}.glb`, import.meta.url).href;
 const URLS = {
@@ -121,13 +122,22 @@ function malzeme(o, sk) {
     mt.emissive.setRGB(1, 1, 1);
     mt.emissiveIntensity = .2;
   }
+  // kenar ışığı: oyundaki bütün karakterlerde olduğu gibi siluet arka plandan ayrılsın (renderer.js rimify ile aynı terim)
+  mt.onBeforeCompile = sh => {
+    sh.uniforms.rimCol = RIMU;
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\nuniform vec3 rimCol;')
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n{float rimF=1.0-clamp(dot(normal,normalize(vViewPosition)),0.0,1.0);totalEmissiveRadiance+=rimCol*(rimF*rimF*rimF);}');
+  };
+  mt.customProgramCacheKey = () => 'glbrim';
 }
 
 // silah modelini kendi kabına koyar: pv (modelin yerel koordinatında tutma noktası) kabın merkezine gelir,
 // boyu `uzun` ekseninde 1 birim olur. Kap, tak() ile istenen boya ölçeklenir.
-function kap(model, pv, uzunluk) {
+function kap(model, pv, uzunluk, sk = '') {
   const k = new T.Group(), m = model.clone(true);
-  m.traverse(o => malzeme(o, ''));
+  // klonlanan malzeme paylaşılmasın: kostüm ve kenar ışığı yalnız bu kopyaya
+  m.traverse(o => { if (o.isMesh) o.material = o.material.clone(); malzeme(o, sk); });
   m.position.copy(pv).multiplyScalar(-1 / uzunluk);
   m.scale.multiplyScalar(1 / uzunluk);
   k.add(m);
@@ -177,6 +187,9 @@ export function glbHero(H, key) {
   // eski gövdenin boyu şimdi ölçülür, gövde hemen gizlenir: yüklenirken eski Alp görünüp sonra yenisine dönmesin
   const b0 = new T.Box3().setFromObject(hedef.g), h0 = Math.max(1, b0.max.y - b0.min.y);
   for (const c of hedef.g.children) c.visible = false;
+  // eski gövdenin gözleri ayrı çizilir (engine/eyes.js, eski kemikten): yeni yüzün önünde havada kalmasın
+  const gozler = hedef.eyes;
+  hedef.eyes = null;
   Promise.all([LD.loadAsync(URLS[key].model), ortak(key)]).then(([m, O]) => {
     if ($G.H !== hedef) return; // bu arada başka kahraman seçildi
     const C = O.C;
@@ -200,7 +213,7 @@ export function glbHero(H, key) {
         kb = kutu(O.kilic, v => v.y > bt.min.y + hk * .06 && v.y < bt.min.y + hk * .18),
         pv = kb.getCenter(new T.Vector3()),
         el = wp('RightHand'), kol = el.clone().sub(wp('RightForeArm')).normalize();
-      tak(kap(O.kilic, pv, hk), bone('RightHand'), el.clone().addScaledVector(kol, h0 * .035), kol.clone().addScaledVector(ileri, 1.1), h0 * .5, undefined, Math.PI / 2);
+      tak(kap(O.kilic, pv, hk, sk), bone('RightHand'), el.clone().addScaledVector(kol, h0 * .035), kol.clone().addScaledVector(ileri, 1.1), h0 * .5, undefined, Math.PI / 2);
     }
     // kalkan: model yüzü +Z. Kayışla ön kolun dış yüzüne (elin sırtına) bağlanır: A duruşunda avuç aşağı bakar, el
     // sırtı yukarı; kalkanın yüzü o yöne, ön kola dik. Kol hangi duruşta dönerse kalkan elin sırtıyla birlikte döner.
@@ -211,7 +224,7 @@ export function glbHero(H, key) {
         n = new T.Vector3(0, 1, 0).applyQuaternion(gq).multiplyScalar(KALKAN_YON).addScaledVector(ileri, .25);
       n.addScaledVector(eks, -n.dot(eks)).normalize();
       const merkez = a.clone().lerp(b, .82).addScaledVector(n, h0 * KALKAN_ON);
-      tak(kap(O.kalkan, bt.getCenter(new T.Vector3()), cap), bone('LeftForeArm'), merkez, n, h0 * .3, new T.Vector3(0, 0, 1));
+      tak(kap(O.kalkan, bt.getCenter(new T.Vector3()), cap, sk), bone('LeftForeArm'), merkez, n, h0 * .3, new T.Vector3(0, 0, 1));
       bone('LeftHand').scale.setScalar(.7);
     }
     // şapka: eski gövdenin baş kemiğinden yenisinin başına, miğferin tepesine
@@ -241,6 +254,7 @@ export function glbHero(H, key) {
     // yüklenemezse eski gövde geri gelir
     console.warn('Meshy modeli yüklenemedi', e);
     for (const c of hedef.g.children) c.visible = true;
+    hedef.eyes = gozler;
   });
 }
 
