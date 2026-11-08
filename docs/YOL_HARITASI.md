@@ -529,6 +529,16 @@ Kalan açık yok. Kaynaksız: elit çarpanları ve ilk elitin bedava sandığı,
 - **Ölüm vuruşu:** 0.55 sn yavaş çekim, sarsıntı 1.6, altın ve turuncu iki halka, 40 kıvılcım. Boss gövdesi 2.6 sn kalır: öne devrilir (`d.big`), yere çarpınca toz + sarsıntı + iniş sesi, sonra toprağa gömülür.
 - **Boss çubuğu:** final arenasında %75/50/25 evre işaretleri (`#bb.ph`), %25 altında kızıl parlama (`.low`), direkler açıkken mavi ve "korunuyor" etiketi (`.inv`).
 
+### Arayüz yeniden: oyun dili ve boyalı simgeler (8 Kasım 2026)
+
+Erdem'in geri bildirimi: arayüz "çok AI duruyor"; renkler, yazı tipleri, kutular ve düzen. Seçenek olarak keçe, Orhun taşı, kam davulu ve piksel yazılı yönler gösterildi, hepsi reddedildi. Onaylanan: Megabonk sadeliğinde ama piksel yazısız bir dil ve her silah, tom ve eşya için ayrı, güçlü çizimler.
+
+- **v11 katmanı** (`main.css` sonu): başlık ve sayılar Alfa Slab One, metin Signika (ikisi de Türkçe harfleri tam basıyor; Lilita One ve Titan One basmıyor). Beyaz yazı siyah dış hatla (`paint-order:stroke`), kutular koyu, 2 px siyah kenar, 4 px köşe, sert alt gölge; seçili satır, sekme ve düğme beyaz. Buzlu cam, saç teli çizgi, hap sekme, gradyan başlık kalktı. Eski `--dsp`/`--txt` Philosopher/Alegreya istiyordu ama yüklenmiyordu, her şey Georgia ve Trebuchet'e düşüyordu; `index.html` artık yalnız Alfa Slab One, Signika ve Old Turkic yüklüyor.
+- **Simgeler:** 32 silah, 27 tom, 98 eşya için tek tek yazılmış tariflerden (`tools/ikon-tarif.mjs`) Codex'in yerleşik görsel üretimiyle (Erdem'in ChatGPT hesabı) 20 sayfa çizildi, sayfalar kesilip 128 px WebP oldu (toplam ~1,4 MB). Kart, HUD yuvaları, eşya şeridi, koleksiyon, kahraman künyesi, duraklatma ve kilit satırları `ikon()` kullanıyor. Kahraman portreleri, stat ve görev simgeleri hâlâ eski SVG.
+- Üretici bazen beyaz ya da gri kare zemin veriyor; `ikon-kes.mjs` köşe ve hücre denetimiyle bu sayfaları reddediyor, `ikon-uret.sh` ile yeniden üretiliyor (20 sayfadan 2'si yeniden üretildi).
+
+Doğrulama: duman testi geçti; menü, kahraman, harita, Otağ, koleksiyon, ayarlar, HUD, seviye kartları, duraklatma, ölüm ve telefon menüsü ekran görüntüleriyle kontrol edildi (`tools/arayuz-goruntu.mjs`). Elle oynanmadı.
+
 ### Üç Diyar rotası: her aşama başka diyar, kademe zorluk, final Mühürlü Mahzen (8 Kasım 2026)
 
 - **Karar (Erdem):** Koşu akışı Megabonk'unkine benzesin ama birebir olmasın. Eski yapı Megabonk'la aynıydı: kademe N = aynı haritada N aşama, Kademe 3'ün sonu direkli final arenası (boss %75/50/25'te dokunulmaz, direkler).

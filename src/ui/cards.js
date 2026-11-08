@@ -12,7 +12,7 @@ import { A } from './actions.js';
 import { CS, ITD, RAR, SBD, TDF, WD, fmtC, fmtS, inc, stl, unl } from '../data/content.js';
 import { addItem, extraLines, heal, shrineReward } from '../game/items.js';
 import { calc, newW, rollR } from '../game/stats.js';
-import { iconCol, svg } from './icons.js';
+import { iconCol, ikon } from './icons.js';
 
 // Ocak ve Denge taşı stat kartları: stat anahtarı → simge
 // Kartta statın alındıktan sonraki değeri. Kaçınma azalan getirili: iç değere eklenip yeniden dönüştürülür (bkz. calc).
@@ -254,7 +254,7 @@ export function card(o, i, click, ban, foot, dis) {
   const r = o.rar != null ? RAR[o.rar] : null;
   return `<div class="cd${dis ? ' dis' : ''}" role="button" tabindex="0" style="--rc:${r ? r.c : '#ddd3bc'}" ${A(...click)}>
  <div class=rb><span class=rn>${r ? r.n : 'Yeni'}</span><span>${o.kind}</span></div>
- <div class=hd><span class="ic ${o.cls}" style="--ik:${iconCol(o.cls, o.key)}">${svg(o.ic, iconCol(o.cls, o.key), o.cls)}</span><div><div class=n>${o.name}</div><div class=lv>${o.lvl}</div></div></div>
+ <div class=hd><span class="ic ${o.cls}" style="--ik:${iconCol(o.cls, o.key)}">${ikon(o.cls == "w" ? "w_" + o.key : o.key, o.ic, iconCol(o.cls, o.key), o.cls)}</span><div><div class=n>${o.name}</div><div class=lv>${o.lvl}</div></div></div>
  <div class=rows>${o.rows.map(([a, b, c]) => `<div class=sr><span>${a}</span><b>${b !== '' ? `<i>${b}</i> → ` : ''}<em>${c}</em></b></div>`).join('')}</div>
  <p class=d>${o.desc || ''}</p>
  <div class=ft>${i >= 0 ? `<kbd>${i + 1}</kbd>` : ''}${foot || ''}${ban ? `<button class=ban ${A('banOpt', i)}>Bu koşudan çıkar</button>` : ''}</div></div>`;
@@ -264,28 +264,28 @@ export function card(o, i, click, ban, foot, dis) {
 export function hudSlots() {
   const ws = [0, 1, 2, 3].map(i => {
     const w = $G.P.W[i];
-    return w ? `<div class=sl style="--ik:${iconCol('w', w.k)}" title="${WD[w.k].n}">${svg(WD[w.k].ic, iconCol('w', w.k))}<b>${w.lv}</b></div>` : i < $G.P.ws ? '<div class="sl e"></div>' : '<div class="sl e lk"></div>';
+    return w ? `<div class=sl style="--ik:${iconCol('w', w.k)}" title="${WD[w.k].n}">${ikon("w_" + w.k, WD[w.k].ic, iconCol("w", w.k))}<b>${w.lv}</b></div>` : i < $G.P.ws ? '<div class="sl e"></div>' : '<div class="sl e lk"></div>';
   }).join('');
   const ts = [0, 1, 2, 3].map(i => {
     const t = $G.P.T[i];
-    return t ? `<div class="sl tm" style="--ik:${iconCol('t', t.k)}" title="${TDF[t.k].n}">${svg(TDF[t.k].ic, iconCol('t', t.k), 't')}<b>${t.lv}</b></div>` : i < $G.P.ts ? '<div class="sl tm e"></div>' : '<div class="sl tm e lk"></div>';
+    return t ? `<div class="sl tm" style="--ik:${iconCol('t', t.k)}" title="${TDF[t.k].n}">${ikon("t_" + t.k, TDF[t.k].ic, iconCol("t", t.k), "t")}<b>${t.lv}</b></div>` : i < $G.P.ts ? '<div class="sl tm e"></div>' : '<div class="sl tm e lk"></div>';
   }).join('');
   return `<div class=hr>${ws}</div><div class="hr tr">${ts}</div>`;
 }
 export function hudItems() {
-  return Object.keys($G.P.I).map(k => `<div class=it style="--rc:${RAR[ITD[k].cor ? 5 : ITD[k].r].c}" title="${ITD[k].n}">${svg(ITD[k].ic, iconCol('i', k))}${$G.P.I[k] > 1 ? `<b>${$G.P.I[k]}</b>` : ''}</div>`).join('');
+  return Object.keys($G.P.I).map(k => `<div class=it style="--rc:${RAR[ITD[k].cor ? 5 : ITD[k].r].c}" title="${ITD[k].n}">${ikon("i_" + k, ITD[k].ic, iconCol("i", k))}${$G.P.I[k] > 1 ? `<b>${$G.P.I[k]}</b>` : ''}</div>`).join('');
 }
 
 export function buildHTML() {
   const ws = [0, 1, 2, 3].map(i => {
     const w = $G.P.W[i];
-    return w ? `<div class=sl style="--ik:${iconCol('w', w.k)}" title="${WD[w.k].n}">${svg(WD[w.k].ic, iconCol('w', w.k))}<b>${w.lv}</b></div>` : i < $G.P.ws ? '<div class="sl e"></div>' : '<div class="sl e lk" title="Otağ’dan açılır"></div>';
+    return w ? `<div class=sl style="--ik:${iconCol('w', w.k)}" title="${WD[w.k].n}">${ikon("w_" + w.k, WD[w.k].ic, iconCol("w", w.k))}<b>${w.lv}</b></div>` : i < $G.P.ws ? '<div class="sl e"></div>' : '<div class="sl e lk" title="Otağ’dan açılır"></div>';
   }).join('');
   const ts = [0, 1, 2, 3].map(i => {
     const t = $G.P.T[i];
-    return t ? `<div class="sl tm" style="--ik:${iconCol('t', t.k)}" title="${TDF[t.k].n}">${svg(TDF[t.k].ic, iconCol('t', t.k), 't')}<b>${t.lv}</b></div>` : i < $G.P.ts ? '<div class="sl tm e"></div>' : '<div class="sl tm e lk" title="Otağ’dan açılır"></div>';
+    return t ? `<div class="sl tm" style="--ik:${iconCol('t', t.k)}" title="${TDF[t.k].n}">${ikon("t_" + t.k, TDF[t.k].ic, iconCol("t", t.k), "t")}<b>${t.lv}</b></div>` : i < $G.P.ts ? '<div class="sl tm e"></div>' : '<div class="sl tm e lk" title="Otağ’dan açılır"></div>';
   }).join('');
-  const it = Object.keys($G.P.I).map(k => `<div class=it style="--rc:${RAR[ITD[k].cor ? 5 : ITD[k].r].c}" title="${ITD[k].n}">${svg(ITD[k].ic, iconCol('i', k))}${$G.P.I[k] > 1 ? `<b>${$G.P.I[k]}</b>` : ''}</div>`).join('');
+  const it = Object.keys($G.P.I).map(k => `<div class=it style="--rc:${RAR[ITD[k].cor ? 5 : ITD[k].r].c}" title="${ITD[k].n}">${ikon("i_" + k, ITD[k].ic, iconCol("i", k))}${$G.P.I[k] > 1 ? `<b>${$G.P.I[k]}</b>` : ''}</div>`).join('');
   return `<div class=bld><div class=bg><span class=bl>Silahlar ${$G.P.W.length}/${$G.P.ws}</span><div class=br>${ws}</div></div><div class=bg><span class=bl>Tomlar ${$G.P.T.length}/${$G.P.ts}</span><div class=br>${ts}</div></div>${it ? `<div class=bg><span class=bl>Eşyalar</span><div class=br>${it}</div></div>` : ''}</div>`;
 }
 

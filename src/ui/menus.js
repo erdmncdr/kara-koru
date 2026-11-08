@@ -21,7 +21,7 @@ import { CR, HATS, SKINS, hatName, hero, heroIdx, rankOf, rankProg } from '../ga
 import { calc, newW } from '../game/stats.js';
 import { back, buildHTML, hudItems, hudSlots, STI } from './cards.js';
 import { goal } from './hud.js';
-import { svg, iconCol, IC } from './icons.js';
+import { svg, iconCol, IC, ikon } from './icons.js';
 import { glSubmit, lbAdd, lbSonuc } from './leaderboard.js';
 import { hesap } from './hesap.js';
 import { BIO } from '../world/terrain.js';
@@ -243,7 +243,7 @@ function heroPage(kb) {
  <section class=hinf>
   <div class=hdt><h3>${c.n}</h3>${lk ? '<span class="tag lk">Kilitli</span>' : `<span class=tag>Rütbe ${rankOf($G.CI)}</span>`}</div>
   <p class=hdd>${c.d}</p>
-  <div class=hdk><span class="ic w">${svg(WD[c.w].ic, iconCol('w', c.w))}</span><span><small>Başlangıç silahı</small><b>${WD[c.w].n}</b></span><span class=hds>${stat}</span></div>
+  <div class=hdk><span class="ic w">${ikon("w_" + c.w, WD[c.w].ic, iconCol("w", c.w))}</span><span><small>Başlangıç silahı</small><b>${WD[c.w].n}</b></span><span class=hds>${stat}</span></div>
   <p class=hdp>${c.ps}</p>
   ${lk ? `<p class=hdl>Açmak için: ${c.ud || ''}${rdy ? ` Koşul tamam, Otağ’da ${c.cost} gümüşle satın al.` : ''}</p>` : ''}
  </section>
@@ -295,7 +295,7 @@ export function selC(i, kb, keep) {
 // Otağ simgeleri: stat yükseltmeleri STI'den, diğerleri bu tablodan
 const MUI = { rr: 'dice', sk: 'run', bn: 'skull', ws: 'sword', ts: 'scroll', tg: 'wrench', bb: 'orb', sg: 'coin', sv: 'silver' },
   muIcon = u => `<span class=ic style="--ik:${iconCol('s', u.k)}">${svg(MUI[u.k] || STI[u.st] || 'star', iconCol('s', u.k))}</span>`,
-  mlIcon = u => `<span class=ic style="--ik:${iconCol('i', u.k)}">${svg(WD[u.k] ? WD[u.k].ic : u.k == 'win' ? 'star' : u.k == 'boss' ? 'skull' : u.k == 'shop' ? 'coin' : u.k == 'kazan' ? 'pot' : u.k == 'leg' ? 'gem' : u.k == 'mezar' ? 'ghost2' : u.k == 'kos' ? 'orb' : 'key', iconCol('i', u.k))}</span>`;
+  mlIcon = u => `<span class=ic style="--ik:${iconCol('i', u.k)}">${WD[u.k] ? ikon("w_" + u.k, WD[u.k].ic, iconCol("w", u.k)) : svg(u.k == 'win' ? 'star' : u.k == 'boss' ? 'skull' : u.k == 'shop' ? 'coin' : u.k == 'kazan' ? 'pot' : u.k == 'leg' ? 'gem' : u.k == 'mezar' ? 'ghost2' : u.k == 'kos' ? 'orb' : 'key', iconCol('i', u.k))}</span>`;
 
 export function otag(tab = 'guc') {
   const again = $G.S == 'otag';
@@ -381,10 +381,10 @@ export function poolHTML() {
 }
 
 export function collHTML() {
-  const cell = (ok, ic, col, n, title, kind) => `<div class="ci${ok ? '' : ' off'}" title="${title}"><span class=ic style="--ik:${col}">${svg(ic, col, kind)}</span><small>${n}</small></div>`,
-    sw = Object.keys(WD).map(k => cell(unl(WD[k].lock), WD[k].ic, iconCol('w', k), WD[k].n, WD[k].d)).join(''),
-    st = Object.keys(TDF).map(k => cell(unl(TDF[k].lock), TDF[k].ic, iconCol('t', k), TDF[k].n, TDF[k].s, 't')).join(''),
-    si = Object.keys(ITD).filter(k => !ITD[k].q).map(k => cell(unl(ITD[k].lock), ITD[k].ic, RAR[ITD[k].cor ? 5 : ITD[k].r].c, ITD[k].n, ITD[k].d)).join(''),
+  const cell = (ok, ic, col, n, title, kind, id) => `<div class="ci${ok ? '' : ' off'}" title="${title}"><span class=ic style="--ik:${col}">${ikon(id, ic, col, kind)}</span><small>${n}</small></div>`,
+    sw = Object.keys(WD).map(k => cell(unl(WD[k].lock), WD[k].ic, iconCol("w", k), WD[k].n, WD[k].d, undefined, "w_" + k)).join(''),
+    st = Object.keys(TDF).map(k => cell(unl(TDF[k].lock), TDF[k].ic, iconCol("t", k), TDF[k].n, TDF[k].s, "t", "t_" + k)).join(''),
+    si = Object.keys(ITD).filter(k => !ITD[k].q).map(k => cell(unl(ITD[k].lock), ITD[k].ic, RAR[ITD[k].cor ? 5 : ITD[k].r].c, ITD[k].n, ITD[k].d, undefined, "i_" + k)).join(''),
     se = Object.keys(KINDS).map(k => `<span class="tb${cnt('k_kind_' + k) > 0 || KINDS[k].hp == null && !KINDS[k].tint ? '' : ' off'}" title="${KINDS[k].n}">${KINDS[k].n}${cnt('k_kind_' + k) ? ` <small>${cnt('k_kind_' + k)}</small>` : ''}</span>`).join(''),
     nW = Object.keys(WD).filter(k => unl(WD[k].lock)).length, nT = Object.keys(TDF).filter(k => unl(TDF[k].lock)).length, nI = Object.keys(ITD).filter(k => !ITD[k].q && unl(ITD[k].lock)).length;
   return `<p class=osub>Soluk olanlar henüz açılmadı.</p><h3>Silahlar ${nW}/${Object.keys(WD).length}</h3><div class=cg>${sw}</div><h3>Tomlar ${nT}/${Object.keys(TDF).length}</h3><div class=cg>${st}</div><h3>Eşyalar ${nI}/${Object.keys(ITD).filter(k => !ITD[k].q).length}</h3><div class=cg>${si}</div>`;
@@ -676,7 +676,7 @@ export function pause() {
   $G.S = 'pause';
   const C = $G.P.C,
     rows = Object.keys(STATS).filter(k => STATS[k].show || Math.abs(C[k] - STATS[k].b) > 1e-9).map(k => `<div class=sr><span>${STATS[k].n}</span><b>${fmtC(k, C[k])}</b></div>`).join('');
-  const wd = $G.P.W.map((w, i) => `<div class="wdt${w.off ? ' off' : ''}"><div class=hd><span class="ic w">${svg(WD[w.k].ic, iconCol('w', w.k))}</span><div><div class=n>${WD[w.k].n}</div><div class=lv>Seviye ${w.lv} · <button class="tb sm" ${A('toggleW', i)}>${w.off ? 'Kapalı, aç' : 'Açık, kapat'}</button></div></div></div>${Object.keys(w.s).map(k => `<div class=sr><span>${stl(w.k, k)}</span><b>${fmtS(k, w.s[k])}</b></div>`).join('')}</div>`).join('');
+  const wd = $G.P.W.map((w, i) => `<div class="wdt${w.off ? ' off' : ''}"><div class=hd><span class="ic w">${ikon("w_" + w.k, WD[w.k].ic, iconCol("w", w.k))}</span><div><div class=n>${WD[w.k].n}</div><div class=lv>Seviye ${w.lv} · <button class="tb sm" ${A('toggleW', i)}>${w.off ? 'Kapalı, aç' : 'Açık, kapat'}</button></div></div></div>${Object.keys(w.s).map(k => `<div class=sr><span>${stl(w.k, k)}</span><b>${fmtS(k, w.s[k])}</b></div>`).join('')}</div>`).join('');
   const g = goal();
   ov(`<div class="sx pzx">
  <aside class=pmn><p class=kk>Duraklatıldı</p><h2>${BIO[$G.BI].n}</h2>

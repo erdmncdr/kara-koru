@@ -5,6 +5,12 @@ import { $G } from '../core/store.js';
 
 export let IC, svg, iconCol;
 
+// Boyalı simgeler (src/assets/ikon/<tür>_<anahtar>.webp; w silah, t tom, i eşya). tools/ikon-*.{mjs,sh} ile üretilir.
+// Resmi olmayan anahtar eski SVG çizimine düşer.
+const ART = import.meta.glob('../assets/ikon/*.webp', { eager: true, query: '?url', import: 'default' });
+export const art = id => ART['../assets/ikon/' + id + '.webp'];
+export const ikon = (id, ic, col, kind) => { const u = art(id); return u ? `<img class=ika src="${u}" alt="" draggable=false>` : svg(ic, col, kind); };
+
 export function __init_39() {
   // ---- simgeler
   IC = {
