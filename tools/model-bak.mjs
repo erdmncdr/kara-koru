@@ -34,9 +34,10 @@ if (KL) {
   window.bilgi = { klip: kg.animations.map(a => a.name) }; window.hazir = 1;
 } else {
 vs.forEach(([a], i) => { const cam = new T.PerspectiveCamera(30, 320 / 820, .01, 100); cam.position.set(c.x + Math.sin(a) * h * 2.1, c.y, c.z + Math.cos(a) * h * 2.1); cam.lookAt(c); R.setViewport(i * 320, 0, 320, 820); R.setScissor(i * 320, 0, 320, 820); R.render(sc, cam); });
-const cam = new T.PerspectiveCamera(30, 1, .01, 100), hy = b.max.y - h * .14; cam.position.set(c.x + h * .15, hy, c.z + h * .75); cam.lookAt(c.x, hy, c.z);
+const EL_YAKIN = ${process.env.EL ? 1 : 0};
+const cam = new T.PerspectiveCamera(30, 1, .01, 100), hy = EL_YAKIN ? b.min.y + h * .45 : b.max.y - h * .14; const ex = EL_YAKIN ? b.min.x + (b.max.x - b.min.x) * .1 : c.x; cam.position.set(ex + h * .05, hy, c.z + h * (EL_YAKIN ? .35 : .75)); cam.lookAt(ex, hy, c.z);
 R.setViewport(1280, 410, 320, 410); R.setScissor(1280, 410, 320, 410); cam.aspect = 320 / 410; cam.updateProjectionMatrix(); R.render(sc, cam);
-const cam2 = new T.PerspectiveCamera(30, 320 / 410, .01, 100), gy = c.y + h * .1; cam2.position.set(c.x, gy, c.z + h * .9); cam2.lookAt(c.x, gy, c.z);
+const cam2 = new T.PerspectiveCamera(30, 320 / 410, .01, 100), gy = EL_YAKIN ? b.min.y + h * .45 : c.y + h * .1, ex2 = EL_YAKIN ? b.max.x - (b.max.x - b.min.x) * .1 : c.x; cam2.position.set(ex2 - h * .05, gy, c.z + h * (EL_YAKIN ? .35 : .9)); cam2.lookAt(ex2, gy, c.z);
 R.setViewport(1280, 0, 320, 410); R.setScissor(1280, 0, 320, 410); R.render(sc, cam2);
 let tri = 0; m.traverse(o => { if (o.isMesh) tri += (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3; });
 const tx = []; m.traverse(o => { if (o.isMesh && o.material.map) tx.push(o.material.map.image.width + 'x' + o.material.map.image.height); });

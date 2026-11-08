@@ -159,17 +159,47 @@ function kutu(model, suz) {
 }
 
 // nesneyi bir kemiğe, dünya uzayında istenen konum, yön (nesnenin `eksen`i buraya bakar) ve boyla takar
-function tak(nes, kemik, dunyaPos, dunyaYon, boy, eksen = new T.Vector3(0, 1, 0), dondur = 0) {
+// yan: verilirse modelin +X ekseni bu yöne (eksene dik bileşenine) çevrilir (kılıcın keskin kenarı gibi)
+function tak(nes, kemik, dunyaPos, dunyaYon, boy, eksen = new T.Vector3(0, 1, 0), dondur = 0, yan = null) {
   kemik.updateWorldMatrix(true, false);
   const kq = new T.Quaternion(), ks = new T.Vector3(), kp = new T.Vector3();
   kemik.matrixWorld.decompose(kp, kq, ks);
-  const q = new T.Quaternion().setFromUnitVectors(eksen, dunyaYon.clone().normalize());
+  let q;
+  if (yan) {
+    const y = dunyaYon.clone().normalize(), x = yan.clone().addScaledVector(y, -yan.dot(y)).normalize(), z = new T.Vector3().crossVectors(x, y);
+    q = new T.Quaternion().setFromRotationMatrix(new T.Matrix4().makeBasis(x, y, z));
+  } else q = new T.Quaternion().setFromUnitVectors(eksen, dunyaYon.clone().normalize());
   if (dondur) q.multiply(new T.Quaternion().setFromAxisAngle(eksen, dondur));
   nes.quaternion.copy(kq.clone().invert().multiply(q));
   nes.position.copy(kemik.worldToLocal(dunyaPos.clone()));
   nes.scale.setScalar(boy / ks.x);
   kemik.add(nes);
 }
+
+// yumruğun ortası: ağırlığı çoğunlukla bu el kemiğinde olan köşelerin dünya konumlarının ortası (dinlenme duruşu)
+function yumruk(root, ad) {
+  const t = new T.Vector3(), v = new T.Vector3();
+  let n = 0;
+  root.traverse(o => {
+    if (!o.isSkinnedMesh) return;
+    const bi = o.skeleton.bones.findIndex(b => b.name == ad);
+    if (bi < 0) return;
+    const p = o.geometry.attributes.position, si = o.geometry.attributes.skinIndex, sw = o.geometry.attributes.skinWeight;
+    for (let i = 0; i < p.count; i++) {
+      let w = 0;
+      for (let j = 0; j < 4; j++) if (si.getComponent(i, j) == bi) w += sw.getComponent(i, j);
+      if (w < .6) continue;
+      // derili köşenin dünya konumu: three.js kemik dönüşümleriyle (bağlama matrisi dahil) hesaplar
+      t.add(o.getVertexPosition(i, v).applyMatrix4(o.matrixWorld));
+      n++;
+    }
+  });
+  return n ? t.divideScalar(n) : null;
+}
+
+// kılıç ayarı (denetim aracından değiştirilebilir): yumruk ortasından kayma (boy oranı; ileri, yukarı, dışa),
+// ağzın ileri yönden yukarı eğimi (radyan), keskin kenarın yönü (+1 aşağı)
+export const KILIC = { ileri: 0, yukari: 0, disa: 0, egim: 0, kenar: 1, boy: .62 };
 
 // kalkanın ön kolun önüne itilme payı (boyun oranı)
 const KALKAN_ON = .06;
@@ -207,13 +237,18 @@ export function glbHero(H, key) {
       ileri = new T.Vector3(0, 0, 1).applyQuaternion(gq),
       sol = new T.Vector3(1, 0, 0).applyQuaternion(gq),
       yuk = new T.Vector3(0, 1, 0);
-    // kılıç: model dik, ağız +Y. Kabzanın ortası (alttaki %6..%18 dilimi) ele gelir; ağız ön kolun devamında, öne eğik
+    // kılıç: model dik, ağız +Y. Yumruğun içindeki delik dinlenme duruşunda öne bakar (başparmak önde): kabza deliğin
+    // ekseni boyunca, kabzanın ortası yumruğun ortasında; ağız başparmak tarafından (öne) çıkar, keskin kenar aşağıda.
+    // Kılıç el kemiğine bağlıdır: kol nasıl dönerse yumrukla birlikte döner.
     {
       const bt = kutu(O.kilic), hk = bt.max.y - bt.min.y,
         kb = kutu(O.kilic, v => v.y > bt.min.y + hk * .06 && v.y < bt.min.y + hk * .18),
         pv = kb.getCenter(new T.Vector3()),
-        el = wp('RightHand'), kol = el.clone().sub(wp('RightForeArm')).normalize();
-      tak(kap(O.kilic, pv, hk, sk), bone('RightHand'), el.clone().addScaledVector(kol, h0 * .035), kol.clone().addScaledVector(ileri, 1.1), h0 * .5, undefined, Math.PI / 2);
+        orta = yumruk(root, 'RightHand') || wp('RightHand'),
+        disa = sol.clone().negate(),
+        yon = ileri.clone().applyAxisAngle(disa, -KILIC.egim);
+      orta.addScaledVector(ileri, h0 * KILIC.ileri).addScaledVector(yuk, h0 * KILIC.yukari).addScaledVector(disa, h0 * KILIC.disa);
+      tak(kap(O.kilic, pv, hk, sk), bone('RightHand'), orta, yon, h0 * KILIC.boy, undefined, 0, yuk.clone().multiplyScalar(KILIC.kenar));
     }
     // kalkan: model yüzü +Z. Kayışla ön kolun dış yüzüne (elin sırtına) bağlanır: A duruşunda avuç aşağı bakar, el
     // sırtı yukarı; kalkanın yüzü o yöne, ön kola dik. Kol hangi duruşta dönerse kalkan elin sırtıyla birlikte döner.
