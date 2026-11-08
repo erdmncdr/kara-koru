@@ -15,6 +15,7 @@ import { menu, menuPage, pause, resume, selC } from '../ui/menus.js';
 import { heroIdx } from '../game/heroes.js';
 import { conOpen, conToggle } from '../ui/console.js';
 import { closeHelp, showHelp } from '../ui/menus.js';
+import { padItems } from './gamepad.js';
 
 export let key, TT, tend;
 
@@ -25,7 +26,22 @@ export function __init_79() {
     const k = key(e);
     if (e.target && /** @type {HTMLElement} */ (e.target).tagName == 'INPUT') return;
     $G.K[k] = 1;
-    if (k == ' ' || k.startsWith('Arrow') || k == 'Tab') e.preventDefault();
+    // kaydırıcıda sol/sağ değeri değiştirir; öbür durumlarda oklar ve Tab sayfayı kaydırmasın
+    const rng = e.target && /** @type {HTMLInputElement} */ (e.target).type == 'range' && (k == 'ArrowLeft' || k == 'ArrowRight');
+    if ((k == ' ' || k.startsWith('Arrow') || k == 'Tab') && !rng) e.preventDefault();
+    // oyun dışındaki ekranlarda Tab ve oklar odağı kumandadaki gibi denetimden denetime taşır
+    // (kahraman sayfasında oklar karakter seçer; Tab yine gezer)
+    if ($G.S != 'play' && !rng && !conOpen() && (k == 'Tab' || k.startsWith('Arrow')) && !($G.S == 'menu' && ($G.menuPg || 'ana') == 'kahraman' && k != 'Tab')) {
+      const items = padItems();
+      if (items.length) {
+        let i = items.indexOf(/** @type {any} */ (document.activeElement));
+        const d = k == 'Tab' ? (e.shiftKey ? -1 : 1) : k == 'ArrowDown' || k == 'ArrowRight' ? 1 : -1;
+        i = i < 0 ? (d > 0 ? 0 : items.length - 1) : (i + d + items.length) % items.length;
+        items[i].focus();
+        if (items[i].scrollIntoView) items[i].scrollIntoView({ block: 'nearest' });
+        return;
+      }
+    }
     // Ctrl kayma tuşu: oyundayken Ctrl+S, Ctrl+D gibi tarayıcı kısayolları tetiklenmesin (Ctrl+W engellenemez, aşağıda çıkış onayı var)
     if (e.ctrlKey && k != 'Control' && $G.S == 'play') e.preventDefault();
     if (e.repeat) return;

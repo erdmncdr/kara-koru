@@ -539,6 +539,14 @@ Erdem'in geri bildirimi: arayüz "çok AI duruyor"; renkler, yazı tipleri, kutu
 
 Doğrulama: duman testi geçti; menü, kahraman, harita, Otağ, koleksiyon, ayarlar, HUD, seviye kartları, duraklatma, ölüm ve telefon menüsü ekran görüntüleriyle kontrol edildi (`tools/arayuz-goruntu.mjs`). Elle oynanmadı.
 
+**Kontrol turu (aynı gün):** sandık, tüccar, ocak, meydan okuma, yardım, boss, diyar geçişi, final, sıralama ve telefon (dikey, yatay, dokunmatik) ekranları `tools/arayuz-goruntu2.mjs` ile çekildi. Düzeltilenler:
+- **Klavyeyle menü gezinmesi yoktu** (eski hata): Tab ve oklar her ekranda engelleniyordu (Tab oyunda büyük harita). Artık oyun dışında Tab, Shift+Tab ve oklar odağı kumandadaki gibi (`padItems`) taşır, Enter seçer; kahraman sayfasında oklar karakter seçer, kaydırıcıda sol/sağ değeri değiştirir. Sınama: `tests/klavye.mjs`.
+- Odak her yerde 3 px sarı çerçeve (kumanda `.pad` dahil; eski 1,5 px beyaz çizgi beyaz düğmede görünmüyordu). Ana menüde odak başka satırdayken yalnız odaklı satır beyaz; satır geçiş animasyonu bir an beyaz üstüne beyaz gösterdiği için kalktı.
+- Telefon: v11 boyutları eski dar ekran küçültmelerini eziyordu (sayaç can çubuğuna biniyordu); dar ve alçak ekran kuralları eklendi. Dokunmatik düğmeler oyun dilinde. Yatay telefonda seçim kartları yan yana sığar (eskiden 300 px sabit genişlikle alta kayıyordu).
+- Diyar geçiş başlığı küçültüldü (Alfa Slab geniş, "Mühürlü Mahzen" ekranı dolduruyordu). Ocak gücü aynı statın tomu varsa onun resmini gösterir.
+
+Denge botu (Alp, K1) üç diyarı geçti, sayfa hatası yok; duman testi geçti.
+
 ### Üç Diyar rotası: her aşama başka diyar, kademe zorluk, final Mühürlü Mahzen (8 Kasım 2026)
 
 - **Karar (Erdem):** Koşu akışı Megabonk'unkine benzesin ama birebir olmasın. Eski yapı Megabonk'la aynıydı: kademe N = aynı haritada N aşama, Kademe 3'ün sonu direkli final arenası (boss %75/50/25'te dokunulmaz, direkler).

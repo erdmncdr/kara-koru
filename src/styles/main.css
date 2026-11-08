@@ -1071,3 +1071,58 @@ img.ika{display:block;width:100%;height:100%;object-fit:contain;pointer-events:n
 .sset input,.chk input{accent-color:var(--gold)}
 /* odak */
 button:focus-visible,.cd:focus-visible,.tb:focus-visible,.hc:focus-visible,.chc:focus-visible,.act:focus-visible{outline:3px solid var(--gold)!important;outline-offset:2px}
+/* odak: klavye ve kumanda aynı kalın sarı çerçeve; beyaz düğmede de görünür */
+.pad button:focus,.pad summary:focus,.pad input:focus,.pad .cd:focus,.pad .hc:focus{outline:3px solid var(--gold)!important;outline-offset:2px}
+.cd:focus-visible,.pad .cd:focus{outline-offset:4px}
+/* ana menü: odak ya da fare başka satırdayken birincil satır beyazlığını bırakır, tek beyaz satır kalır */
+.mnav2:has(.mi:hover,.mi:focus-visible) .mi.pri:not(:hover):not(:focus-visible),.pad .mnav2:has(.mi:focus) .mi.pri:not(:focus){background:var(--box)!important}
+.mnav2:has(.mi:hover,.mi:focus-visible) .mi.pri:not(:hover):not(:focus-visible) b,.pad .mnav2:has(.mi:focus) .mi.pri:not(:focus) b{color:#fff!important;-webkit-text-stroke:4px var(--ink)}
+.mnav2:has(.mi:hover,.mi:focus-visible) .mi.pri:not(:hover):not(:focus-visible) small{color:var(--dim)!important}
+/* geçiş başlığı: Alfa Slab geniş, telefonda taşmasın */
+.trn h2{font-size:clamp(40px,7.5vw,88px)!important;line-height:1}
+/* dokunmatik düğmeler: oyun dilinde koyu, kalın kenarlı */
+.mb{background:rgba(18,12,9,.72);border:3px solid #000;box-shadow:0 4px 0 rgba(0,0,0,.45),inset 0 0 0 2px rgba(255,255,255,.18);font:400 15px/1 var(--dsp);color:#fff;paint-order:stroke fill;-webkit-text-stroke:3.5px var(--ink)}
+.mb:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.45),inset 0 0 0 2px rgba(255,255,255,.3);background:rgba(60,42,30,.85)}
+/* dar ekran (telefon dikey): v11 boyutları eski küçültmeleri ezmesin */
+@media (max-width:760px){
+ #tm{font-size:30px!important;-webkit-text-stroke:6px var(--ink)!important}
+ #st{font-size:16px!important;-webkit-text-stroke:4px var(--ink)}
+ #lvb{font-size:24px!important;-webkit-text-stroke:5px var(--ink)}#lvb::before{font-size:11px!important;-webkit-text-stroke:3px var(--ink)}
+ #aun{font-size:15px!important;-webkit-text-stroke:4px var(--ink)}
+ #lt .hpb b,#hpt{font-size:12px!important}
+ #bl .sl b{font-size:10px!important;-webkit-text-stroke:3px var(--ink)}
+ .mi b{font-size:22px!important}.mi.pri b{font-size:30px!important}
+ .cd .ic,#ov .lu .cd .ic{width:58px!important;height:58px!important}
+ .cd .n{font-size:20px!important}
+ #ov .lu>h2,.pz>h2{font-size:34px!important}
+}
+/* alçak ekran (telefon yatay): kartlar sığsın */
+@media (max-height:520px){
+ #tm{font-size:30px!important;-webkit-text-stroke:6px var(--ink)!important}
+ #st{font-size:16px!important;-webkit-text-stroke:4px var(--ink)}
+ #lvb{font-size:24px!important}#lvb::before{font-size:11px!important}
+ #aun{font-size:15px!important}
+ .cd .ic,#ov .lu .cd .ic{width:46px!important;height:46px!important}
+ .cd .n{font-size:18px!important;-webkit-text-stroke:3.5px var(--ink)}
+ .cd .sr{font-size:13px}.cd .d{font-size:12.5px}
+ #ov .lu>h2{font-size:30px!important;-webkit-text-stroke:5px var(--ink)}
+ .mb{width:56px;height:56px;font-size:13px}
+}
+/* resmi olmayan (eski SVG) simge kartta küçük kalmasın */
+.cd .ic svg,#ov .lu .cd .ic svg{width:62%!important;height:62%!important}
+.sset input[type=range]:focus-visible,.pad .sset input[type=range]:focus,.chk input:focus-visible{outline:3px solid var(--gold)!important;outline-offset:4px}
+/* satır rengi ve yazısı aynı karede değişsin (geçiş animasyonu bir an beyaz üstüne beyaz gösteriyordu) */
+.mi,.mi b,.mi small,.tabs .tb,.act{transition:none!important}
+/* alçak ekran (telefon yatay): seçim kartları yan yana, sıkı; alt satıra kaymasın */
+@media (max-height:520px) and (min-width:600px){
+ #ov.mid{padding:10px 12px}
+ #ov .lu>h2{padding-bottom:4px}
+ #ov .lu>.sub{display:none}
+ #ov .lu .cs{flex-wrap:nowrap;gap:8px;margin-top:6px}
+ #ov .lu .cd{width:auto;flex:1 1 0;min-width:0;min-height:0;padding:0 10px 8px}
+ #ov .lu .cd .rb{margin:0 -10px;padding:7px 10px 4px}
+ #ov .lu .cd .hd{gap:8px}
+ #ov .lu .cd .lv{display:none}
+ #ov .lu .cd .sr{padding:1px 0}
+ .chb{margin-top:8px;padding-top:6px}
+}

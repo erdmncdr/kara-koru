@@ -9,7 +9,8 @@ export let IC, svg, iconCol;
 // Resmi olmayan anahtar eski SVG çizimine düşer.
 const ART = import.meta.glob('../assets/ikon/*.webp', { eager: true, query: '?url', import: 'default' });
 export const art = id => ART['../assets/ikon/' + id + '.webp'];
-export const ikon = (id, ic, col, kind) => { const u = art(id); return u ? `<img class=ika src="${u}" alt="" draggable=false>` : svg(ic, col, kind); };
+// ocak gücü (s_<stat>) aynı statın tomu varsa onun resmini kullanır
+export const ikon = (id, ic, col, kind) => { const u = art(id) || (id && id.startsWith('s_') && art('t_' + id.slice(2))); return u ? `<img class=ika src="${u}" alt="" draggable=false>` : svg(ic, col, kind); };
 
 export function __init_39() {
   // ---- simgeler
