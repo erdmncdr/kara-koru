@@ -12,6 +12,7 @@ import { PUD, RAR, SHC, SHD, STL, TOUCH } from '../data/content.js';
 import { cam } from '../engine/renderer.js';
 import { tv } from '../engine/vfx.js';
 import { price } from '../game/objects.js';
+import { interact } from '../game/interact.js';
 import { BN, KZ_ADIM, MBN, diffPct, gdm, swT } from '../game/stats.js';
 import { ASAMA, MBT, ROTA, SWT, stLen } from '../game/run.js';
 import { hudItems, hudSlots, buildHTML } from './cards.js';
@@ -239,6 +240,13 @@ export function hud() {
   document.body.classList.toggle('kh0', $G.P.tt > 10); // kısayol şeridi yalnız koşunun ilk 10 saniyesi
   $('hp').style.width = Math.max(0, $G.P.hp / $G.P.mh * 100) + '%';
   $('xp').style.width = Math.min(100, $G.P.xp / $G.P.need * 100) + '%';
+  if (TOUCH) {
+    const bs = $('bs'), cd = $G.P.cd > 0 ? Math.min(1, $G.P.cd / 1.6) : 0;
+    bs.style.setProperty('--cd', String(cd));
+    bs.classList.toggle('bek', cd > 0);
+    // yakında sandık, sunak, tüccar ya da kapı varsa Kullan parlar (5 karede bir bakılır)
+    if (($G.hkU = ($G.hkU || 0) + 1) % 5 == 0) $('be').classList.toggle('on', !!interact(false, true));
+  }
   const rem = (stLen()) - $G.P.stT,
     s = [Math.floor($G.P.stT), diffPct(), $G.P.lv, Math.ceil(Math.max(0, $G.P.hp)), $G.P.mh, $G.P.gold, $G.kills, Math.floor($G.P.xp), $G.P.need, $G.P.rage > 0 ? Math.ceil($G.P.rage) : 0, $G.P.shieldT > 0 ? Math.ceil($G.P.shieldT) : 0, C.block ? $G.P.blockT <= 0 ? 1 : 2 : 0, price(), $G.P.swarm, $G.GATE ? $G.GATE.st : 0, $G.P.hop, $G.P.stage, $G.P.greed, Math.ceil($G.P.fount || 0), $G.P.bossCur, GL.ok].join('|');
   if (s != $G.hk) {

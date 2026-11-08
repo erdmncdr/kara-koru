@@ -116,7 +116,7 @@ export function loop(t) {
     }
     $G.shk = Math.max(0, $G.shk - dt * 3);
     cam.lookAt(tx, ly, tz);
-    cam.fov += ((mn ? 45 : (SET.fov || 70) + Math.min(16, Math.hypot($G.P.vx, $G.P.vz) * .4) + ($G.P.dsh > 0 ? 8 : 0)) - cam.fov) * Math.min(1, dt * 8);
+    cam.fov += ((mn ? 45 : (SET.fov || 70) + (cam.aspect < 1 ? Math.min(18, (1 - cam.aspect) * 30) : 0) + Math.min(16, Math.hypot($G.P.vx, $G.P.vz) * .4) + ($G.P.dsh > 0 ? 8 : 0)) - cam.fov) * Math.min(1, dt * 8);
     cam.updateProjectionMatrix();
     skyD.position.copy(cam.position);
     $G.sunM.position.set($G.P.x + 250, 180, $G.P.z - 250);

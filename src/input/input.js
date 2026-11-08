@@ -17,6 +17,18 @@ import { conOpen, conToggle } from '../ui/console.js';
 import { closeHelp, showHelp } from '../ui/menus.js';
 import { padItems } from './gamepad.js';
 
+// dokunmatik sanal çubuğun görseli: x,y taban (dokunulan nokta), dx,dy topuzun kayması; argümansız gizler
+function joy(x, y, dx = 0, dy = 0) {
+  const j = $('joy');
+  if (!j) return;
+  if (x == null) return void j.classList.remove('on');
+  j.style.left = x + 'px';
+  j.style.top = y + 'px';
+  j.style.setProperty('--dx', dx + 'px');
+  j.style.setProperty('--dy', dy + 'px');
+  j.classList.add('on');
+}
+
 export let key, TT, tend;
 
 export function __init_79() {
@@ -143,6 +155,7 @@ export function __init_79() {
     once: true
   });
   document.addEventListener('visibilitychange', () => {
+    if (document.hidden && $G.S == 'play') pause();
     if (!document.hidden && $G.AC) aInit();
   });
   try {
@@ -171,7 +184,7 @@ export function __init_79() {
   addEventListener('touchstart', e => {
     for (const t of e.changedTouches) {
       const tg = /** @type {HTMLElement} */ (t.target);
-      if (tg.closest && tg.closest('.mb,#ov')) continue;
+      if (tg.closest && tg.closest('.mb,#ov,#mm')) continue;
       TT[t.identifier] = {
         s: t.clientX < innerWidth / 2 ? 'j' : 'l',
         x: t.clientX,
@@ -179,6 +192,7 @@ export function __init_79() {
         ox: t.clientX,
         oy: t.clientY
       };
+      if ($G.S == 'play' && TT[t.identifier].s == 'j') joy(t.clientX, t.clientY, 0, 0);
     }
   }, {
     passive: true
@@ -188,8 +202,15 @@ export function __init_79() {
       const o = TT[t.identifier];
       if (!o) continue;
       if (o.s == 'j') {
-        $G.J.x = c1((t.clientX - o.ox) / 50);
-        $G.J.y = c1((t.clientY - o.oy) / 50);
+        let dx = (t.clientX - o.ox) / 50,
+          dy = (t.clientY - o.oy) / 50;
+        const m = Math.hypot(dx, dy);
+        if (m > 1) dx /= m, dy /= m;
+        // ölü bölge: parmağın titremesi karakteri kımıldatmasın
+        const k = m < .14 ? 0 : 1;
+        $G.J.x = c1(dx * k);
+        $G.J.y = c1(dy * k);
+        joy(o.ox, o.oy, dx * 46, dy * 46);
       } else {
         $G.yawT -= (t.clientX - o.x) * .007 * SET.sens;
         $G.pitT = clamp($G.pitT + (t.clientY - o.y) * .005 * SET.sens * (SET.inv ? -1 : 1), .12, 1.2);
@@ -203,7 +224,7 @@ export function __init_79() {
   tend = e => {
     for (const t of e.changedTouches) {
       const o = TT[t.identifier];
-      if (o && o.s == 'j') $G.J.x = $G.J.y = 0;
+      if (o && o.s == 'j') $G.J.x = $G.J.y = 0, joy();
       delete TT[t.identifier];
     }
   };
@@ -214,6 +235,19 @@ export function __init_79() {
     $G.K[' '] = 1;
   });
   $('bj').addEventListener('touchend', () => $G.K[' '] = 0);
+  $('bj').addEventListener('touchcancel', () => $G.K[' '] = 0);
+  $('bc').addEventListener('touchcancel', () => $G.K.c = 0);
+  $('bp').addEventListener('touchstart', e => {
+    e.preventDefault();
+    if ($G.S == 'play') pause();
+  });
+  // mini haritaya basılı tut: büyük harita (klavyede Tab)
+  $('mm').addEventListener('touchstart', e => {
+    if ($G.S != 'play') return;
+    e.preventDefault();
+    bigMap(1);
+  }, { passive: false });
+  for (const ev of ['touchend', 'touchcancel']) $('mm').addEventListener(ev, () => bigMap(0));
   $('bc').addEventListener('touchstart', e => {
     e.preventDefault();
     $G.K.c = 1;

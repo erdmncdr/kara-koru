@@ -1196,3 +1196,32 @@ body:has(#ov.mid:not(.h) .sx) #hud,body:has(#ov.mid:not(.h) .sx) #wls{visibility
 #giris .gkor i{width:calc(var(--s) + 1px);height:calc(var(--s) + 1px)}
 /* dikey ekranda resmin solundaki balbal taşları ve kurgan görünsün */
 @media (orientation:portrait){#giris .gbg{background-position:16% 62%}}
+
+/* telefon oynanışı (8 Kasım 2026): güvenli alanlar, düğme yerleşimi, sanal çubuk, duraklat, Atıl beklemesi, Kullan parlaması */
+:root{--l:env(safe-area-inset-left,0px);--r:env(safe-area-inset-right,0px)}
+/* yatayda çentik ve yuvarlak köşeler HUD'u kesmesin */
+#hud{left:var(--l);right:var(--r)}
+/* başparmak yayı: Zıpla köşede ve büyük, Atıl solunda, Kay üstünde, Kullan çaprazda */
+.mb{width:62px;height:62px}
+#bj{width:78px;height:78px;right:calc(16px + var(--r));bottom:calc(20px + var(--bot));font-size:17px}
+#bs{right:calc(104px + var(--r));bottom:calc(18px + var(--bot))}
+#bc{right:calc(24px + var(--r));bottom:calc(110px + var(--bot))}
+#be{right:calc(100px + var(--r));bottom:calc(92px + var(--bot))}
+@media (max-height:520px){.mb{width:54px;height:54px;font-size:13px}#bj{width:66px;height:66px;font-size:15px}#bs{right:calc(90px + var(--r))}#bc{right:calc(22px + var(--r));bottom:calc(94px + var(--bot))}#be{right:calc(86px + var(--r));bottom:calc(78px + var(--bot))}}
+/* Atıl beklerken düğme saat yönünde dolar */
+#bs::after{content:'';position:absolute;inset:-3px;border-radius:50%;pointer-events:none;background:conic-gradient(rgba(0,0,0,.62) calc(var(--cd,0) * 360deg),transparent 0)}
+#bs.bek{color:#bdb3a6}
+/* Kullan: yakında bir şey yoksa soluk, varsa sarı parlar */
+#be{opacity:.6}
+#be.on{opacity:1;background:#ffc83d;color:var(--ink);-webkit-text-stroke:0;border-color:#000;animation:bepar 1s ease-in-out infinite}
+@keyframes bepar{0%,100%{box-shadow:0 4px 0 rgba(0,0,0,.45),0 0 0 0 rgba(255,200,61,.6)}50%{box-shadow:0 4px 0 rgba(0,0,0,.45),0 0 0 9px rgba(255,200,61,0)}}
+/* duraklat: sağ üst köşe; sağ sütun (sandık fiyatı, seviye, mini harita) altına kayar */
+#bp{top:calc(10px + var(--top));bottom:auto!important;right:calc(12px + var(--r));width:44px;height:44px;border-radius:6px;display:none}
+#bp i{position:absolute;top:12px;width:7px;height:18px;background:#fff;border:2px solid #000;border-radius:2px}#bp i:first-child{left:11px}#bp i:last-child{right:11px}
+@media (pointer:coarse){body.on #bp{display:block}#rt{top:calc(62px + var(--top))!important}#mm{pointer-events:auto}}
+/* sanal çubuk: dokunulan yerde taban, parmakla oynayan topuz */
+#joy{position:fixed;z-index:4;width:116px;height:116px;margin:-58px 0 0 -58px;border-radius:50%;background:rgba(18,12,9,.38);border:3px solid rgba(0,0,0,.7);box-shadow:inset 0 0 0 2px rgba(255,255,255,.22);pointer-events:none;display:none}
+#joy.on{display:block}
+#joy i{position:absolute;left:50%;top:50%;width:50px;height:50px;margin:-25px 0 0 -25px;border-radius:50%;background:rgba(255,255,255,.88);border:3px solid #000;box-shadow:0 3px 0 rgba(0,0,0,.4);transform:translate(var(--dx,0),var(--dy,0))}
+body:not(.on) #joy,body:has(#ov:not(.h)) #joy,body:has(#ov:not(.h)) #bp{display:none!important}
+@media (prefers-reduced-motion:reduce){#be.on{animation:none}}

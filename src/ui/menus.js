@@ -215,7 +215,7 @@ export function renderMenu(kb) {
   ${hesap() ? `<button class=mi ${A('hesapCik')}><b>Çıkış yap</b><small>${hesap().ad.replace(/[&<>"']/g, '')}</small></button>` : ''}
  </nav>
  ${hesap() ? '<p class=sub id=hesapnot role=status aria-live=polite></p>' : ''}
- <p class=tch>Sol yarıda sürükleyerek yürü, sağ yarıda kamerayı çevir. Sandık, sunak ve kapılar yanına gelince açılır.</p></div>`, sideCls('ana'));
+ <p class=tch>Sol yarıda sürükleyerek yürü, sağ yarıda kamerayı çevir. Sandıklar yanına gelince açılır; kapı ve sunaklarda Kullan parlar. Mini haritaya basılı tut: büyük harita. Sağ üstteki düğme duraklatır.</p></div>`, sideCls('ana'));
   const b = OV.querySelector('.mi');
   b && kb && b.focus();
 }
@@ -643,7 +643,7 @@ export function helpHTML() {
   return `<div class="pz narrow"><h2>Kısayollar</h2><div class=keys>${keys.map(([k, d]) => `<kbd>${k}</kbd><span>${d}</span>`).join('')}</div>
  <details class=omore><summary>Komut konsolu (geliştirici aracı)</summary><p class=sub>Ters tırnak ya da F10 açar. Oyunu etkileyen bir komut kullanılan koşu sıralamaya girmez.</p>
  <div class=keys><kbd>altin N · gumus N · seviye N</kbd><span>Kaynak</span><kbd>esya · silah · tom · dogur</kbd><span>İçerik ekle (Tab ile anahtar)</span><kbd>boss · asama · zaman N · kapi</kbd><span>Koşu akışı</span><kbd>kilit · achepsi · gorevler</kbd><span>Kilitler</span><kbd>perf · fps · temizle · olumsuz</kbd><span>Araçlar</span></div></details>
- <h3>Dokunmatik ve kumanda</h3><p class=sub>Sol yarıda sürükle: yürü; sağ yarıda: kamera. Kumanda: sol çubuk yürü, sağ çubuk kamera, A zıpla, X etkileşim, B kay, RB ya da RT atıl, Start duraklat, Select harita. Menülerde yön tuşları ya da sol çubukla gez, A ile seç, B ile geri dön; kaydırıcıda sağ ve sol değeri değiştirir.</p>
+ <h3>Dokunmatik ve kumanda</h3><p class=sub>Dokunmatik: sol yarıda sürükle yürü, sağ yarıda kamera. Kullan düğmesi yakında kapı, sunak ya da tüccar varken parlar; Atıl beklerken düğmesi dolar. Mini haritaya basılı tut: büyük harita; sağ üstteki düğme duraklatır. Kumanda: sol çubuk yürü, sağ çubuk kamera, A zıpla, X etkileşim, B kay, RB ya da RT atıl, Start duraklat, Select harita. Menülerde yön tuşları ya da sol çubukla gez, A ile seç, B ile geri dön; kaydırıcıda sağ ve sol değeri değiştirir.</p>
  <div class=row style="justify-content:center;margin-top:18px"><button class=act ${A('closeHelp')}>Kapat <kbd>Esc</kbd></button></div></div>`;
 }
 

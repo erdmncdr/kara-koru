@@ -27,8 +27,9 @@ import { A } from '../ui/actions.js';
 export let kzOk;
 
 // ---- etkileşim
-export function interact(auto) {
-  if ($G.S != 'play') return;
+// probe: yalnız yakında etkileşilecek bir şey var mı diye bakar (dokunmatik Kullan düğmesi parlar)
+export function interact(auto, probe) {
+  if ($G.S != 'play') return false;
   let bo = null,
     bd = auto ? 2.8 : 4.6;
   const cand = (q, f) => {
@@ -49,7 +50,9 @@ export function interact(auto) {
       if ($G.GATE.st == 0) summonBoss();else if ($G.GATE.st == 3) exitRun();else nextStage();
     };
   }
+  if (probe) return !!bo;
   if (bo) bo();
+  return !!bo;
 }
 
 export function tryChest(c) {
