@@ -8,7 +8,7 @@ import { OV, fmt } from '../core/state.js';
 import { CR, heroIdx, heroOn } from '../game/heroes.js';
 import { MAPS, WD } from '../data/content.js';
 import { A } from './actions.js';
-import { IC, iconCol, svg } from './icons.js';
+import { IC, iconCol, ikon } from './icons.js';
 import { cleanCh, gecenHafta, haftaBasi, haftaSonu, supaAllow, supaCount, supaFlush, supaIdent, supaMine, supaName, supaOn, supaRecord, supaRows } from './supa.js';
 
 const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -261,7 +261,8 @@ export function lbRefresh() {
   if ($G.S == 'lb') lbRender();
 }
 
-const heroSvg = c => CR[c] ? svg(IC['h_' + CR[c].k] ? 'h_' + CR[c].k : WD[CR[c].w].ic, iconCol('h', CR[c].k)) : '';
+// boyalı portre; yoksa eski çizim
+const heroSvg = c => CR[c] ? ikon('h_' + CR[c].k, IC['h_' + CR[c].k] ? 'h_' + CR[c].k : WD[CR[c].w].ic, iconCol('h', CR[c].k)) : '';
 const adi = r => r.id == GL.me ? esc(supaName() || 'Sen') : GL.kind == 'supa' ? esc(r.ad || 'Savaşçı') : 'Savaşçı';
 const ayr = r => `${CR[r.c] ? CR[r.c].n : ''} · ${(r.s | 0) + 1}. aşama · ${fmt(r.t | 0)}`;
 // kalan süre: "2 gün 6 saat", son gün "5 saat 12 dk"

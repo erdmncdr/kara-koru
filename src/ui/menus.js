@@ -238,7 +238,7 @@ function heroPage(kb) {
  <div class=hg2 role=radiogroup aria-label="Karakter">${HI.map(i => {
     const c = CR[i],
       l = !unl(c.lock);
-    return `<button class="hc${i == $G.CI ? ' on' : ''}${l ? ' lk' : ''}${l && $G.META.l['q_' + c.lock] ? ' rdy' : ''}" role=radio aria-checked=${i == $G.CI} ${A('selC', i)} title="${c.n}${l ? ' (kilitli)' : ', Rütbe ' + rankOf(i)}"><span class=cw>${svg(IC['h_' + c.k] ? 'h_' + c.k : WD[c.w].ic, iconCol('h', c.k))}</span><b>${c.n}</b></button>`;
+    return `<button class="hc${i == $G.CI ? ' on' : ''}${l ? ' lk' : ''}${l && $G.META.l['q_' + c.lock] ? ' rdy' : ''}" role=radio aria-checked=${i == $G.CI} ${A('selC', i)} title="${c.n}${l ? ' (kilitli)' : ', Rütbe ' + rankOf(i)}"><span class=cw>${ikon('h_' + c.k, IC['h_' + c.k] ? 'h_' + c.k : WD[c.w].ic, iconCol('h', c.k))}</span><b>${c.n}</b></button>`;
   }).join('')}</div>
  <section class=hinf>
   <div class=hdt><h3>${c.n}</h3>${lk ? '<span class="tag lk">Kilitli</span>' : `<span class=tag>Rütbe ${rankOf($G.CI)}</span>`}</div>
@@ -313,7 +313,7 @@ export function otag(tab = 'guc') {
   const lr = heroIdx().map(i => CR[i]).filter(c => c.lock).map(c => {
     const h = $G.META.l[c.lock],
       q = $G.META.l['q_' + c.lock];
-    return `<div class=mrow><span class=ic style="--ik:${iconCol('h', c.k)}">${svg('h_' + c.k, iconCol('h', c.k))}</span><div><b>${c.n}</b><span>${h ? c.d : q ? 'Koşul tamam. ' + c.d : c.ud}</span></div><span></span><button class="act alt sm" ${A('buyChar', c.k)} ${h || !q || $G.META.s < (c.cost || 0) ? 'disabled' : ''}>${h ? 'Açık' : (c.cost || 0) + ' gümüş'}</button></div>`;
+    return `<div class=mrow><span class=ic style="--ik:${iconCol('h', c.k)}">${ikon('h_' + c.k, 'h_' + c.k, iconCol('h', c.k))}</span><div><b>${c.n}</b><span>${h ? c.d : q ? 'Koşul tamam. ' + c.d : c.ud}</span></div><span></span><button class="act alt sm" ${A('buyChar', c.k)} ${h || !q || $G.META.s < (c.cost || 0) ? 'disabled' : ''}>${h ? 'Açık' : (c.cost || 0) + ' gümüş'}</button></div>`;
   }).join('') + ML.map(u => {
     const h = $G.META.l[u.k];
     return `<div class=mrow>${mlIcon(u)}<div><b>${u.n}</b><span>${u.d}</span></div><span></span><button class="act alt sm" ${A('buyML', u.k)} ${h || $G.META.s < u.c ? 'disabled' : ''}>${h ? 'Açık' : u.c + ' gümüş'}</button></div>`;

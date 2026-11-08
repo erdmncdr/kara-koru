@@ -1225,3 +1225,14 @@ body:has(#ov.mid:not(.h) .sx) #hud,body:has(#ov.mid:not(.h) .sx) #wls{visibility
 #joy i{position:absolute;left:50%;top:50%;width:50px;height:50px;margin:-25px 0 0 -25px;border-radius:50%;background:rgba(255,255,255,.88);border:3px solid #000;box-shadow:0 3px 0 rgba(0,0,0,.4);transform:translate(var(--dx,0),var(--dy,0))}
 body:not(.on) #joy,body:has(#ov:not(.h)) #joy,body:has(#ov:not(.h)) #bp{display:none!important}
 @media (prefers-reduced-motion:reduce){#be.on{animation:none}}
+/* kahraman portreleri (boyalı): seçim karosunda büyük, kilitliyse gri */
+.mn2 .hc .cw:has(.ika){width:54px;height:54px;opacity:1}
+@media (max-width:520px){.mn2 .hc .cw:has(.ika){width:48px;height:48px}}
+.mn2 .hc.lk .cw:has(.ika){filter:grayscale(1) brightness(.45)}
+.otag .mrow .ic:has(.ika){width:48px;height:48px}
+.pc .hi:has(.ika){width:56px;height:56px;background:none;box-shadow:none}.pc.p1 .hi:has(.ika){width:70px;height:70px}
+.lr .hi:has(.ika){width:30px;height:30px}.lbloc .lr .hi:has(.ika){width:24px;height:24px}
+.lbt2 .cw:has(.ika){width:34px;height:34px}
+.mn2 .hc .cw:has(.ika),.otag .mrow .ic:has(.ika){background:none!important;box-shadow:none!important;border:0!important}
+/* küçük başlıklarda sabit 7 px dış hat harf aralarını doldurup kara blok yapıyordu: hat yazı boyutuyla orantılı */
+.mn2 .mph h2,.pmn h2,.sx h2,.pz>h2,.setp>h2{-webkit-text-stroke-width:.15em!important;text-shadow:0 .09em 0 var(--ink)!important}
