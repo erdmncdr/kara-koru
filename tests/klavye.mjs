@@ -11,7 +11,7 @@ const ae = () => pg.evaluate(() => { const a = document.activeElement, cs = getC
 const P = async (k, n = 1) => { for (let i = 0; i < n; i++) await pg.keyboard.press(k); return ae(); };
 const r = {};
 r.menu_tab = await P('Tab'); r.menu_down2 = await P('ArrowDown', 2); r.menu_up = await P('ArrowUp'); r.menu_shiftTab = await P('Shift+Tab');
-await pg.screenshot({ path: process.argv[3] + '/44_menu_odak.png' });
+if (process.argv[3]) await pg.screenshot({ path: process.argv[3] + '/44_menu_odak.png' });
 r.menu_enterOyna = (await pg.keyboard.press('Enter'), await pg.evaluate(() => menuPg));
 r.kahraman_ok = (await pg.keyboard.press('ArrowRight'), await pg.evaluate(() => CI));
 r.kahraman_tab = await P('Tab');
@@ -25,7 +25,7 @@ r.kaydirici = `${v0} → ${v1}, odak: ${await ae()}`;
 await pg.evaluate(() => { closeSet(); start(); P.inv = 1e9 }); await pg.waitForTimeout(6000); await pg.evaluate(() => { if (S === 'ready') goReady() }); await pg.waitForTimeout(1500);
 await pg.evaluate(() => choose('level', luOpts())); await pg.waitForTimeout(400);
 r.kart_down = await P('ArrowDown'); r.kart_right = await P('ArrowRight');
-await pg.screenshot({ path: process.argv[3] + '/45_kart_odak.png' });
+if (process.argv[3]) await pg.screenshot({ path: process.argv[3] + '/45_kart_odak.png' });
 const w0 = await pg.evaluate(() => P.W.length + P.T.length); await pg.keyboard.press('Enter'); await pg.waitForTimeout(300);
 r.kart_enter = `${await pg.evaluate(() => S)}, silah+tom ${w0} → ${await pg.evaluate(() => P.W.length + P.T.length)}`;
 await pg.evaluate(() => { if (S != 'play') back(); }); await pg.keyboard.press('Escape'); await pg.waitForTimeout(300);

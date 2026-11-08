@@ -12,7 +12,7 @@ const ANLAR = [
   ['zipla', { tus: ' ' }], ['kay', { tus: 'c' }], ['atil', { dsh: .2, vz: 14 }], ['darbe', { hit: .3 }]
 ];
 const kareler = {};
-for (const [ad, q] of [['eski', ''], ['meshy', '?meshy']]) {
+for (const [ad, q] of [['eski', '?eski'], ['meshy', '']]) {
   const pg = await br.newPage({ viewport: { width: 1280, height: 720 } });
   pg.on('pageerror', e => errs.push(ad + ': ' + e.message));
   pg.on('console', m => { if (/Meshy modeli/.test(m.text())) errs.push(ad + ': ' + m.text()); });

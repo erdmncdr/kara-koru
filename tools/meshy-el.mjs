@@ -11,12 +11,12 @@ await pg.addInitScript(() => {
   Element.prototype.requestPointerLock = function () {};
   localStorage.setItem('kk_set', JSON.stringify({ q: 1, bl: 0 })); localStorage.setItem('kk_tut', '1'); localStorage.setItem('kk_ci', '0');
 });
-await pg.goto(url + '?meshy', { waitUntil: 'domcontentloaded', timeout: 90000 });
+await pg.goto(url, { waitUntil: 'domcontentloaded', timeout: 90000 });
 await pg.waitForFunction(() => typeof S !== 'undefined' && S === 'menu', null, { timeout: 90000 });
 await pg.addStyleTag({ content: '#ov,#tip{display:none!important}' });
 await pg.evaluate(() => { menuPage('kahraman'); selC(1, 1); selC(0, 1) });
 await pg.waitForFunction(() => window.__glb, null, { timeout: 60000 }); await sleep(1500);
-const ANLAR = [['bekle', 'idle', 1.2], ['sag_savurus', 'slashR', .55], ['sol_savurus', 'slashL', .75], ['kos', 'run', .2], ['zipla', 'jump', .8], ['darbe', 'hit', .5]];
+const ANLAR = [['bekle', 'idle', 1.2], ['savas', 'combat', .6], ['sag_savurus', 'slashR', .55], ['sol_savurus', 'slashL', .75], ['yuru', 'walk', .3], ['kos', 'run', .15], ['zipla', 'jump', .8], ['takla', 'flip', 1.6], ['atil', 'dash', .45], ['darbe', 'hit', .5]];
 const YON = [0, Math.PI / 2, Math.PI, -Math.PI / 2];
 const kareler = [];
 for (const [ad, k, t] of ANLAR) for (const y of YON) {
@@ -25,7 +25,7 @@ for (const [ad, k, t] of ANLAR) for (const y of YON) {
     for (const a of Object.values(G.A)) a.setEffectiveWeight(0);
     const tum = ['slashR', 'slashL', 'hit'].includes(k);
     // üst gövde kliplerinde bacaklar bekleme duruşunda
-    if (tum) { G.A.idle.setEffectiveWeight(1); G.A.idle.time = 1.2; }
+    if (tum) { G.A.combat.setEffectiveWeight(1); G.A.combat.time = .6; }
     G.A[k].setEffectiveWeight(1); G.A[k].time = t; if (G.A[k + '_u']) { G.A[k + '_u'].setEffectiveWeight(1); G.A[k + '_u'].time = t; }
     for (const a of Object.values(G.A)) a.paused = false;
     G.mixer.update(0);

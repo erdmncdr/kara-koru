@@ -6,7 +6,7 @@ const [url, out] = process.argv.slice(2); fs.mkdirSync(out, { recursive: true })
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const br = await chromium.launch({ executablePath: process.env.CHROME, headless: true, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 const errs = [];
-for (const [ad, q] of [['eski', ''], ['meshy', '?meshy']]) {
+for (const [ad, q] of [['eski', '?eski'], ['meshy', '']]) {
   const pg = await br.newPage({ viewport: { width: 1280, height: 720 } });
   pg.on('pageerror', e => errs.push(ad + ': ' + e.message));
   pg.on('console', m => { if (m.type() == 'warning' || m.type() == 'error') errs.push(ad + ' konsol: ' + m.text().slice(0, 160)); });
