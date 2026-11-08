@@ -349,7 +349,7 @@ export function heroCalc(L, c1) {
 }
 
 // ---- kostüm: köşe renklerini dönüştürür (doğrusal uzay)
-const SKINF = {
+export const SKINF = {
   gold: (r, g, b) => { const l = .3 * r + .59 * g + .11 * b; return [l * .4 + .55 * (.6 + l * .5), l * .4 + .4 * (.5 + l * .5), l * .2 + .08]; },
   dark: (r, g, b) => [r * .3 + .02, g * .22 + .01, b * .38 + .05],
   fire: (r, g, b) => { const l = .3 * r + .59 * g + .11 * b; return [Math.min(1, r * .5 + .55 + l * .3), g * .35 + .12 * l, b * .15]; },
