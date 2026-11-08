@@ -42,6 +42,8 @@ function klipler(k) {
 // (kaymada kalça alçalır, bu kalır)
 function kok(C) {
   for (const [k, c] of Object.entries(C)) {
+    // sol elin ölçeği kodla küçültülür (kalkanın arkasında kalsın); klipler bunu her karede 1'e döndürmesin
+    c.tracks = c.tracks.filter(t => t.name != 'LeftHand.scale');
     for (const tr of c.tracks) {
       if (!/^Hips\.position$/.test(tr.name)) continue;
       const v = tr.values, x0 = v[0], y0 = v[1], z0 = v[2];
@@ -135,6 +137,9 @@ function tak(nes, kemik, dunyaPos, dunyaYon, boy) {
   kemik.add(nes);
 }
 
+// kalkanın ön kolun önüne itilme payı (boyun oranı)
+const KALKAN_ON = .06;
+
 // etkin GLB kahraman
 let G = null;
 
@@ -181,10 +186,15 @@ export function glbHero(H, key) {
       const el = wp('RightHand'), kol = el.clone().sub(wp('RightForeArm')).normalize();
       tak(kilic(), bone('RightHand'), el.clone().addScaledVector(kol, h0 * .035), kol.clone().addScaledVector(ileri, 1.1), h0 * .5);
     }
-    // kalkan: sol ön kolun ortasında, yüzü dışa (sola) ve hafif öne
+    // kalkan: yüzü ön kola dik (kol kalkanın arkasından geçer, içinden değil), merkezi bileğin biraz gerisinde,
+    // kolun önüne itilmiş; eldiven kalkanın arkasında kalsın diye sol el biraz küçültülür
     {
-      const a = wp('LeftForeArm'), b = wp('LeftHand'), orta = a.clone().lerp(b, .55);
-      tak(kalkan(), bone('LeftForeArm'), orta.addScaledVector(sol, h0 * .03), sol.clone().multiplyScalar(.85).addScaledVector(ileri, .5), h0 * .4);
+      const a = wp('LeftForeArm'), b = wp('LeftHand'), eks = b.clone().sub(a).normalize(),
+        n = ileri.clone().addScaledVector(sol, .35);
+      n.addScaledVector(eks, -n.dot(eks)).normalize();
+      const merkez = a.clone().lerp(b, .82).addScaledVector(n, h0 * KALKAN_ON);
+      tak(kalkan(), bone('LeftForeArm'), merkez, n, h0 * .42);
+      bone('LeftHand').scale.setScalar(.7);
     }
     // şapka: eski gövdenin baş kemiğinden yenisinin başına, miğferin tepesine
     if (hedef.hat) {
@@ -205,6 +215,8 @@ export function glbHero(H, key) {
       if (A[k + '_u']) A[k + '_u'].timeScale = 0;
     }
     G = { H: hedef, root, mixer, A, w: { idle: 1 }, wu: 0, slT: 0, ust: null };
+    // denetim araçları için (tools/meshy-el.mjs): duruşu dondurup tek klip anı göstermek
+    /** @type {any} */ (window).__glb = G;
   }).catch(e => console.warn('Meshy modeli yüklenemedi', e));
 }
 
@@ -213,7 +225,7 @@ const SAL = { slashR: [.12, .95], slashL: [.3, 1.2] };
 const ANA = ['idle', 'walk', 'run', 'jump', 'slide', 'dash'];
 
 export function glbTick(dt) {
-  if (!G) return;
+  if (!G || G.dondur) return;
   if ($G.H !== G.H) return void (G = null);
   const P = $G.P || {},
     pl = $G.S == 'play',
