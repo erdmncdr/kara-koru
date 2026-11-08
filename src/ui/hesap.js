@@ -12,6 +12,19 @@
 
 import { supaAuth, supaCfg, supaOn, supaReq } from './supa.js';
 
+// giriş ekranının sahnesi: boyalı arka plan (varsa), sis, ruh ışığı sütunları ve yükselen korlar. Yalnız CSS animasyonu.
+const GA = import.meta.glob('../assets/giris/*.webp', { eager: true, query: '?url', import: 'default' });
+const ARKA = /** @type {string|undefined} */ (Object.values(GA)[0]);
+function sahne() {
+  let kor = '';
+  for (let i = 0; i < 26; i++) {
+    const x = (i * 37 + 11) % 100, d = 9 + ((i * 7) % 8), dl = -((i * 13) % 17), s = 2 + (i % 3);
+    kor += `<i style="--x:${x}%;--d:${d}s;--dl:${dl}s;--s:${s}px;--k:${(i % 5) - 2}"></i>`;
+  }
+  const isik = [34, 43, 52, 63, 71].map((x, i) => `<b style="--x:${x}%;--dl:${-i * 1.7}s;--w:${8 + (i % 3) * 5}px"></b>`).join('');
+  return `<div class="gfx${ARKA ? ' res' : ''}" aria-hidden=true><div class=gbg${ARKA ? ` style="background-image:url('${ARKA}')"` : ''}></div><div class=gdag></div><div class=gisik>${isik}</div><div class=gsis></div><div class=gsis2></div><div class=gkor>${kor}</div><div class=gkarart></div></div>`;
+}
+
 const OTURUM = 'kk_oturum',
   BULUT = 'kk_bulut';
 // hesaba giren tarayıcı anahtarları; çıkışta silinir
@@ -462,7 +475,7 @@ function ekran(msg = '', yeniden = 0) {
     const el = document.createElement('div');
     el.id = 'giris';
     if (yeniden) {
-      el.innerHTML = `<div class=gk><h1>Kara Koru</h1><p class=gnot role=status>${msg}</p><button class="act gbt" type=button>${yeniden == 2 ? 'Burada oyna' : 'Yeniden dene'}</button>${yeniden == 2 ? '' : '<button class=glink type=button>Başka hesapla gir</button>'}</div>`;
+      el.innerHTML = sahne() + `<div class=gk><h1>Kara Koru</h1><p class=gnot role=status>${msg}</p><button class="act gbt" type=button>${yeniden == 2 ? 'Burada oyna' : 'Yeniden dene'}</button>${yeniden == 2 ? '' : '<button class=glink type=button>Başka hesapla gir</button>'}</div>`;
       document.body.appendChild(el);
       const bt = /** @type {HTMLButtonElement} */ (el.querySelector('.gbt'));
       bt.focus();
@@ -481,7 +494,7 @@ function ekran(msg = '', yeniden = 0) {
       });
       return;
     }
-    el.innerHTML = `<form class=gk novalidate>
+    el.innerHTML = sahne() + `<form class=gk novalidate>
  <p class=ins aria-hidden=true>𐱅𐰭𐰼𐰃⁚𐰴𐰺𐰀⁚𐱅𐰇𐰼𐰜</p><h1>Kara Koru</h1>
  <div class=gsek role=tablist><button type=button role=tab data-m=g class=on aria-selected=true>Giriş yap</button><button type=button role=tab data-m=k aria-selected=false>Kayıt ol</button></div>
  <label>Kullanıcı adı<input name=ad autocomplete=username maxlength=15 spellcheck=false autocapitalize=off required></label>

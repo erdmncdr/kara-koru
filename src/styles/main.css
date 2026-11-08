@@ -1147,3 +1147,52 @@ p,.cd .d{text-wrap:pretty}
 #xpw{background:rgba(0,0,0,.45)!important;box-shadow:inset 0 -1px 0 rgba(255,255,255,.12)!important}
 /* geniş pencereler (meydan okuma sunağı, sıralama) soldaki HUD'un üstüne taşar: HUD gizlenir */
 body:has(#ov.mid:not(.h) .sx) #hud,body:has(#ov.mid:not(.h) .sx) #wls{visibility:hidden}
+
+/* giriş ekranı oyun dilinde (8 Kasım 2026): sıcak koyu zemin, blok sekmeler, kalın kenarlı kutular, sarı odak */
+#giris{background:radial-gradient(120% 90% at 50% 0%,#2a1c14 0%,#120c09 55%,#070504 100%)!important}
+#giris .gk{width:min(400px,100%);gap:14px}
+#giris h1{margin:0 0 10px;font-size:clamp(48px,11vw,68px)!important;line-height:.95}
+#giris .gsek{gap:0;padding:0;border-radius:4px;background:var(--box);border:2px solid #000;box-shadow:var(--lift);overflow:hidden}
+#giris .gsek button{border-radius:0;padding:11px 8px;font:400 17px/1 var(--dsp);color:#fff;paint-order:stroke fill;-webkit-text-stroke:3px var(--ink)}
+#giris .gsek button+button{border-left:2px solid #000}
+#giris .gsek button:hover{background:#3a2a20}
+#giris .gsek button.on{background:#fff;color:var(--ink);-webkit-text-stroke:0}
+#giris label{font:600 14px var(--txt);color:#fff;letter-spacing:.02em}
+#giris input{padding:12px 13px;border-radius:4px;border:2px solid #000;background:var(--box2);box-shadow:inset 0 2px 0 rgba(0,0,0,.35);color:#fff;font:600 17px var(--txt)}
+#giris input:focus,#giris input:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+#giris .gsek button:focus-visible,#giris .gbt:focus-visible,#giris .glink:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+#giris .gnot{font:600 14px var(--txt);color:#ff8f7d}
+#giris .gbt{padding:13px;font-size:20px}
+#giris .gip{font:500 13px/1.45 var(--txt);color:var(--dim);text-wrap:pretty}
+#giris .glink{font:600 14px var(--txt);color:#fff}
+/* giriş sahnesi: boyalı arka plan + yavaş kamera kayması, ruh ışığı sütunları, sis, yükselen korlar */
+#giris{isolation:isolate}
+#giris .gfx{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+#giris .gfx>div{position:absolute;inset:0}
+#giris .gbg{inset:-5%!important;background:linear-gradient(180deg,#2b2340 0%,#6b4a6e 34%,#c98a7a 52%,#3a2a24 53%,#1a120e 100%);background-size:cover;background-position:center;animation:gkam 42s ease-in-out infinite alternate;will-change:transform}
+@keyframes gkam{from{transform:scale(1) translate(0,0)}to{transform:scale(1.09) translate(-1.6%,-1.2%)}}
+/* resim yoksa uzak dağlar ve koru siluetleri */
+#giris .gdag{background:
+ url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 400' preserveAspectRatio='none'%3E%3Cpath d='M0 260 L120 190 L230 240 L360 150 L470 220 L600 170 L720 230 L860 140 L990 225 L1120 175 L1250 235 L1380 160 L1500 215 L1600 185 V400 H0Z' fill='%234a4672'/%3E%3Cpath d='M0 330 Q200 290 400 320 T800 315 T1200 325 T1600 305 V400 H0Z' fill='%23231812'/%3E%3C/svg%3E") bottom/100% 55% no-repeat}
+#giris .gfx.res .gdag{display:none}
+#giris .gisik b{position:absolute;left:var(--x);bottom:22%;width:var(--w);height:72%;background:linear-gradient(0deg,rgba(255,236,200,0),rgba(255,236,200,.38) 28%,rgba(255,236,200,.06) 85%,rgba(255,236,200,0));filter:blur(4px);mix-blend-mode:screen;opacity:.25;animation:gisik 7s ease-in-out infinite;animation-delay:var(--dl)}
+@keyframes gisik{0%,100%{opacity:.18;transform:scaleY(.94)}50%{opacity:.6;transform:scaleY(1)}}
+#giris .gsis,#giris .gsis2{inset:auto -60% 0 -60%!important;height:46%;background:radial-gradient(ellipse 22% 38% at 20% 70%,rgba(214,200,220,.32),transparent 70%),radial-gradient(ellipse 18% 30% at 55% 80%,rgba(214,200,220,.26),transparent 70%),radial-gradient(ellipse 24% 34% at 85% 72%,rgba(214,200,220,.3),transparent 70%);filter:blur(12px);animation:gsis 70s linear infinite}
+#giris .gsis2{height:34%;opacity:.7;animation-duration:46s;animation-direction:reverse}
+@keyframes gsis{from{transform:translateX(0)}to{transform:translateX(30%)}}
+#giris .gkor i{position:absolute;left:var(--x);bottom:-12px;width:var(--s);height:var(--s);border-radius:50%;background:#ffd98a;box-shadow:0 0 6px 2px rgba(255,140,40,.85),0 0 14px 4px rgba(255,90,20,.35);opacity:0;animation:gkor var(--d) linear infinite;animation-delay:var(--dl)}
+@keyframes gkor{0%{transform:translate(0,0);opacity:0}12%{opacity:1}55%{transform:translate(calc(var(--k)*22px),-55vh)}100%{transform:translate(calc(var(--k)*-14px),-108vh);opacity:0}}
+#giris .gkarart{background:radial-gradient(ellipse 46% 60% at 50% 52%,rgba(10,6,4,.55),rgba(10,6,4,.18) 70%,transparent),radial-gradient(ellipse at 50% 50%,transparent 45%,rgba(0,0,0,.7)),linear-gradient(0deg,rgba(7,5,4,.85),transparent 30%)}
+/* panel: başlık üst kenara oturur */
+#giris .gk{position:relative;z-index:1;margin-top:40px;padding:0 24px 20px;background:rgba(18,12,9,.88);border:2px solid #000;border-radius:6px;box-shadow:0 8px 0 rgba(0,0,0,.45),0 30px 90px rgba(0,0,0,.7);animation:gkin .55s cubic-bezier(.2,.8,.2,1) both}
+#giris .gk h1{margin:-.52em 0 4px!important;animation:gbas .7s cubic-bezier(.2,1.4,.4,1) both .1s}
+#giris .gk .ins{display:none}
+@keyframes gkin{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+@keyframes gbas{from{opacity:0;transform:translateY(-18px) scale(.92)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){#giris .gfx *,#giris .gk,#giris .gk h1{animation:none!important}#giris .gkor{display:none}}
+/* resimdeki ruh ışıkları ufukta: sütunlar oradan yükselir */
+#giris .gfx.res .gisik b{bottom:43%;height:40%}
+#giris .gk h1{white-space:nowrap;font-size:clamp(42px,12vw,60px)!important}
+#giris .gkor i{width:calc(var(--s) + 1px);height:calc(var(--s) + 1px)}
+/* dikey ekranda resmin solundaki balbal taşları ve kurgan görünsün */
+@media (orientation:portrait){#giris .gbg{background-position:16% 62%}}
