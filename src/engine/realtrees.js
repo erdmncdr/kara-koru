@@ -134,6 +134,29 @@ export function barkMat(kind) {
   const m = new THREE.MeshStandardMaterial({ map, bumpMap: bump, bumpScale: .9, roughness: .95, metalness: 0 });
   return RC[key] = m;
 }
+// Yaprak saydamlığı: kameraya çok yakın yapraklar ve kamera ile karakter arasında, karakterin görüş hattını kapatan
+// yapraklar ekran kapısı (dither) desenle seyrelip kaybolur. Kamera tacın içinden geçse de ekran yaprakla dolmaz,
+// karakter ağacın arkasında kalmaz. Yalnız renk geçişi: gölge haritası aynı kalır. OKL her kare loop.js'te güncellenir.
+export const OKL = { uHeroV: { value: new THREE.Vector3(0, 0, -1e4) }, uOkl: { value: 0 } };
+const okluk = sh => {
+  sh.uniforms.uHeroV = OKL.uHeroV;
+  sh.uniforms.uOkl = OKL.uOkl;
+  sh.fragmentShader = sh.fragmentShader
+    .replace('#include <common>', '#include <common>\nuniform vec3 uHeroV;uniform float uOkl;')
+    .replace('#include <alphatest_fragment>', `#include <alphatest_fragment>
+if (uOkl > .5) {
+  vec3 p = -vViewPosition;                       // görüş uzayında parça
+  float dc = length(p);                          // kameraya uzaklık
+  vec3 hd = normalize(uHeroV); float hl = length(uHeroV);
+  float t = dot(p, hd), perp = length(p - hd * t); // karakter ışınına göre konum
+  float yakin = 1. - smoothstep(1.6, 3.2, dc);
+  float arada = (1. - smoothstep(1.4, 2.6, perp)) * step(.2, t) * (1. - smoothstep(hl - 1.6, hl - .6, t));
+  float k = max(yakin, arada);
+  float dth = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(.06711056, .00583715))));
+  if (k > .02 && dth < k * 1.05) discard;
+}`);
+};
+
 export function leafMat(kind) {
   const key = 'lm' + kind;
   if (RC[key]) return RC[key];
@@ -141,6 +164,7 @@ export function leafMat(kind) {
   m.onBeforeCompile = sh => {
     if (VMATT && VMATT.onBeforeCompile) VMATT.onBeforeCompile(sh); // rüzgâr salınımı
     noFlip(sh);
+    okluk(sh);
   };
   m.customProgramCacheKey = () => 'leaf' + kind;
   return RC[key] = m;

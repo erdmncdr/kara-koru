@@ -19,7 +19,8 @@ import { bigDraw } from '../ui/bigmap.js';
 import { hud, wlUpd } from '../ui/hud.js';
 import { ovUpd } from '../ui/screenfx.js';
 import { ffUpd, mapUpd, pl } from '../world/ambient.js';
-import { groundTop, skyD } from '../world/terrain.js';
+import { camHit, groundTop, skyD } from '../world/terrain.js';
+import { OKL } from '../engine/realtrees.js';
 import { conOpen } from '../ui/console.js';
 import { start } from '../game/flow.js';
 import { toast } from './helpers.js';
@@ -93,7 +94,7 @@ export function loop(t) {
     $G.FX += ($G.P.x - $G.FX) * Math.min(1, dt * 22);
     $G.FZ += ($G.P.z - $G.FZ) * Math.min(1, dt * 22);
     $G.FY += ($G.P.y - $G.FY) * Math.min(1, dt * 9);
-    const d = mn ? 7.2 : SET.cd || 14,
+    let d = mn ? 7.2 : SET.cd || 14,
       ty = mn ? 1.35 : 1.8,
       ox = mn && innerWidth > 760 ? 2.3 : 0,
       tx = $G.FX - Math.cos($G.yaw) * ox,
@@ -107,6 +108,19 @@ export function loop(t) {
         yl = ly + (cy2 - ly) * f;
       if (yl < h) cy2 = Math.max(cy2, ly + (h - ly) / f);
     }
+    // kamera kolu: karakterle kamera arasında ağaç gövdesi ya da kaya varsa kamera hemen öne çekilir (en az 3 birim),
+    // yol açılınca yavaşça geri gider. Yapraklar için kamera oynamaz, yapraklar saydamlaşır (OKL, aşağıda)
+    if (!mn) {
+      const k = camHit(tx, ly, tz, cx, cy2, cz),
+        hd = Math.max(Math.min(1, 3 / d), k),
+        ck = $G.camK == null ? 1 : $G.camK;
+      $G.camK = hd < ck ? hd : ck + (hd - ck) * Math.min(1, dt * 2.5);
+      if ($G.camK < .999) {
+        cx = tx + (cx - tx) * $G.camK;
+        cz = tz + (cz - tz) * $G.camK;
+        cy2 = Math.max(ly + (cy2 - ly) * $G.camK, groundTop(cx, cz) + .8);
+      }
+    }
     cam.position.set(cx, cy2, cz);
     if (!RM) {
       {
@@ -119,6 +133,10 @@ export function loop(t) {
     cam.lookAt(tx, ly, tz);
     cam.fov += ((mn ? 45 : (SET.fov || 70) + (cam.aspect < 1 ? Math.min(18, (1 - cam.aspect) * 30) : 0) + Math.min(16, Math.hypot($G.P.vx, $G.P.vz) * .4) + ($G.P.dsh > 0 ? 8 : 0)) - cam.fov) * Math.min(1, dt * 8);
     cam.updateProjectionMatrix();
+    // yaprak saydamlığı: karakterin başının görüş uzayındaki konumu
+    cam.updateMatrixWorld();
+    OKL.uOkl.value = mn ? 0 : 1;
+    if (!mn) OKL.uHeroV.value.set($G.P.x, $G.P.y + .6, $G.P.z).applyMatrix4(cam.matrixWorldInverse);
     skyD.position.copy(cam.position);
     $G.sunM.position.set($G.P.x + 250, 180, $G.P.z - 250);
     if ($G.moonM) {

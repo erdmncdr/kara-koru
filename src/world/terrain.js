@@ -166,6 +166,24 @@ export function solidAt(x, y, z) {
   return 0;
 }
 
+// Kamera kolu: hedeften (karakterin başı) kameraya giden doğrunun ilk katı engele (ağaç gövdesi, kaya) çarptığı oran.
+// 1: yol açık. Engel biraz şişirilir ki kamera yaprakların kenarına da girmesin; çarpma noktasının biraz önünde durur.
+export function camHit(ax, ay, az, bx, by, bz) {
+  const dx = bx - ax, dy = by - ay, dz = bz - az, L = Math.hypot(dx, dy, dz), n = Math.ceil(L / .35);
+  for (let i = 2; i <= n; i++) {
+    const f = i / n, x = ax + dx * f, y = ay + dy * f, z = az + dz * f, b = cell($G.OG, x, z);
+    if (!b) continue;
+    for (const o of b) {
+      // sınır duvarları ve büyük alanlar değil
+      if (o.r > 6 || o.t > 1e8) continue;
+      // yapraklı taçta yalnız ortadaki gövde katıdır (çamda gövde tepeye kadar uzanır); yapraklar saydamlaşır (realtrees.js OKL)
+      const r = o.nm ? .6 : o.r + .45;
+      if (y > o.b - .4 && y < o.t + .4 && (x - o.x) ** 2 + (z - o.z) ** 2 < r * r) return Math.max(0, f - .7 / L);
+    }
+  }
+  return 1;
+}
+
 export function los(ax, ay, az, bx, by, bz) {
   const dx = bx - ax,
     dy = by - ay,
