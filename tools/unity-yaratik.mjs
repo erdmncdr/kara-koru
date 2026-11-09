@@ -4,7 +4,7 @@
 // node tools/unity-yaratik.mjs <oyun url> <çıktı klasörü> [biyom=0]
 import { chromium } from 'playwright';
 import fs from 'node:fs';
-const [url, out, bi = '0'] = process.argv.slice(2);
+const [url, out, bi = '0', ekler = ''] = process.argv.slice(2); // ekler: virgüllü boss türleri (taban sınıf 3), ör. tepegoz
 fs.mkdirSync(out, { recursive: true });
 const br = await chromium.launch({ executablePath: process.env.CHROME, headless: true, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 const pg = await br.newPage({ viewport: { width: 640, height: 360 } });
@@ -14,15 +14,15 @@ await pg.goto(url, { waitUntil: 'domcontentloaded', timeout: 90000 });
 await pg.waitForFunction(() => typeof S !== 'undefined' && S === 'menu', null, { timeout: 90000 });
 await pg.evaluate(async b => { const { $G } = await import('/src/core/store.js'); if (+b) $G.BI = +b; start(); P.inv = 1e9 }, bi);
 await pg.waitForFunction(() => S === 'ready' || S === 'play', null, { timeout: 60000 });
-const res = await pg.evaluate(async () => {
+const res = await pg.evaluate(async ekler => {
   const { GLTFExporter } = await import('/@id/three/examples/jsm/exporters/GLTFExporter.js');
   const C = await import('/src/game/creatures.js'), R = await import('/src/engine/renderer.js'), A = await import('/src/geo/accessories.js');
   const { KINDS, ROSTER } = await import('/src/data/enemies.js'), { $G } = await import('/src/core/store.js');
   const CT = await import('/src/data/content.js');
-  const list = (ROSTER[['koru', 'bozkir', 'mezarlik'][$G.BI]] || ROSTER.koru).map(r => r.k);
+  const list = ekler ? ekler.split(',') : (ROSTER[['koru', 'bozkir', 'mezarlik'][$G.BI]] || ROSTER.koru).map(r => r.k);
   const out = {};
   for (const k of list) {
-    const kd = { ...KINDS[k], k }, t = kd.t;
+    const kd = { ...(KINDS[k] || { t: 3 }), k }, t = kd.t != null ? kd.t : 3;
     const u0 = C.mkE(t, false, kd), d = u0.d;
     const u = R.skInst(d, 0);
     if (A.ACC.kind[k]) A.attachAcc(u, d.bones, A.ACC.kind[k], 1);
@@ -43,7 +43,7 @@ const res = await pg.evaluate(async () => {
     };
   }
   return { out, list };
-});
+}, ekler);
 for (const [k, v] of Object.entries(res.out)) {
   fs.writeFileSync(`${out}/yaratik_${k}.glb`, Buffer.from(v.b64, 'base64'));
   fs.writeFileSync(`${out}/yaratik_${k}.json`, JSON.stringify(v.rig));
