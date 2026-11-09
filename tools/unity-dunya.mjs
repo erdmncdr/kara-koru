@@ -35,6 +35,7 @@ const res = await pg.evaluate(async () => {
     if (mt === G.VMATT) return 'svT';          // ağaç gövdesi salınımı (k2=0.0045)
     if (mt === G.VMATG) return 'svG';          // çim salınımı (k1=0.2)
     if (mt === G.VMATB) return 'svB';          // çalı salınımı (k1=0.025)
+    if (mt.isShaderMaterial && mt.uniforms && mt.uniforms.op && mt.uniforms.col) return 'sis'; // yer sisi levhaları (gfx.js fogSheets)
     const s = mt.onBeforeCompile ? mt.onBeforeCompile.toString() : '';
     if (s.includes('uDry')) return 'arazi';
     if (s.includes('wShore')) return 'su';
@@ -56,6 +57,11 @@ const res = await pg.evaluate(async () => {
       turler[t] = (turler[t] || 0) + 1;
     }
   });
+  // GLTFExporter ShaderMaterial yazmaz (malzemesiz kalır, Unity'de beyaz çizilir): yer sisi levhalarına adlı yer tutucu
+  {
+    const THREE = await import('/@id/three');
+    WG.traverse(o => { if (o.isMesh && o.material && o.material.isShaderMaterial && o.material.name == 'kk_sis') o.material = new THREE.MeshBasicMaterial({ name: 'kk_sis', transparent: true, opacity: .3, depthWrite: false }); });
+  }
   const ex = new GLTFExporter(), ex0 = new GLTFExporter();
   const glb = await ex.parseAsync(WG, { binary: true, onlyVisible: true, maxTextureSize: 2048 });
   const u = new Uint8Array(glb); let s = '';
