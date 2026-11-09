@@ -71,7 +71,7 @@ const res = await pg.evaluate(async () => {
   const lk = o => Object.fromEntries(Object.entries(o).filter(([k, v]) => v.lock).map(([k, v]) => [k, v.lock]));
   return {
     MU: CT.MU, ML: CT.ML, QD, CRL: CR.filter(c => !c.off).map(c => ({ k: c.k, lock: c.lock || null, cost: c.cost || 0, ud: c.ud || '' })),
-    LK: { w: lk(CT.WD), t: lk(CT.TDF), i: lk(CT.ITD) }, CHAL: (CH.CHAL || []).map(c => ({ k: c.k, n: c.n })), bad
+    LK: { w: lk(CT.WD), t: lk(CT.TDF), i: lk(CT.ITD) }, CHAL: CH.CHAL || [], bad
   };
 });
 fs.writeFileSync(out, JSON.stringify(res));
