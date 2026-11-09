@@ -2,7 +2,7 @@
 // su, ateşler) GLB'ye, oyun verisini (engeller, platformlar, zıplama pedleri, su seviyesi) JSON'a yazar.
 // Çoklu kopyalar EXT_mesh_gpu_instancing ile gider. Özel shader eklemeleri (rüzgâr, arazi deseni vb.) GLB'ye girmez;
 // Unity tarafında ayrıca taşınır, malzeme adına türü yazılır.
-// node tools/unity-dunya.mjs <oyun url> <çıktı klasörü> [biyom=0] [tohum=1]
+// node tools/unity-dunya.mjs <oyun url> <çıktı klasörü> [aşama=0 (biyomu da belirler: 0 Kara Koru, 1 Kızıl Bozkır, 2 Mezarlık)] [tohum=1]
 import { chromium } from 'playwright';
 import fs from 'node:fs';
 const [url, out, bi = '0', tohum = '1'] = process.argv.slice(2);
@@ -19,8 +19,10 @@ await pg.addInitScript(t => {
 await pg.goto(url, { waitUntil: 'domcontentloaded', timeout: 90000 });
 await pg.waitForFunction(() => typeof S !== 'undefined' && S === 'menu', null, { timeout: 90000 });
 // harita, tohum oyun başlarken sıfırlanarak üretilir (menüdeki rastgele sayı tüketimi sonucu değiştirmesin)
-await pg.evaluate(async ([b, t]) => { const { $G } = await import('/src/core/store.js'); if (b) $G.BI = b; window.__tohum(t); start(); P.inv = 1e9 }, [+bi, +tohum]);
+await pg.evaluate(async ([b, t]) => { window.__tohum(t); start(); P.inv = 1e9 }, [+bi, +tohum]);
 await pg.waitForFunction(() => S === 'ready' || S === 'play', null, { timeout: 60000 });
+// aşama 2-3 (biyom 1-2): web'in nextStage'i gibi aşama ve harita değişir, tohum sıfırlanıp setupStage yeniden kurar
+if (+bi > 0) await pg.evaluate(async ([n, t]) => { const { $G } = await import('/src/core/store.js'); const O = await import('/src/game/objects.js'); window.__tohum(t); $G.P.stage = n; $G.P.map = ['koru', 'bozkir', 'mezarlik'][n]; $G.P.stT = 0; O.setupStage(); }, [+bi, +tohum]);
 await new Promise(r => setTimeout(r, 3000));
 const res = await pg.evaluate(async () => {
   const { GLTFExporter } = await import('/@id/three/examples/jsm/exporters/GLTFExporter.js');
@@ -99,6 +101,9 @@ fs.writeFileSync(`${out}/${ad}.json`, JSON.stringify(res.veri));
 fs.writeFileSync(`${out}/${ad}_yukseklik.bytes`, Buffer.from(res.hb64, 'base64'));
 fs.writeFileSync(`${out}/${ad}_patika.bytes`, Buffer.from(res.pb64, 'base64'));
 fs.writeFileSync(`${out}/cim_${bi}.glb`, Buffer.from(res.cb64, 'base64'));
+// mini harita arka planı (build.js MMBG), aşamaya göre
+const mm = await pg.evaluate(async () => { const { $G } = await import('/src/core/store.js'); return $G.MMBG ? $G.MMBG.toDataURL('image/png').split(',')[1] : ''; });
+if (mm) fs.writeFileSync(`${out}/minimap_${bi}.png`, Buffer.from(mm, 'base64'));
 if (res.cltex) fs.writeFileSync(`${out}/bulut.png`, Buffer.from(res.cltex, 'base64'));
 console.log(ad, (res.bytes / 1e6).toFixed(1) + ' MB', 'OBS', res.veri.OBS.length, 'PLF', res.veri.PLF.length, 'JP', res.veri.JP.length, 'WLV', res.veri.WLV, 'platform', res.veri.PL.length, 'bulut', res.veri.CL.length, JSON.stringify(res.turler));
 console.log('hata:', errs.length ? errs.slice(0, 3) : 'yok');

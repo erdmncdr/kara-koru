@@ -1,7 +1,7 @@
 // Unity için aşama nesneleri: setupStage'in sahneye koyduğu sandıklar, tapınaklar (sunaklar), tüccar/kazanlar, kapı,
 // çömlekler, kırılabilirler ve güçlendiriciler tek GLB'ye (ad: <tür>_<sıra>), etkileşim bilgileri JSON'a.
 // Tohum dünya dışa aktarımıyla aynı sıfırlanır (tools/unity-dunya.mjs): konumlar o haritayla örtüşür.
-// node tools/unity-asama.mjs <oyun url> <çıktı klasörü> [biyom=0] [tohum=1]
+// node tools/unity-asama.mjs <oyun url> <çıktı klasörü> [aşama=0 (biyomu da belirler: 0 Kara Koru, 1 Kızıl Bozkır, 2 Mezarlık)] [tohum=1]
 import { chromium } from 'playwright';
 import fs from 'node:fs';
 const [url, out, bi = '0', tohum = '1'] = process.argv.slice(2);
@@ -17,8 +17,10 @@ await pg.addInitScript(t => {
 }, +tohum);
 await pg.goto(url, { waitUntil: 'domcontentloaded', timeout: 90000 });
 await pg.waitForFunction(() => typeof S !== 'undefined' && S === 'menu', null, { timeout: 90000 });
-await pg.evaluate(async ([b, t]) => { const { $G } = await import('/src/core/store.js'); if (b) $G.BI = b; window.__tohum(t); start(); P.inv = 1e9 }, [+bi, +tohum]);
+await pg.evaluate(async ([b, t]) => { window.__tohum(t); start(); P.inv = 1e9 }, [+bi, +tohum]);
 await pg.waitForFunction(() => S === 'ready' || S === 'play', null, { timeout: 60000 });
+// aşama 2-3 (biyom 1-2): web'in nextStage'i gibi aşama ve harita değişir, tohum sıfırlanıp setupStage yeniden kurar
+if (+bi > 0) await pg.evaluate(async ([n, t]) => { const { $G } = await import('/src/core/store.js'); const O = await import('/src/game/objects.js'); window.__tohum(t); $G.P.stage = n; $G.P.map = ['koru', 'bozkir', 'mezarlik'][n]; $G.P.stT = 0; O.setupStage(); }, [+bi, +tohum]);
 await new Promise(r => setTimeout(r, 2000));
 const res = await pg.evaluate(async () => {
   const { GLTFExporter } = await import('/@id/three/examples/jsm/exporters/GLTFExporter.js');

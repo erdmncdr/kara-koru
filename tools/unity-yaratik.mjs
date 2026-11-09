@@ -12,14 +12,16 @@ const errs = []; pg.on('pageerror', e => errs.push(e.message));
 await pg.addInitScript(() => { Element.prototype.requestPointerLock = function () {}; localStorage.setItem('kk_tut', '1'); localStorage.setItem('kk_ci', '0'); localStorage.setItem('kk_set', JSON.stringify({ q: 2 })); });
 await pg.goto(url, { waitUntil: 'domcontentloaded', timeout: 90000 });
 await pg.waitForFunction(() => typeof S !== 'undefined' && S === 'menu', null, { timeout: 90000 });
-await pg.evaluate(async b => { const { $G } = await import('/src/core/store.js'); if (+b) $G.BI = +b; start(); P.inv = 1e9 }, bi);
+await pg.evaluate(() => { start(); P.inv = 1e9 });
 await pg.waitForFunction(() => S === 'ready' || S === 'play', null, { timeout: 60000 });
+// biyom 1-2: aşama geçişiyle (setupStage) dünya ve $G.BI o biyoma geçer (renk tonları biyoma bağlı olabilir)
+if (+bi > 0) await pg.evaluate(async n => { const { $G } = await import('/src/core/store.js'); const O = await import('/src/game/objects.js'); $G.P.stage = n; $G.P.map = ['koru', 'bozkir', 'mezarlik'][n]; O.setupStage(); }, +bi);
 const res = await pg.evaluate(async ekler => {
   const { GLTFExporter } = await import('/@id/three/examples/jsm/exporters/GLTFExporter.js');
   const C = await import('/src/game/creatures.js'), R = await import('/src/engine/renderer.js'), A = await import('/src/geo/accessories.js');
   const { KINDS, ROSTER } = await import('/src/data/enemies.js'), { $G } = await import('/src/core/store.js');
   const CT = await import('/src/data/content.js');
-  const list = ekler ? ekler.split(',') : (ROSTER[['koru', 'bozkir', 'mezarlik'][$G.BI]] || ROSTER.koru).map(r => r.k);
+  const list = ekler ? ekler.split(',') : (ROSTER[['koru', 'bozkir', 'mezarlik'][$G.BI]] || ROSTER.koru).map(r => r.k).filter((k, i, a) => a.indexOf(k) == i);
   const out = {};
   for (const k of list) {
     const kd = { ...(KINDS[k] || { t: 3 }), k }, t = kd.t != null ? kd.t : 3;
