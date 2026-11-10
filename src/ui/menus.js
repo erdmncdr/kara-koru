@@ -24,6 +24,7 @@ import { back, buildHTML, hudItems, hudSlots, STI } from './cards.js';
 import { goal } from './hud.js';
 import { svg, iconCol, IC, ikon } from './icons.js';
 import { glSubmit, lbAdd, lbSonuc } from './leaderboard.js';
+import { CON_VAR } from './console.js';
 import { hesap } from './hesap.js';
 import { BIO } from '../world/terrain.js';
 
@@ -485,7 +486,7 @@ export function settings(re) {
  <h3>Gelişmiş</h3>
  ${ck('Skoru ortak sıralamaya yükle', 'lbu', SET.lbu !== 0)}
  ${ck('Ortak sıralamayı göster', 'lbv', SET.lbv !== 0)}
- ${ck('Komut konsolu (oyunda ters tırnak ya da F10)', 'con', SET.con !== 0)}`,
+${CON_VAR ? `\n ${ck('Komut konsolu (oyunda ters tırnak ya da F10)', 'con', SET.con !== 0)}` : ''}`,
       goruntu: `${seg('Grafik kalitesi', 'q', [[0, 'Düşük'], [1, 'Orta'], [2, 'Yüksek']], 'applyQ();')}
  <p class=hint>Düşük: gölge kapalı, standart çözünürlük, seyrek süs bitkileri. Orta: gölgeler açık, süs bitkileri biraz seyrek (yeni haritada). Yüksek: yumuşak gölgeler, ışıma ve yüksek çözünürlük. Oyun takılıyorsa ya da cihaz ısınıyorsa kaliteyi düşür.</p>
  ${seg('FPS sınırı', 'fps', [[30, '30'], [60, '60'], [0, 'Sınırsız']])}
@@ -641,10 +642,10 @@ export function over(w) {
 
 // ---- kısayollar ve komutlar (F1)
 export function helpHTML() {
-  const keys = [['W A S D', 'Koş'], ['Fare', 'Kamera'], ['Boşluk', 'Zıpla; havada bir daha; iner inmez zıpla: hız birikir'], ['Shift / sağ tık', 'Atıl: 0.22 sn hamle, 1.6 sn bekleme, kısa dokunulmazlık'], ['Ctrl', 'Kay; yokuşta hızlanır (C de olur)'], ['E', 'Sandık, sunak, kapı, tüccar'], ['Tab', 'Basılı tut: büyük harita'], ['1 2 3', 'Seviye ekranında kart seç'], ['R', 'Seviye ekranında yenile; oyunda basılı tut: yeniden başla'], ['Esc / P', 'Duraklat, build'], ['M', 'Sesi kapat'], ['F1 / ?', 'Bu pencere'], ['` / F10', 'Komut konsolu']];
+  const keys = [['W A S D', 'Koş'], ['Fare', 'Kamera'], ['Boşluk', 'Zıpla; havada bir daha; iner inmez zıpla: hız birikir'], ['Shift / sağ tık', 'Atıl: 0.22 sn hamle, 1.6 sn bekleme, kısa dokunulmazlık'], ['Ctrl', 'Kay; yokuşta hızlanır (C de olur)'], ['E', 'Sandık, sunak, kapı, tüccar'], ['Tab', 'Basılı tut: büyük harita'], ['1 2 3', 'Seviye ekranında kart seç'], ['R', 'Seviye ekranında yenile; oyunda basılı tut: yeniden başla'], ['Esc / P', 'Duraklat, build'], ['M', 'Sesi kapat'], ['F1 / ?', 'Bu pencere'], ...(CON_VAR ? [['` / F10', 'Komut konsolu']] : [])];
   return `<div class="pz narrow"><h2>Kısayollar</h2><div class=keys>${keys.map(([k, d]) => `<kbd>${k}</kbd><span>${d}</span>`).join('')}</div>
- <details class=omore><summary>Komut konsolu (geliştirici aracı)</summary><p class=sub>Ters tırnak ya da F10 açar. Oyunu etkileyen bir komut kullanılan koşu sıralamaya girmez.</p>
- <div class=keys><kbd>altin N · gumus N · seviye N</kbd><span>Kaynak</span><kbd>esya · silah · tom · dogur</kbd><span>İçerik ekle (Tab ile anahtar)</span><kbd>boss · asama · zaman N · kapi</kbd><span>Koşu akışı</span><kbd>kilit · achepsi · gorevler</kbd><span>Kilitler</span><kbd>perf · fps · temizle · olumsuz</kbd><span>Araçlar</span></div></details>
+${CON_VAR ? ` <details class=omore><summary>Komut konsolu (geliştirici aracı)</summary><p class=sub>Ters tırnak ya da F10 açar. Oyunu etkileyen bir komut kullanılan koşu sıralamaya girmez.</p>
+ <div class=keys><kbd>altin N · gumus N · seviye N</kbd><span>Kaynak</span><kbd>esya · silah · tom · dogur</kbd><span>İçerik ekle (Tab ile anahtar)</span><kbd>boss · asama · zaman N · kapi</kbd><span>Koşu akışı</span><kbd>kilit · achepsi · gorevler</kbd><span>Kilitler</span><kbd>perf · fps · temizle · olumsuz</kbd><span>Araçlar</span></div></details>` : ''}
  <h3>Dokunmatik ve kumanda</h3><p class=sub>Dokunmatik: sol yarıda sürükle yürü, sağ yarıda kamera. Kullan düğmesi yakında kapı, sunak ya da tüccar varken parlar; Atıl beklerken düğmesi dolar. Mini haritaya basılı tut: büyük harita; sağ üstteki düğme duraklatır. Kumanda: sol çubuk yürü, sağ çubuk kamera, A zıpla, X etkileşim, B kay, RB ya da RT atıl, Start duraklat, Select harita. Menülerde yön tuşları ya da sol çubukla gez, A ile seç, B ile geri dön; kaydırıcıda sağ ve sol değeri değiştirir.</p>
  <div class=row style="justify-content:center;margin-top:18px"><button class=act ${A('closeHelp')}>Kapat <kbd>Esc</kbd></button></div></div>`;
 }

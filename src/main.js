@@ -169,7 +169,7 @@ function bridge() {
     try { Object.defineProperty(window, k, { get: () => $G[k], set: v => { $G[k] = v }, configurable: true }) } catch (e) {}
   }
 }
-if (import.meta.env.DEV || import.meta.env.VITE_KOPRU) bridge();
+if (__KOPRU__) bridge();
 m106.regActions(Object.values(MODS));
 m106.__init_actions();
 // Hesap açıksa (Supabase ayarlı yayın) önce giriş: hesabın kaydı tarayıcıya inmeden modüller başlatılmaz,
