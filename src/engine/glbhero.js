@@ -36,6 +36,23 @@ export function meshyOn() {
 
 const LD = new GLTFLoader(),
   cache = {};
+// modelin dosyası bir kez indirilir, bellekte tutulur; her kahraman kurulumunda bellekten ayrıştırılır (ağa yeniden gidilmez).
+// İndirme başarısız olursa kayıt silinir: sonraki kurulum yeniden dener
+const buf = {};
+function modelBuf(k) {
+  if (!buf[k]) {
+    buf[k] = fetch(URLS[k].model)
+      .then(r => {
+        if (!r.ok) throw new Error('http ' + r.status);
+        return r.arrayBuffer();
+      })
+      .catch(e => {
+        delete buf[k];
+        throw e;
+      });
+  }
+  return buf[k];
+}
 // klipler ve silahlar bir kez yüklenir; model her kahraman kurulumunda yeniden ayrıştırılır (sahne nesnesi paylaşılamaz)
 function ortak(k) {
   if (!cache[k]) {
@@ -50,6 +67,9 @@ function ortak(k) {
         }),
         kilic: kl.scene, kalkan: kn.scene
       };
+    }).catch(e => {
+      delete cache[k];
+      throw e;
     });
   }
   return cache[k];
@@ -240,7 +260,7 @@ export function glbHero(H, key) {
   // eski gövdenin gözleri ayrı çizilir (engine/eyes.js, eski kemikten): yeni yüzün önünde havada kalmasın
   const gozler = hedef.eyes;
   hedef.eyes = null;
-  Promise.all([LD.loadAsync(URLS[key].model), ortak(key)]).then(([m, O]) => {
+  Promise.all([modelBuf(key).then(b => LD.parseAsync(b, '')), ortak(key)]).then(([m, O]) => {
     if ($G.H !== hedef) return; // bu arada başka kahraman seçildi
     const C = O.C;
     const root = m.scene;
@@ -302,8 +322,8 @@ export function glbHero(H, key) {
       if (A[k + '_u']) A[k + '_u'].timeScale = 0;
     }
     G = { H: hedef, root, mixer, A, h0, w: { idle: 1 }, wu: 0, slT: 0, ust: null };
-    // denetim araçları için (tools/meshy-el.mjs): duruşu dondurup tek klip anı göstermek
-    /** @type {any} */ (window).__glb = G;
+    // denetim araçları için (tools/meshy-el.mjs): duruşu dondurup tek klip anı göstermek. Yayın derlemesinde pencereye açılmaz
+    if (__KOPRU__) /** @type {any} */ (window).__glb = G;
     /** @type {any} */ (G).tick = glbTick;
     /** @type {any} */ (G).ayak = AYAK;
   }).catch(e => {
@@ -314,10 +334,13 @@ export function glbHero(H, key) {
   });
 }
 
-// oyun açılırken dosyaları önceden indirmeye başla: menü gelince model hazır olsun (tarayıcı önbelleğine düşer)
-if (meshyOn()) {
-  ortak('alp').catch(() => {});
-  fetch(URLS.alp.model).catch(() => {});
+// oyun açılırken dosyalar önceden indirilir: menü gelince model hazır olsun. Açılış ekranı bunların bitmesini bekler
+// (ui/yukle.js); dönen dizi: [model dosyası, klipler ve silahlar]
+export function glbOnYukle() {
+  if (!meshyOn()) return [];
+  const a = [modelBuf('alp'), ortak('alp')];
+  for (const p of a) p.catch(() => {});
+  return a;
 }
 
 // saldırı klip aralıkları: oyunun saldırı ilerlemesi (0..1, 0.42 sn) savuruşun hazırlık, vuruş ve bitişine eşlenir

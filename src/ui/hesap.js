@@ -469,7 +469,28 @@ const hata = e => {
 };
 
 // msg: formun altında gösterilecek ilk not. yeniden: giriş yapılmış ama kayıt indirilemedi; yalnız yeniden deneme ekranı
+// giriş ekranı resmi ve yazı tipleri inmeden gösterilmez (yoksa önce düz zemin ve yedek yazı tipi görünüp sonra değişiyordu);
+// ağ yavaşsa en çok 4 sn beklenir
+let arkaP = null, arkaIm = null;
+function arkaHazir() {
+  if (!arkaP) {
+    const is = [];
+    if (ARKA) {
+      arkaIm = new Image();
+      arkaIm.fetchPriority = 'high'; // açılışta inen yüzlerce simgenin önüne geçsin
+      arkaIm.src = ARKA;
+      is.push(arkaIm.decode().catch(() => {}));
+    }
+    const F = document.fonts;
+    if (F && F.load) is.push(Promise.all([F.load('400 48px "Alfa Slab One"', 'Kara Koru Giriş yap Kayıt ol'), F.load('600 16px "Signika"', 'Kullanıcı adı Şifre'), F.load('16px "Noto Sans Old Turkic"', '𐱅𐰭𐰼𐰃')]).catch(() => {}));
+    arkaP = Promise.race([Promise.all(is), new Promise(r => setTimeout(r, 4000))]);
+  }
+  return arkaP;
+}
 function ekran(msg = '', yeniden = 0) {
+  return arkaHazir().then(() => ekranAc(msg, yeniden));
+}
+function ekranAc(msg = '', yeniden = 0) {
   return new Promise(res => {
     let kayit = false;
     const el = document.createElement('div');
@@ -594,3 +615,6 @@ export async function hesapKapisi() {
   acik = true;
   otoKayit();
 }
+
+// oturum yoksa giriş ekranı gelecek: resmi ilk istek olsun diye hemen istenir (main.js simgeleri bundan sonra ister)
+if (supaOn && !jget(OTURUM)) arkaHazir();

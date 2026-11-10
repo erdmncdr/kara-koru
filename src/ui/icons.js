@@ -9,6 +9,8 @@ export let IC, svg, iconCol;
 // Resmi olmayan anahtar eski SVG çizimine düşer.
 const ART = import.meta.glob('../assets/ikon/*.webp', { eager: true, query: '?url', import: 'default' });
 export const art = id => ART['../assets/ikon/' + id + '.webp'];
+// açılışta önceden indirilecek bütün simge adresleri (ui/yukle.js)
+export const ART_URLS = /** @type {string[]} */ (Object.values(ART));
 // ocak gücü (s_<stat>) aynı statın tomu varsa onun resmini, yoksa anlamca en yakın resmi kullanır
 const SART = { diff: 't_curse', critd: 't_crit', jmp: 'i_tuy', fall: 'i_pelerin', effdur: 'i_kumsaati', heal: 'i_sargi', elspawn: 'i_devavci' };
 const sArt = id => id && id.startsWith('s_') && art(SART[id.slice(2)] || 't_' + id.slice(2));
