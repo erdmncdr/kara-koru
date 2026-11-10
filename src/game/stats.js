@@ -9,6 +9,7 @@ import { CR, heroCalc, rankOf } from './heroes.js';
 import { itemCalc } from './items.js';
 import { TIERM, bossIdx } from './run.js';
 import { BOSSP } from '../data/enemies.js';
+import { DNG, KZN } from '../data/denge.js';
 
 // Kızışma: aşama saati ilerledikçe sıradan düşmanların vuruşu sertleşir (canları zaten diff() ile büyüyor).
 // Eskiden DMK aşama saatini hiç görmüyordu: 1. aşamada 6. dakikadaki gulyabani ilk saniyedeki kadar vuruyordu ve
@@ -22,7 +23,7 @@ export const KZ_ADIM = 180; // her 3 dakikada bir uyarı
 export const kzT = () => $G.P.swarm ? $G.P.swT0 || 0 : $G.P.stT;
 export const kzK = (t = kzT()) => 1 + Math.max(0, Math.min(600, t) - 120) / (480 + Math.min(2, $G.P.stage) * 360);
 
-export let need, newW, SF, swT, swK, ghostSp, ghostHp, DMK, BN, BOSSN, MBN, diff, diffMul, diffPct, bonus, gdm;
+export let need, newW, SF, swT, swK, ghostSp, ghostHp, DMK, BN, BOSSN, MBN, diff, diffMul, diffPct, bonus, xpK, auK, gdm;
 
 // Seviye dengesi (11 Kasım 2026). Sıralamada 34 dakikada seviye 598'e çıkıldı (her silah 40, her tom 99): seviye gereği
 // yalnız karesel büyüyordu, tecrübe kazancı ise Bilgelik ve Lanet tomlarıyla çarpılarak, öldürme hızıyla birlikte büyüyor;
@@ -64,8 +65,8 @@ export function calc() {
   if ($G.P.kosB) add({ 'dmg*': .15 });
   chalStats(L);
   // eşya hesap kancaları ilk çözümü görür (zırha bağlı diken gibi), sonra yeniden çözülür
-  $G.P.wmax = 40;
-  $G.P.tmax = 99;
+  $G.P.wmax = DNG.wmax;
+  $G.P.tmax = DNG.tmax;
   const c1 = resolveStats(L);
   itemCalc(L, c1);
   heroCalc(L, c1);
@@ -105,7 +106,7 @@ export function __init_54() {
   // Seviyeyle hem mermi hem sekme kazanan silahlar (Kemik gibi) hasarı seviyenin karesiyle büyütüyor ve Son Dalga'da
   // öldürdükçe seviye atlamaya devam ediliyor; çarpan olmadan güçlü build'ler Albastıları yaklaşmadan öldürüp 40 dakikayı aşıyordu.
   ghostHp = () => 1 + Math.pow(swT() / 240, 3);
-  DMK = () => (1 + $G.P.stage * .5 + .12 * Math.pow($G.P.stage, 1.6)) * Math.sqrt(TIERM[$G.P.tier - 1] || 1) * ($G.P.swarm ? 1.5 + swK() * 1.2 : 1) * (1 + ($G.P.ot || 0) / 600) * kzK();
+  DMK = () => (1 + $G.P.stage * .5 + .12 * Math.pow($G.P.stage, 1.6)) * Math.sqrt(TIERM[$G.P.tier - 1] || 1) * ($G.P.swarm ? 1.5 + swK() * 1.2 : 1) * (1 + ($G.P.ot || 0) / 600) * kzK() * DNG.hasar;
   // boss adı harita profilinden
   BN = () => {
     const l = BOSSP[$G.P.map] || BOSSP.koru;
@@ -121,8 +122,11 @@ export function __init_54() {
   diffMul = () => (1 + $G.P.greed + ($G.P.C.diff || 0)) * (1 + $G.P.C.curse);
   // HUD'da gösterilen zorluk yüzdesi: kaynaklar + zaman + kademe
   diffPct = () => Math.round((diffMul() * (1 + $G.P.stT / 900) * (TIERM[$G.P.tier - 1] || 1) * (1 + swK() * 2.2) - 1) * 100);
-  diff = () => (SF($G.P.stage) + $G.P.stT / 150 * (1 + $G.P.stage * .6)) * (TIERM[$G.P.tier - 1] || 1) * (1 + swK() * 2.2) * diffMul() * (1 + ($G.P.ot || 0) / 300);
+  diff = () => (SF($G.P.stage) + $G.P.stT / 150 * (1 + $G.P.stage * .6)) * (TIERM[$G.P.tier - 1] || 1) * (1 + swK() * 2.2) * diffMul() * (1 + ($G.P.ot || 0) / 300) * DNG.can;
   bonus = () => 1 + $G.P.C.curse * 1.5;
+  // toplanan tecrübe ve altının son çarpanı: Lanet payı × uzaktan ayar ve etkinlik çarpanı (data/denge.js KZN)
+  xpK = () => bonus() * KZN.xp;
+  auK = () => bonus() * KZN.altin;
   gdm = () => CR[$G.CI].k == 'okcu' ? 1 + Math.min(.6, $G.P.gold / 1000) : 1; // Okçu (Robinette Stonks): cebindeki altına göre hasar
 }
 

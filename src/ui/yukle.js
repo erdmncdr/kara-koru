@@ -15,10 +15,10 @@ const el = document.getElementById('yuk'),
 const TUT = []; // çözülmüş resimler bellekte kalsın: ilk gösterimde yeniden çözülmesin
 const SESSIZ = 12000, UST = 40000;
 
-let inen = 0, toplam = 0, kalan = 0, son = 0, bitis = null, coz = null;
+let inen = 0, toplam = 0, kalan = 0, son = 0, bitis = null, coz = null, bakimda = false;
 
 function ciz() {
-  if (!el) return;
+  if (!el || bakimda) return; // bakım mesajının üstüne ilerleme yazılmaz
   const o = toplam ? Math.min(1, inen / toplam) : 0;
   el.classList.remove('bel');
   if (cub) cub.style.transform = `scaleX(${o.toFixed(3)})`;
@@ -105,6 +105,26 @@ export function yukAsama(t) {
   if (yaz) yaz.textContent = t;
   if (cub) cub.style.transform = 'scaleX(1)';
   return sure(new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))), 150);
+}
+
+// bakım: oyun açılmaz. Çubuk gizlenir, mesaj ve yeniden deneme düğmesi gösterilir (core/ayar.js, yönetim panelinden açılır).
+export function yukBakim(mesaj) {
+  if (!el) return;
+  bakimda = true;
+  el.classList.remove('bel');
+  const yb = el.querySelector('.yb');
+  if (yb) /** @type {HTMLElement} */ (yb).style.display = 'none';
+  if (yaz) {
+    yaz.textContent = mesaj || 'Oyun kısa bir bakımda. Birazdan yeniden dene.';
+    yaz.style.cssText = 'max-width:34ch;text-align:center;font-size:17px;line-height:1.4;color:#fff';
+  }
+  const b = document.createElement('button');
+  b.textContent = 'Yeniden dene';
+  b.style.cssText = 'font:400 18px/1 "Alfa Slab One",Georgia,serif;color:#131417;background:#e3a93b;border:2px solid #000;border-radius:6px;padding:12px 22px;box-shadow:0 4px 0 rgba(0,0,0,.45);cursor:pointer';
+  b.onclick = () => location.reload();
+  el.querySelector('.yk')?.appendChild(b);
+  el.setAttribute('role', 'alert');
+  el.removeAttribute('aria-label');
 }
 
 export function yukBitir() {

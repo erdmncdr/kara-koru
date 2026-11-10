@@ -20,7 +20,7 @@ import { NOM, mkE } from './creatures.js';
 import { iskinMat } from '../engine/iskin.js';
 import { graveDone } from './features.js';
 import { BDMAT, GDMAT, GHM2, GHM3, GHMAT, SVMAT, drop, mkChest } from './objects.js';
-import { BN, DMK, MBN, bonus, diff, diffMul, ghostHp, svOdul } from './stats.js';
+import { BN, DMK, MBN, diff, diffMul, ghostHp, svOdul, xpK } from './stats.js';
 import { BOSS_ST, TIERM, bossIdx, bossTime, isLast, stLen, winRun } from './run.js';
 import { CR } from './heroes.js';
 import { KINDS, ROSTER } from '../data/enemies.js';
@@ -319,10 +319,10 @@ export function killE(e) {
     if (e.kind == 'ruhalevi' && CR[$G.CI].k == 'kam') inc('kam_ruhalevi');
     if (e.kd.fx && e.kd.fx.xpdrop) {
       // Mavi İskelet: bir seviye atlatacak kadar ruh kristali; `SVD.odul` seviyesinden sonra o seviyenin gereği kadar
-      // (stats.js svOdul). Kristal değeri tecrübe çarpanlarına bölünür: eskiden Lanet'in tecrübe payı bölünmüyordu ve
-      // lanetli build'de tek Mavi İskelet birkaç seviye veriyordu.
+      // (stats.js svOdul). Kristal değeri bütün tecrübe çarpanlarına (Lanet payı, etkinlik) bölünür: eskiden Lanet'in payı
+      // bölünmüyordu ve lanetli build'de tek Mavi İskelet birkaç seviye veriyordu.
       const q = e.m.position, sv = svOdul(), tam = sv >= $G.P.need;
-      for (let i = 0; i < 6; i++) drop(q.x + rn(-2, 2), q.z + rn(-2, 2), 'xp', Math.ceil(sv / 6 / Math.max(.01, $G.P.C.xp * bonus())), e.fy);
+      for (let i = 0; i < 6; i++) drop(q.x + rn(-2, 2), q.z + rn(-2, 2), 'xp', Math.ceil(sv / 6 / Math.max(.01, $G.P.C.xp * xpK())), e.fy);
       toast(tam ? 'Mavi İskelet seviye bıraktı' : 'Mavi İskelet tecrübe bıraktı');
     }
     if (e.lastW == 'thorns' && e.kind == 'kaktus') inc('thorn_kaktus');
@@ -557,6 +557,8 @@ export function hurtP(d, src, sure) {
     sfx('freeze');
     toast('Zaman Mührü kırıldı: zaman 15 saniye durdu');
   }
+  // koşu özeti için son darbenin kaynağı (ui/menus.js over): tür anahtarı, boss ise 'boss:' önekiyle
+  $G.P.sonV = src ? (src.boss ? 'boss:' : src.mini ? 'ara:' : '') + (src.kind || 't' + src.t) : 'cevre';
   $G.P.hp -= dd;
   $G.P.stDmg = 1;
   if ($G.P.fallHit && $G.P.hp <= 0) $G.P.fallDead = 1;

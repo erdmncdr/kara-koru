@@ -26,7 +26,7 @@ import { qCheck } from './flow.js';
 import { GPK } from './hero-anim.js';
 import { interact, useShrine } from './interact.js';
 import { drop, instHide, mkChest, mkPU, spot } from './objects.js';
-import { DMK, KZ_ADIM, SVD, bonus, calc, diffMul, diffPct, ghostSp, kzK, need, swT } from './stats.js';
+import { DMK, KZ_ADIM, SVD, auK, calc, diffMul, diffPct, ghostSp, kzK, need, swT, xpK } from './stats.js';
 import { slUpd, vxUpd } from './weapon-fx.js';
 import { weapons } from './weapons.js';
 import { ANIM } from '../geo/anim.js';
@@ -1108,7 +1108,8 @@ export function upd(dt) {
   }
   $G.SW = $G.SW.filter(w => w.r < w.mx);
   const mr = 6 * C.mag,
-    bn = bonus();
+    bn = xpK(),
+    bnA = auK();
   for (const o of $G.G) {
     const q = o.m.position,
       dx = $G.P.x - q.x,
@@ -1156,7 +1157,7 @@ export function upd(dt) {
         sfx('xp');
         VFX.pick(q.x, q.y, q.z, 0x9fe8d8);
       } else if (o.ty == 'au') {
-        const v = Math.max(1, Math.round((o.v + $G.P.bg) * C.gold * bn));
+        const v = Math.max(1, Math.round((o.v + $G.P.bg) * C.gold * bnA));
         $G.P.gold += v;
         $G.P.goldT += v;
         $G.P.bg = 0;

@@ -900,6 +900,9 @@ ok('ses bankası doluyor', snd > 20, snd);
 
 const warm1 = await pg.evaluate(() => ({ prog: R.info.programs.length, p0: 0 }));
 ok('oynanış sırasında yeni shader programı derlenmedi (diyar geçişleri hariç)', (warmA - warm0.prog) + (warm1.prog - warmB) <= 3, { before: warm0.prog, preTrans: warmA, postTrans: warmB, after: warm1.prog });
+// uzaktan ayar şeması (data/ayar-sema.js) koddaki sabitlerle aynı varsayılanı taşımalı; yoksa panelde "koddaki değer" yanlış görünür
+const ayarFark = await pg.evaluate(() => window.__ayarFark);
+ok('uzaktan ayar şeması koddaki değerlerle aynı', Array.isArray(ayarFark) && ayarFark.length === 0, ayarFark);
 ok('sayfa hatası yok', errs.length === 0, errs.slice(0, 5));
 R.errors = errs;
 fs.writeFileSync(out + '/report.json', JSON.stringify(R, null, 1));

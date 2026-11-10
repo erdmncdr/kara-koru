@@ -6,6 +6,7 @@
 -- panelde "Confirm email" kapalı olmalı). Kayıt olunca tetikleyici kk_hesap satırını açar.
 -- kk_hesap.veri oyuncunun bütün kaydını tutar (ilerleme, rekorlar, ayarlar); yalnız sahibi okur, yazma kk_kaydet ile.
 -- kk_skor (tüm zamanlar) ve kk_hafta (haftalık) herkese açık sıralamadır; yazma yalnız kk_kosu_bitir ile (koşu belirteci),
+-- Yönetim (uzaktan ayar, etkinlik, moderasyon, özet): supabase/liveops.sql; bu dosyadan SONRA çalıştırılır.
 -- giriş yapmış oyuncunun kendi satırına.
 -- Oyun istemci tarafında çalıştığı için skor uydurmak tamamen engellenemez; bu yapı başkasının satırını
 -- değiştirmeyi, saçma değerleri ve seri gönderimi engeller.
@@ -23,7 +24,8 @@ create unique index if not exists kk_hesap_ad_idx on public.kk_hesap (lower(ad))
 
 alter table public.kk_hesap enable row level security;
 revoke all on public.kk_hesap from anon, authenticated;
-grant select on public.kk_hesap to authenticated;
+-- sütun bazında: yönetici notu ve yasak işareti oyuncuya okunmaz
+grant select (id, ad, veri, guncel, olus) on public.kk_hesap to authenticated;
 drop policy if exists kk_hesap_oku on public.kk_hesap;
 create policy kk_hesap_oku on public.kk_hesap for select to authenticated using (id = (select auth.uid()));
 
@@ -103,11 +105,13 @@ drop table if exists public.kk_sahip;
 delete from public.kk_skor s where not exists (select 1 from public.kk_hesap h where h.id = s.id);
 alter table public.kk_skor add constraint kk_skor_id_fkey foreign key (id) references public.kk_hesap (id) on delete cascade;
 
+-- gizli: yönetici (ya da yasak) satırı tablodan gizler; silinmez, geri açılabilir (supabase/liveops.sql kk_y_yasak, kk_y_gizle)
+alter table public.kk_skor add column if not exists gizli boolean not null default false;
 alter table public.kk_skor enable row level security;
 revoke all on public.kk_skor from anon, authenticated;
 grant select on public.kk_skor to anon, authenticated;
 drop policy if exists kk_skor_oku on public.kk_skor;
-create policy kk_skor_oku on public.kk_skor for select to anon, authenticated using (true);
+create policy kk_skor_oku on public.kk_skor for select to anon, authenticated using (not gizli);
 
 -- ---- haftalık sıralama: her hafta (Pazartesi 00:00, Türkiye saati) sıfırdan başlar; eski haftalar kalır (geçen haftanın şampiyonları)
 create table if not exists public.kk_hafta (
@@ -126,11 +130,12 @@ create table if not exists public.kk_hafta (
 create index if not exists kk_hafta_k_idx on public.kk_hafta (hafta, k desc);
 create index if not exists kk_hafta_id_idx on public.kk_hafta (id);
 
+alter table public.kk_hafta add column if not exists gizli boolean not null default false;
 alter table public.kk_hafta enable row level security;
 revoke all on public.kk_hafta from anon, authenticated;
 grant select on public.kk_hafta to anon, authenticated;
 drop policy if exists kk_hafta_oku on public.kk_hafta;
-create policy kk_hafta_oku on public.kk_hafta for select to anon, authenticated using (true);
+create policy kk_hafta_oku on public.kk_hafta for select to anon, authenticated using (not gizli);
 
 -- içinde bulunulan haftanın ilk günü (istemci aynı hesabı yapar: UTC+3, Pazartesi)
 create or replace function public.kk_bu_hafta() returns date
@@ -183,8 +188,9 @@ revoke all on function public.kk_ch_birlestir(jsonb, jsonb) from public, anon, a
 --   3. En iyi koşu, kahraman başına rekorlar ve haftalık tablo sunucuda birleştirilir.
 -- Oyun istemcide çalıştığı için bu da kusursuz değil: sabırla bekleyip sınırın altında sahte sayı gönderilebilir.
 -- Ama tek satırla milyonluk skor yazılamaz; yüksek bir sahte skor için o kadar süre gerçekten beklemek gerekir.
--- Hileli hesap için: update public.kk_hesap set yasak = true where lower(ad) = lower('...');  (satırları da silinir, aşağıda)
+-- Hileli hesap: yönetim panelinden yasaklanır (supabase/liveops.sql kk_y_yasak): koşu başlatamaz, satırları tablodan gizlenir.
 alter table public.kk_hesap add column if not exists yasak boolean not null default false;
+alter table public.kk_hesap add column if not exists yon_not text not null default '' check (char_length(yon_not) <= 300);
 
 create table if not exists public.kk_kosu (
   id uuid primary key default gen_random_uuid(),
@@ -235,10 +241,40 @@ grant execute on function public.kk_kosu_basla() to authenticated;
 drop function if exists public.kk_skor_gonder(integer, integer, integer, integer, integer, jsonb);
 drop function if exists public.kk_skor_gonder(integer, integer, integer, integer, integer, jsonb, jsonb);
 
--- Hatalar PostgREST koduyla döner: PT410 belirteç yok/kullanılmış/eskimiş, PT422 skor geçen süreye sığmıyor (ikisinde de
--- istemci kaydı atar), 42501 giriş yok ya da hesap yasaklı.
+-- ---- koşu kaydı (11 Kasım 2026): biten her koşunun özeti. Denge kararları ve hile denetimi bu tablodan yapılır
+-- (yönetim paneli, supabase/liveops.sql). Yalnız kk_kosu_bitir yazar; okuma yalnız yönetici işlevleriyle.
+--   gercek: belirteç verildiğinden beri geçen gerçek saniye (sunucu saati); ret: skor geçen süreye sığmadığı için yazılmadı
+--   ozet: istemcinin bildirdiği ayrıntı (silahlar, tomlar, eşya sayısı, altın); sonuc, neden, plat, surum, kademe ondan ayıklanır
+create table if not exists public.kk_kosu_kayit (
+  id bigint generated always as identity primary key,
+  hesap uuid not null references public.kk_hesap (id) on delete cascade,
+  at timestamptz not null default now(),
+  plat text not null default '',
+  surum text not null default '',
+  c smallint not null default 0,
+  kademe smallint not null default 0,
+  s smallint not null default 0,
+  t integer not null default 0,
+  lv integer not null default 0,
+  k integer not null default 0,
+  gercek integer not null default 0,
+  sonuc text not null default '',
+  neden text not null default '',
+  ret boolean not null default false,
+  ozet jsonb not null default '{}'::jsonb check (jsonb_typeof(ozet) = 'object' and pg_column_size(ozet) < 4096)
+);
+create index if not exists kk_kosu_kayit_at_idx on public.kk_kosu_kayit (at desc);
+create index if not exists kk_kosu_kayit_hesap_idx on public.kk_kosu_kayit (hesap, at desc);
+alter table public.kk_kosu_kayit enable row level security;
+revoke all on public.kk_kosu_kayit from anon, authenticated;
+
+-- Hatalar PostgREST koduyla döner: PT410 belirteç yok/kullanılmış/eskimiş (istemci kaydı atar), 42501 giriş yok ya da
+-- hesap yasaklı. Geçen süreye sığmayan skor artık hata vermez: koşu kaydına `ret` işaretiyle yazılır, sıralamaya yazılmaz
+-- (hata verilseydi kayıt da geri alınırdı; yönetici reddedilen denemeleri göremezdi).
+-- p_ozet isteğe bağlı: eski istemciler (altı değişkenle çağıranlar) çalışmaya devam eder.
+drop function if exists public.kk_kosu_bitir(uuid, integer, integer, integer, integer, integer);
 create or replace function public.kk_kosu_bitir(
-  p_kosu uuid, p_k integer, p_c integer, p_s integer, p_t integer, p_lv integer
+  p_kosu uuid, p_k integer, p_c integer, p_s integer, p_t integer, p_lv integer, p_ozet jsonb default null
 ) returns void
 language plpgsql
 security definer
@@ -257,6 +293,9 @@ declare
   v_lv integer := least(greatest(coalesce(p_lv, 0), 0), 100000);
   v_ch jsonb;
   v_hf date := public.kk_bu_hafta();
+  v_oz jsonb := case when p_ozet is not null and jsonb_typeof(p_ozet) = 'object' and pg_column_size(p_ozet) < 4000 then p_ozet else '{}'::jsonb end;
+  v_ret boolean;
+  v_kd integer;
 begin
   if v_id is null then
     raise exception 'giris gerekli' using errcode = '42501';
@@ -275,10 +314,23 @@ begin
   end if;
   v_sure := extract(epoch from (now() - v_bas));
   -- öldürme sayısı geçen gerçek süreye sığmalı (bildirilen koşu süresi daha kısaysa ona); 60 öldürmelik pay
-  if v_k > 60 + public.kk_oran() * least(v_sure, v_t + 30) then
-    raise exception 'olanaksiz' using errcode = 'PT422';
+  v_ret := v_k > 60 + public.kk_oran() * least(v_sure, v_t + 30);
+
+  v_kd := case when jsonb_typeof(v_oz -> 'kd') = 'number' then least(greatest(floor((v_oz ->> 'kd')::numeric), 0), 9)::int else 0 end;
+  insert into public.kk_kosu_kayit (hesap, plat, surum, c, kademe, s, t, lv, k, gercek, sonuc, neden, ret, ozet)
+  values (v_id,
+    case when v_oz ->> 'p' in ('web', 'ios') then v_oz ->> 'p' else '' end,
+    left(coalesce(v_oz ->> 'v', ''), 16),
+    v_c, v_kd, v_s, v_t, v_lv, v_k, least(floor(v_sure), 86400)::int,
+    case when v_oz ->> 'sn' in ('olum', 'zafer', 'cikis') then v_oz ->> 'sn' else '' end,
+    left(coalesce(v_oz ->> 'nd', ''), 40),
+    v_ret, v_oz - 'p' - 'v' - 'sn' - 'nd' - 'kd');
+  -- eski kayıtlar ara sıra atılır (180 gün)
+  if random() < 0.02 then
+    delete from public.kk_kosu_kayit where at < now() - interval '180 days';
   end if;
-  if v_k <= 0 then
+
+  if v_ret or v_k <= 0 then
     return;
   end if;
   v_ch := jsonb_build_object(v_c::text, jsonb_build_object('k', v_k, 's', v_s, 't', v_t));
@@ -310,12 +362,12 @@ begin
     at = case when excluded.k > o.k then now() else o.at end;
 end;
 $$;
-revoke all on function public.kk_kosu_bitir(uuid, integer, integer, integer, integer, integer) from public, anon;
-grant execute on function public.kk_kosu_bitir(uuid, integer, integer, integer, integer, integer) to authenticated;
+revoke all on function public.kk_kosu_bitir(uuid, integer, integer, integer, integer, integer, jsonb) from public, anon;
+grant execute on function public.kk_kosu_bitir(uuid, integer, integer, integer, integer, integer, jsonb) to authenticated;
 
--- yasaklı hesapların sıralama satırları silinir (yasak işaretlendikten sonra bu dosya yeniden çalıştırılabilir)
-delete from public.kk_skor s using public.kk_hesap h where h.id = s.id and h.yasak;
-delete from public.kk_hafta s using public.kk_hesap h where h.id = s.id and h.yasak;
+-- yasaklı hesapların sıralama satırları gizlenir (eskiden silinirdi; gizleme geri alınabilir)
+update public.kk_skor s set gizli = true from public.kk_hesap h where h.id = s.id and h.yasak and not s.gizli;
+update public.kk_hafta s set gizli = true from public.kk_hesap h where h.id = s.id and h.yasak and not s.gizli;
 
 -- ---- hesap silme (iOS uygulaması; App Store şartı: hesap açılabilen uygulamada hesap uygulama içinden silinebilmeli)
 -- Giriş yapmış oyuncunun kendi hesabını siler. auth.users satırı gider; kk_hesap, kk_skor ve kk_hafta satırları ile

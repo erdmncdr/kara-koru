@@ -16,6 +16,7 @@ import { A, call } from './actions.js';
 import { CHAL } from '../data/challenges.js';
 import { chalCount, chalDone, chalOf, chalSilver } from '../game/challenge.js';
 import { swT } from '../game/stats.js';
+import { KZN } from '../data/denge.js';
 import { sc } from '../engine/renderer.js';
 import { qCheck, resetRun, start, achCheck } from '../game/flow.js';
 import { CR, HATS, SKINS, hatName, hero, heroIdx, rankOf, rankProg } from '../game/heroes.js';
@@ -558,7 +559,7 @@ export function over(w) {
       s: $G.P.silv | 0
     };
   sv.cm = $G.P.chal ? $G.P.chal.m : 1;
-  sv.all = Math.round((sv.k + sv.t + sv.b + sv.st + sv.w + sv.s) * tm * ($G.P.C.silver || 1) * sv.cm * chalSilver());
+  sv.all = Math.round((sv.k + sv.t + sv.b + sv.st + sv.w + sv.s) * tm * ($G.P.C.silver || 1) * sv.cm * chalSilver() * KZN.gumus);
   sv.swm = swm;
   $G.META.s += sv.all;
   inc('silverT', sv.all);
@@ -610,12 +611,22 @@ export function over(w) {
     lv: $G.P.lv,
     d: Date.now()
   };
+  // koşu özeti: sunucudaki koşu kaydına gider (yönetim panelinde denge ve hile denetimi). Yerel rekora yazılmaz.
+  const oz = {
+    p: 'web', v: __SURUM__, kd: $G.P.tier,
+    sn: $G.P.won ? ($G.P.exited ? 'cikis' : 'zafer') : 'olum',
+    nd: $G.P.won ? '' : $G.P.fallDead ? 'dusme' : String($G.P.sonV || '').slice(0, 40),
+    w: $G.P.W.slice(0, 8).map(w => [w.k, w.lv, Math.round(($G.P.wdmg || {})[w.k] || 0)]),
+    tm: $G.P.T.slice(0, 10).map(t => [t.k, t.lv]),
+    es: Object.values($G.P.I || {}).reduce((a, b) => a + b, 0),
+    au: Math.round($G.P.goldT || 0)
+  };
   // meydan okumalı ve konsol kullanılan koşu sıralamaya girmez; menüde konsolla gümüş ya da kilit alan profil ortak sıralamaya yüklemez
   const lbOk = !$G.P.chal && !$G.P.con,
     lbs = lbOk && !$G.META.con ? lbSonuc($G.kills) : ''; // gönderimden önceki tabloya göre: yükseliş görünsün
   if (lbOk) {
     lbAdd(rec);
-    if (!$G.META.con) glSubmit(rec);
+    if (!$G.META.con) glSubmit({ ...rec, oz });
   }
   const kpm = $G.P.tt > 5 ? Math.round($G.kills / ($G.P.tt / 60)) : 0;
   const svr = [['Öldürmeler' + (sv.swm > 1 ? ' ×' + sv.swm : ''), sv.k], ['Hayatta kalma', sv.t], ['Boss', sv.b], ['Aşama', sv.st], ['Kademe zaferi', sv.w], ['Toplanan gümüş', sv.s]].filter(x => x[1]).map(([a, b]) => `<span>${a} <b>+${b}</b></span>`).join('') + (sv.cm > 1 ? `<span>${$G.P.chal.n} <b>×${sv.cm}</b></span>` : '') + (chalCount() ? `<span>Meydan okuma bonusu <b>+%${chalCount()}</b></span>` : '');

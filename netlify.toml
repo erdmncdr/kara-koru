@@ -29,3 +29,10 @@
   for = "/index.html"
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
+
+# yönetim paneli (ayrı sayfa, ayrı paket): her açılışta yeniden doğrulanır, arama motorlarına kapalı
+[[headers]]
+  for = "/yonetim.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+    X-Robots-Tag = "noindex, nofollow"

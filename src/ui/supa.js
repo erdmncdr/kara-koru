@@ -176,7 +176,10 @@ function outSet(o) {
 export function supaRecord(r, onSent) {
   if (typeof r.kosu != 'string' || !r.kosu) return chain;
   const o = outGet();
-  o.push({ kosu: r.kosu, k: num(r.k, 1e7), c: num(r.c, 63), s: num(r.s, 20), t: num(r.t, 86400), lv: num(r.lv, 1e5) });
+  // oz: koşu özeti (silahlar, tomlar, sonuç; ui/menus.js over). Sunucu koşu kaydına yazar (supabase/siralama.sql kk_kosu_kayit).
+  const kayit = /** @type {any} */ ({ kosu: r.kosu, k: num(r.k, 1e7), c: num(r.c, 63), s: num(r.s, 20), t: num(r.t, 86400), lv: num(r.lv, 1e5) });
+  if (r.oz && typeof r.oz == 'object') kayit.oz = r.oz;
+  o.push(kayit);
   outSet(o.slice(-5));
   return supaFlush(onSent);
 }
@@ -200,10 +203,15 @@ export function supaFlush(onSent) {
       try {
         await supaReq('/rest/v1/rpc/kk_kosu_bitir', {
           method: 'POST',
-          body: JSON.stringify({ p_kosu: r.kosu, p_k: r.k, p_c: r.c, p_s: r.s, p_t: r.t, p_lv: r.lv })
+          body: JSON.stringify({ p_kosu: r.kosu, p_k: r.k, p_c: r.c, p_s: r.s, p_t: r.t, p_lv: r.lv, ...(r.oz ? { p_ozet: r.oz } : {}) })
         }, tok);
         sent++;
       } catch (e) {
+        // sunucu özet değişkenini henüz tanımıyorsa (SQL güncellenmemiş: işlev bu imzayla bulunamaz) skor özetsiz yeniden gönderilir
+        if (r.oz && /** @type {any} */ (e).code == 'PGRST202') {
+          outSet(outGet().map(x => (x.kosu == r.kosu ? { ...x, oz: undefined } : x)));
+          continue;
+        }
         // kalıcı ret (belirteç geçersiz ya da kullanılmış, skor olanaksız, hesap yasaklı): kayıt atılır. Ağ, hız sınırı ya da
         // sunucu hatası: sonra yeniden denenir.
         const st = /** @type {any} */ (e).status;

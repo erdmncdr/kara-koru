@@ -14,7 +14,8 @@ import { sc } from '../engine/renderer.js';
 import { DN, VFX } from '../engine/vfx.js';
 import { CR, bullClear, hero } from './heroes.js';
 import { setupStage } from './objects.js';
-import { bonus, calc, need, newW } from './stats.js';
+import { auK, calc, need, newW, xpK } from './stats.js';
+import { DNG } from '../data/denge.js';
 import { back } from '../ui/cards.js';
 import { BIO } from '../world/terrain.js';
 import { clrTor } from '../world/tornado.js';
@@ -120,8 +121,8 @@ export function resetRun() {
     mbT: 150,
     chT: 35,
     slamHint: 0,
-    wmax: 40,
-    tmax: 99,
+    wmax: DNG.wmax,
+    tmax: DNG.tmax,
     c: {},
     IS: {},
     xpT: 0,
@@ -188,9 +189,9 @@ export function nextStage() {
   $G.S = 'trans';
   for (const o of $G.G) {
     if (o.ty == 'xp') {
-      $G.P.xp += o.v * $G.P.C.xp * bonus();
-      $G.P.xpT += o.v * $G.P.C.xp * bonus();
-    } else if (o.ty == 'au') $G.P.gold += Math.round(o.v * $G.P.C.gold * bonus());else if (o.ty == 'sv') $G.P.silv += o.v;
+      $G.P.xp += o.v * $G.P.C.xp * xpK();
+      $G.P.xpT += o.v * $G.P.C.xp * xpK();
+    } else if (o.ty == 'au') $G.P.gold += Math.round(o.v * $G.P.C.gold * auK());else if (o.ty == 'sv') $G.P.silv += o.v;
   }
   sfx('portal');
   const ns = $G.P.stage + 1,

@@ -19,6 +19,7 @@ import { spawn } from './enemies.js';
 import { summonBoss } from './interact.js';
 import { chalKey } from './challenge.js';
 import { over } from '../ui/menus.js';
+import { DNG } from '../data/denge.js';
 
 // Kademe çarpanı: sıradan düşmanın canını doğrudan, hasarını karekökle çarpar.
 // Karekökleri 1 / 1.27 / 1.47, yani Megabonk'un harita kademesi hasar çarpanlarının (0.75 / 0.95 / 1.1, decompile
@@ -32,7 +33,7 @@ export const BOSS_ST = [1, 5, 6];
 // beri geçen her 150 sn için +1 kat, en çok 6 kat. Erken çağıran zayıf oyuncu zayıf, geç çağıran güçlü oyuncu güçlü
 // boss bulur; sabit canla 5. dakikada çağrılan ilk boss 10-80 sn'de düşüyordu (tests/denge.mjs).
 export function bossTime() {
-  return Math.min(6, 1 + Math.max(0, $G.P.stT - ($G.P.stS || 0)) / 150);
+  return Math.min(DNG.bossUst, 1 + Math.max(0, $G.P.stT - ($G.P.stS || 0)) / DNG.bossAdim); // adım ve tavan uzaktan ayarlanır (150 sn, 6 kat)
 }
 export const ARENA_R = 40;
 
