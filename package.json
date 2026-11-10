@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "build:single": "vite build --mode single",
+    "build:test": "VITE_KOPRU=1 vite build",
     "preview": "vite preview",
     "test": "node tests/smoke.mjs",
     "typecheck": "tsc -p ."

@@ -156,7 +156,9 @@ const BOOT = [
   ['core/boot', '__init_80'],
 ];
 
-// Konsol ve testler için modül adlarını ve durum alanlarını window üzerinden erişilebilir yap.
+// Testler için modül adlarını ve durum alanlarını window üzerinden erişilebilir yap. YALNIZ geliştirme sunucusunda ve test
+// derlemesinde (VITE_KOPRU=1 npm run build) kurulur; yayında kurulmaz: yoksa tarayıcı konsolundan `kills = 1000000` gibi tek
+// satırla oyun durumu değiştirilebiliyordu (10 Kasım 2026'da sıralamaya böyle sahte skor yazıldı).
 // Arayüz düğmeleri artık bu köprüye dayanmaz: ui/actions.js data-act ile modül işlevlerini doğrudan çağırır.
 function bridge() {
   for (const mod of Object.values(MODS)) for (const [k, v] of Object.entries(mod)) {
@@ -167,7 +169,7 @@ function bridge() {
     try { Object.defineProperty(window, k, { get: () => $G[k], set: v => { $G[k] = v }, configurable: true }) } catch (e) {}
   }
 }
-bridge();
+if (import.meta.env.DEV || import.meta.env.VITE_KOPRU) bridge();
 m106.regActions(Object.values(MODS));
 m106.__init_actions();
 // Hesap açıksa (Supabase ayarlı yayın) önce giriş: hesabın kaydı tarayıcıya inmeden modüller başlatılmaz,

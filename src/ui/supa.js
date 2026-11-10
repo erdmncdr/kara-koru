@@ -129,43 +129,41 @@ export async function supaCount(hf, k) {
   }
 }
 
-async function submit(doc, w) {
+// ---- koşu belirteci: skor ancak sunucunun başlattığı bir koşuya yazılır (supabase/siralama.sql kk_kosu_basla / kk_kosu_bitir).
+// Sunucu belirteci verdiği andan beri geçen gerçek süreye bakar: o sürede mümkün olandan fazla öldürme kabul edilmez,
+// belirteç tek kullanımlıktır. İstemci yalnız biten koşunun kendi sonucunu gönderir; birleştirmeyi (en iyi, kahraman başına,
+// haftalık) sunucu yapar. Böylece tabloya elle uydurulmuş bir "en iyi" yazılamaz.
+export async function supaKosu() {
   const tok = await token();
   if (!tok) throw new Error('oturum yok');
-  await supaReq('/rest/v1/rpc/kk_skor_gonder', {
-    method: 'POST',
-    body: JSON.stringify({ p_k: doc.k, p_c: doc.c, p_s: doc.s, p_t: doc.t, p_lv: doc.lv, p_ch: doc.ch, p_h: w })
-  }, tok);
+  const id = await supaReq('/rest/v1/rpc/kk_kosu_basla', { method: 'POST', body: '{}' }, tok);
+  if (typeof id != 'string') throw new Error('belirtec yok');
+  return id;
 }
 
-// ---- giden kutusu: henüz sunucuda olmayan rekorlar. Genel en iyi ve kahraman başına en iyi birlikte tutulur;
-// her gönderimde sunucudaki güncel satırla birleştirilir, böylece hiçbir rekor başka bir gönderimle silinmez.
-// Gönderimler sekme içinde sıralıdır; kutu yalnız gönderilen sürüm (rev) değişmediyse boşaltılır.
-// Bu haftanın en iyisi ayrıca w alanında tutulur ({hf, ...}); hafta değişince gönderilmemiş w atılır.
-// Kutu hesabın kaydına girer (ui/hesap.js), çıkışta temizlenir.
+// ---- giden kutusu: bitmiş ama henüz sunucuya yazılmamış koşular (en çok 5). Her biri kendi belirteciyle gönderilir.
+// Kutu hesabın kaydına girer (ui/hesap.js), çıkışta temizlenir. Eski biçim (tek birleşik kayıt) atılır: belirteçsiz gönderilemez.
 const OUT = 'kk_lbpend';
 // outFail: son yazım başarısızsa (kota, engelli depolama) bellekteki kopya geçerlidir, diskteki eski değer okunmaz
-let outMem = null, outFail = false, chain = Promise.resolve(), timer = 0;
+let outMem = [], outFail = false, chain = Promise.resolve(), timer = 0;
 
 function outGet() {
   let o = outMem;
   if (!outFail) {
     try {
       const t = localStorage.getItem(OUT);
-      o = t ? JSON.parse(t) : null; // başka sekmenin yazdığı da görülür
+      o = t ? JSON.parse(t) : []; // başka sekmenin yazdığı da görülür
     } catch (e) {
       o = outMem;
     }
   }
-  if (!o || typeof o != 'object') return null;
-  const w = o.w && typeof o.w == 'object' && typeof o.w.hf == 'string' && typeof o.w.k == 'number' ? { ...o.w, ch: cleanCh(o.w.ch) } : null;
-  return { ...o, ch: cleanCh(o.ch), w };
+  return (Array.isArray(o) ? o : []).filter(r => r && typeof r.kosu == 'string' && typeof r.k == 'number').slice(-5);
 }
 
 function outSet(o) {
   outMem = o;
   try {
-    if (o) localStorage.setItem(OUT, JSON.stringify(o));
+    if (o.length) localStorage.setItem(OUT, JSON.stringify(o));
     else localStorage.removeItem(OUT);
     outFail = false;
   } catch (e) {
@@ -173,30 +171,17 @@ function outSet(o) {
   }
 }
 
-// sürüm belirteci: sekmeler arasında da benzersiz
-const tok = () => Date.now().toString(36) + rnd(6);
-
-// iki kaydı birleştirir: daha yüksek genel skorun alanları ve her kahraman için en yüksek rekor
-function merge(a, b) {
-  const base = !a ? b : !b ? a : b.k > a.k ? b : a,
-    ch = { ...(a ? a.ch : {}) };
-  if (b) for (const c in b.ch) if (!ch[c] || b.ch[c].k > ch[c].k) ch[c] = b.ch[c];
-  return { k: base.k, c: base.c, s: base.s, t: base.t, lv: base.lv, ch };
-}
-
-const same = (a, b) => a && b && a.k == b.k && JSON.stringify(Object.entries(a.ch).sort()) == JSON.stringify(Object.entries(b.ch).sort());
-
-// koşu sonu: rekoru kutuya ekler ve göndermeyi dener
+// koşu sonu: koşuyu belirteciyle kutuya ekler ve göndermeyi dener. Belirteç yoksa (koşu boyunca sunucuya ulaşılamadı)
+// koşu yalnız bu cihazın rekorlarında kalır.
 export function supaRecord(r, onSent) {
-  const run = { k: num(r.k, 1e7), c: num(r.c, 63), s: num(r.s, 20), t: num(r.t, 86400), lv: num(r.lv, 1e5), ch: { [num(r.c, 63)]: { k: num(r.k, 1e7), s: num(r.s, 20), t: num(r.t, 86400) } } },
-    o = outGet(),
-    hf = haftaBasi(r.d || Date.now()),
-    w0 = o && o.w && o.w.hf == hf ? o.w : null;
-  outSet({ ...merge(o, run), w: { ...merge(w0, run), hf }, rev: tok() });
+  if (typeof r.kosu != 'string' || !r.kosu) return chain;
+  const o = outGet();
+  o.push({ kosu: r.kosu, k: num(r.k, 1e7), c: num(r.c, 63), s: num(r.s, 20), t: num(r.t, 86400), lv: num(r.lv, 1e5) });
+  outSet(o.slice(-5));
   return supaFlush(onSent);
 }
 
-// kutudakini gönderir. allow(): yükleme izni (ayar); kapalıysa kutu silinir, hiçbir şey gönderilmez.
+// kutudakileri gönderir. allow(): yükleme izni (ayar); kapalıysa kutu silinir, hiçbir şey gönderilmez.
 let allow = () => true;
 export function supaAllow(f) {
   allow = f;
@@ -204,34 +189,34 @@ export function supaAllow(f) {
 
 export function supaFlush(onSent) {
   chain = chain.then(async () => {
-    const o = outGet();
-    if (!o || !who()) return;
-    if (!allow()) return outSet(null);
-    let srv;
-    try {
-      srv = await supaMine();
-    } catch (e) {
-      return later(onSent, 20000); // sunucudaki satır okunamadan gönderilmez (rekorlar silinmesin)
+    let sent = 0;
+    for (;;) {
+      const o = outGet();
+      if (!o.length || !who()) break;
+      if (!allow()) return outSet([]);
+      const r = o[0],
+        tok = await token();
+      if (!tok) break;
+      try {
+        await supaReq('/rest/v1/rpc/kk_kosu_bitir', {
+          method: 'POST',
+          body: JSON.stringify({ p_kosu: r.kosu, p_k: r.k, p_c: r.c, p_s: r.s, p_t: r.t, p_lv: r.lv })
+        }, tok);
+        sent++;
+      } catch (e) {
+        // kalıcı ret (belirteç geçersiz ya da kullanılmış, skor olanaksız, hesap yasaklı): kayıt atılır. Ağ, hız sınırı ya da
+        // sunucu hatası: sonra yeniden denenir.
+        const st = /** @type {any} */ (e).status;
+        if (!(st >= 400 && st < 500 && st != 401 && st != 408 && st != 429)) {
+          later(onSent, 20000);
+          break;
+        }
+      }
+      outSet(outGet().filter(x => x.kosu != r.kosu));
     }
-    if (!allow()) return outSet(null); // okuma sürerken yükleme kapatıldıysa gönderme
-    const doc = merge(srv, o),
-      w = o.w && o.w.hf == haftaBasi() ? o.w : null; // geçen haftadan kalan haftalık rekor gönderilmez
-    if (srv && same(doc, srv) && !w) return dropIf(o.rev);
-    try {
-      await submit(doc, w);
-    } catch (e) {
-      return later(onSent, 16000); // 15 sn sınırı ya da ağ: sonra yeniden
-    }
-    dropIf(o.rev);
-    if (onSent) onSent();
+    if (sent && onSent) onSent();
   }).catch(() => {});
   return chain;
-}
-
-// kutu yalnız gönderilen sürüm hâlâ oradaysa boşaltılır; arada yeni rekor geldiyse o kalır
-function dropIf(rev) {
-  const o = outGet();
-  if (o && o.rev == rev) outSet(null);
 }
 
 function later(onSent, ms) {

@@ -1,6 +1,8 @@
 // Kara Koru duman testi: oyunu başsız Chrome'da açar, ana akışları dener, rapor yazar.
 // Kullanım:
-//   npm run build && npx vite preview --port 4173 &   sonra   npm test
+//   npm run build:test && npx vite preview --port 4173 &   sonra   npm test
+//   (build:test = VITE_KOPRU=1: testlerin kullandığı pencere köprüsü yalnız bu derlemede ve geliştirme sunucusunda vardır;
+//    yayın derlemesinde oyun durumu pencereye açılmaz. Test derlemesi yayınlanmaz.)
 //   node tests/smoke.mjs <url> [rapor-klasörü]
 // Ortam: CHROME=/usr/bin/google-chrome (yoksa Playwright'ın Chromium'u kullanılır)
 import { chromium } from 'playwright';

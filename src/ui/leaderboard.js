@@ -9,7 +9,7 @@ import { CR, heroIdx, heroOn } from '../game/heroes.js';
 import { MAPS, WD } from '../data/content.js';
 import { A } from './actions.js';
 import { IC, iconCol, ikon } from './icons.js';
-import { cleanCh, gecenHafta, haftaBasi, haftaSonu, supaAllow, supaCount, supaFlush, supaIdent, supaMine, supaName, supaOn, supaRecord, supaRows } from './supa.js';
+import { cleanCh, gecenHafta, haftaBasi, haftaSonu, supaAllow, supaCount, supaFlush, supaIdent, supaKosu, supaMine, supaName, supaOn, supaRecord, supaRows } from './supa.js';
 
 const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
@@ -76,7 +76,9 @@ export function __init_61() {
           GL.me = (supaIdent() || {}).id || null; // giriş yapmış oyuncunun hesabı (ui/hesap.js)
           supaAllow(() => SET.lbu !== 0);
           supaLoad();
-          supaFlush(() => supaLoad(1)); // önceki oturumdan kalan gönderilmemiş rekor
+          supaFlush(() => supaLoad(1)); // önceki oturumdan kalan gönderilmemiş koşu
+          // koşu başında belirteç alınamadıysa (ağ yok) koşu sürerken yeniden denenir
+          setInterval(() => { if ($G.S == 'play') kosuBasla(); }, 30000);
         }
         return;
       }
@@ -141,10 +143,19 @@ export async function supaLoad(force) {
   lbRefresh();
 }
 
+// koşu başında sunucudan koşu belirteci istenir (ui/supa.js): skor yalnız bu belirteçle, geçen gerçek süreyle orantılı yazılır.
+// Meydan okumalı ve konsol kullanılan koşu sıralamaya girmediği için belirteç de almaz.
+export function kosuBasla() {
+  const P = $G.P;
+  if (GL.kind != 'supa' || !GL.me || SET.lbu === 0 || !P || P.kosu || P.kosuP || P.chal || P.con || $G.META.con) return;
+  P.kosuP = 1;
+  supaKosu().then(id => { P.kosu = id; }).catch(() => {}).then(() => { P.kosuP = 0; });
+}
+
 export async function glSubmit(r) {
   if (!GL.db || !GL.me || SET.lbu === 0) return;
   // Supabase: rekor giden kutusuna girer, sunucudaki satırla birleştirilip sırayla gönderilir (ui/supa.js)
-  if (GL.kind == 'supa') return supaRecord(r, () => supaLoad(1));
+  if (GL.kind == 'supa') return supaRecord({ ...r, kosu: $G.P && $G.P.kosu }, () => supaLoad(1));
   const cur = GL.mine || GL.rows.find(x => x.id == GL.me) || {
       k: 0,
       ch: {}

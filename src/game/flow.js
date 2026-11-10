@@ -19,6 +19,7 @@ import { back } from '../ui/cards.js';
 import { BIO } from '../world/terrain.js';
 import { clrTor } from '../world/tornado.js';
 import { A } from '../ui/actions.js';
+import { kosuBasla } from '../ui/leaderboard.js';
 
 // ---- akış
 export function resetRun() {
@@ -178,6 +179,7 @@ export function start() {
   document.body.classList.add('on');
   sfx('ui');
   lockP();
+  kosuBasla(); // ortak sıralama: koşu belirteci (yeni koşuda; süren koşunun belirteci P'de durur)
   if (!$G.tutDone) toast('Ruh kristallerini topla, potları kır, sandık aç');
 }
 
