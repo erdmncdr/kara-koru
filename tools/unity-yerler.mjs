@@ -28,12 +28,14 @@ const r = await pg.evaluate(async () => {
     FIRES: ($G.FIRES || []).map(f => ({ x: f.x, y: f.y, z: f.z, k: f.k })),
     // kuşlar (mkBirds): daire merkezi, yükseklik, yarıçap, açı, hız, evre; GLB'deki sırayla
     BIRDS: ($G.BIRDS || []).map(b => ({ cx: b.cx, cz: b.cz, h: b.h, R: b.R, a: b.a, s: b.s, ph: b.ph })),
-    TUMB: ($G.TUMB || []).map(t => t.s)
+    TUMB: ($G.TUMB || []).map(t => t.s),
+    // platformlar alt sınırıyla (bot): duvar koşusu ve katı sorgusu için
+    PL: (() => { const st = new Set(); for (const a of $G.PG.values()) for (const p of a) st.add(p); return [...st].map(p => ({ x0: p.x0, x1: p.x1, z0: p.z0, z1: p.z1, top: p.top, bot: p.bot == null ? -1e9 : p.bot })); })()
   };
 });
 await br.close();
 const d = JSON.parse(fs.readFileSync(yol, 'utf8'));
 if (d.OBS.length != r.n) { console.log('dünya tutmuyor: json', d.OBS.length, 'oyun', r.n); process.exit(1); }
-d.LMS = r.LMS; d.FIRES = r.FIRES; d.BIRDS = r.BIRDS; d.TUMB = r.TUMB;
+d.LMS = r.LMS; d.FIRES = r.FIRES; d.BIRDS = r.BIRDS; d.TUMB = r.TUMB; if (r.PL.length == d.PL.length) d.PL = r.PL; else console.log('platform sayısı tutmuyor', d.PL.length, r.PL.length);
 fs.writeFileSync(yol, JSON.stringify(d));
-console.log('yazıldı', yol, 'yer', r.LMS.length, 'ateş', r.FIRES.length, '(tür ' + [...new Set(r.FIRES.map(f => f.k))].join(',') + ')', 'kuş', r.BIRDS.length, 'çalı', r.TUMB.length);
+console.log('yazıldı', yol, 'yer', r.LMS.length, 'ateş', r.FIRES.length, '(tür ' + [...new Set(r.FIRES.map(f => f.k))].join(',') + ')', 'kuş', r.BIRDS.length, 'çalı', r.TUMB.length, 'platform', r.PL.length, 'altı belli', r.PL.filter(p => p.bot > -1e8).length);

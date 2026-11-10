@@ -92,7 +92,7 @@ const res = await pg.evaluate(async () => {
   if ($G.CLOUDS && $G.CLOUDS[0] && $G.CLOUDS[0].material.map) { const im = $G.CLOUDS[0].material.map.image; const cv = document.createElement('canvas'); cv.width = im.width; cv.height = im.height; cv.getContext('2d').drawImage(im, 0, 0); cltex = cv.toDataURL('image/png').split(',')[1]; }
   const veri = {
     CL,
-    R, PL: [...pset].map(p => ({ x0: p.x0, x1: p.x1, z0: p.z0, z1: p.z1, top: p.top })),
+    R, PL: [...pset].map(p => ({ x0: p.x0, x1: p.x1, z0: p.z0, z1: p.z1, top: p.top, bot: p.bot == null ? -1e9 : p.bot })),
     BI: $G.BI, WLV: $G.WLV,
     OBS: OBS.map(o => ({ x: o.x, z: o.z, r: o.r, b: o.b, t: o.t > 1e8 ? 1e9 : o.t, nm: !!o.nm })),
     PLF: ($G.PLF || []).map(p => ({ x: p.x, z: p.z, w: p.w, d: p.d, y: p.y, h: p.h, b: p.b })),
