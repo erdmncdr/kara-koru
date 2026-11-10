@@ -20,7 +20,7 @@ import { NOM, mkE } from './creatures.js';
 import { iskinMat } from '../engine/iskin.js';
 import { graveDone } from './features.js';
 import { BDMAT, GDMAT, GHM2, GHM3, GHMAT, SVMAT, drop, mkChest } from './objects.js';
-import { BN, DMK, MBN, diff, diffMul, ghostHp } from './stats.js';
+import { BN, DMK, MBN, bonus, diff, diffMul, ghostHp, svOdul } from './stats.js';
 import { BOSS_ST, TIERM, bossIdx, bossTime, isLast, stLen, winRun } from './run.js';
 import { CR } from './heroes.js';
 import { KINDS, ROSTER } from '../data/enemies.js';
@@ -318,10 +318,12 @@ export function killE(e) {
     if (e.ghost) inc('k_ghost');
     if (e.kind == 'ruhalevi' && CR[$G.CI].k == 'kam') inc('kam_ruhalevi');
     if (e.kd.fx && e.kd.fx.xpdrop) {
-      // Mavi İskelet: bir seviye atlatacak kadar ruh kristali
-      const q = e.m.position;
-      for (let i = 0; i < 6; i++) drop(q.x + rn(-2, 2), q.z + rn(-2, 2), 'xp', Math.ceil($G.P.need / 6 / Math.max(.01, $G.P.C.xp)), e.fy);
-      toast('Mavi İskelet seviye bıraktı');
+      // Mavi İskelet: bir seviye atlatacak kadar ruh kristali; `SVD.odul` seviyesinden sonra o seviyenin gereği kadar
+      // (stats.js svOdul). Kristal değeri tecrübe çarpanlarına bölünür: eskiden Lanet'in tecrübe payı bölünmüyordu ve
+      // lanetli build'de tek Mavi İskelet birkaç seviye veriyordu.
+      const q = e.m.position, sv = svOdul(), tam = sv >= $G.P.need;
+      for (let i = 0; i < 6; i++) drop(q.x + rn(-2, 2), q.z + rn(-2, 2), 'xp', Math.ceil(sv / 6 / Math.max(.01, $G.P.C.xp * bonus())), e.fy);
+      toast(tam ? 'Mavi İskelet seviye bıraktı' : 'Mavi İskelet tecrübe bıraktı');
     }
     if (e.lastW == 'thorns' && e.kind == 'kaktus') inc('thorn_kaktus');
     if (e.kd.fx && e.kd.fx.frog) {
@@ -415,10 +417,10 @@ export function killE(e) {
   if (e.thief && e.silv) {
     $G.P.svk = ($G.P.svk || 0) + 1;
     for (let i = 0; i < 16; i++) drop(q.x + rn(-3, 3), q.z + rn(-3, 3), 'xp', 3 + $G.P.stage * 2, fy);
-    $G.P.xp = Math.max($G.P.xp, $G.P.need);
+    $G.P.xp = Math.max($G.P.xp, Math.min($G.P.need, $G.P.xp + svOdul())); // tam seviye, en çok svOdul kadar
     drop(q.x, q.z, 'sv', 1 + $G.P.stage, fy);
     $G.DSRC = null;
-    toast('Gümüş iskeleti yakaladın: seviye atlıyorsun');
+    toast($G.P.xp >= $G.P.need ? 'Gümüş iskeleti yakaladın: seviye atlıyorsun' : 'Gümüş iskeleti yakaladın: tecrübe kazandın');
     sfx('loot');
     return;
   }

@@ -24,9 +24,19 @@ export const kzK = (t = kzT()) => 1 + Math.max(0, Math.min(600, t) - 120) / (480
 
 export let need, newW, SF, swT, swK, ghostSp, ghostHp, DMK, BN, BOSSN, MBN, diff, diffMul, diffPct, bonus, gdm;
 
+// Seviye dengesi (11 Kasım 2026). Sıralamada 34 dakikada seviye 598'e çıkıldı (her silah 40, her tom 99): seviye gereği
+// yalnız karesel büyüyordu, tecrübe kazancı ise Bilgelik ve Lanet tomlarıyla çarpılarak, öldürme hızıyla birlikte büyüyor;
+// üstüne Mavi İskelet kaç seviye olunursa olunsun tam bir seviye (Lanet varsa birkaç seviye) bırakıyordu.
+//   kir, kat: seviye gereği `kir` seviyesinden sonra her seviyede `kat` katına çıkar (ilk dakikalar aynı kalır).
+//   odul: tam seviye ödülleri (Mavi İskelet, gümüş hırsız) en çok bu seviyenin gereği kadar tecrübe verir.
+// Sayılar tests/denge.mjs taramasıyla seçildi (docs/YOL_HARITASI.md "Seviye dengesi"). Unity: Build.cs Need / SvOdul.
+export const SVD = { kir: 60, kat: 1.03, odul: 60 };
+// tam seviye ödülünün tecrübesi: o seviyenin gereği, en çok `odul` seviyesinin gereği
+export const svOdul = () => Math.min($G.P.need, need(SVD.odul));
+
 export function __init_53() {
   // ---- build hesapları
-  need = l => Math.floor(5 * l + .55 * l * l);
+  need = l => Math.floor((5 * l + .55 * l * l) * (l > SVD.kir ? Math.pow(SVD.kat, l - SVD.kir) : 1));
   newW = k => ({
     k,
     lv: 1,

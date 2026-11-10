@@ -11,6 +11,8 @@
 //   (8 kahramanlık etkin kadroyla tarama: her biri için bir koşu; sayfa hatası, NaN ve sıfır hasar aranır)
 //   MORTAL=1 node tests/denge.mjs ...             bot ölümlü oynar: can doldurulmaz (yenilenme, can çalma, kalkan işler), ilk ölümde koşu biter
 //   OUT=dosya.json                                 sonuç dosyası (paralel taramada çakışmasın)
+//   ONCE=xp,curse                                 bot tom seçerken önce bu tomları alır ve yükseltir (tecrübe build'i: sıralamadaki kırık koşuların tarzı)
+//   AYAR='SVD.kat=1.03;BOSS_ST[1]=8'              koşu başlamadan sayfada çalıştırılır: denge sabitlerini o koşu için değiştirir (aday taraması)
 //   Tarama örneği (7 Kasım 2026, YOL_HARITASI "Bot denge taraması"): 8 kahraman × 3 harita × 2 tohum, ölümlü ve ölümsüz
 //   Mahzen (3. aşama): bot boss anında dört tabutu sırayla açar, bekçileri devirip anahtarları toplar, sonra Dev Hortlak'ı çağırır.
 //
@@ -29,6 +31,8 @@ const TM = process.env.TIERM ? process.env.TIERM.split(',').map(Number) : null;
 const MAP = 'koru'; // rota hep Kara Koru'dan başlar
 const HERO = process.env.HERO || '', ALL = !!process.env.ALL, CHALK = process.env.CHAL || '';
 const MORTAL = !!process.env.MORTAL;
+const AYAR = process.env.AYAR || '';
+const ONCE = (process.env.ONCE || '').split(',').filter(Boolean).map(k => 't_' + k);
 const LATER = +(process.env.LATER || 120); // sonraki aşamalarda boss'un çağrıldığı an (aşama başından sn)
 const CAP = 600; // boss bu kadar saniyede düşmezse ölçüm kesilir
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -37,14 +41,16 @@ const exe = process.env.CHROME || ['/usr/bin/google-chrome', MAC].find(p => fs.e
 const br = await chromium.launch({ executablePath: exe, headless: true, args: process.platform == 'darwin' ? ['--use-angle=metal', '--ignore-gpu-blocklist'] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 
 // n kare oynar. mode: 'farm' boss anına kadar, 'boss' boss ölene kadar. Dönüş: durum özeti.
-const chunk = (pg, n, mode, until) => pg.evaluate(([n, mode, until, mortal]) => {
+const chunk = (pg, n, mode, until) => pg.evaluate(([n, mode, until, mortal, once]) => {
   const B = window.__bot || (window.__bot = { taken: 0, frames: 0, chests: 0, picks: 0, bossDmg: 0, bossPrev: 0 });
   // kart seçimi: yeni silah > (silah yükseltmesi / tom) dönüşümlü > ilk kart
   const pick = () => {
     if (CHM != 'level') return 0;
     const f = k => CHO.findIndex(o => o.kind == k);
     let i = f('Silah');
-    if (i < 0) { const wu = f('Silah yükseltmesi'), tn = f('Tom'), tu = f('Tom yükseltmesi'), t = tn >= 0 ? tn : tu; i = B.picks % 2 == 0 ? (wu >= 0 ? wu : t) : (t >= 0 ? t : wu); }
+    if (i < 0) { const wu = f('Silah yükseltmesi'), tn = f('Tom'), tu = f('Tom yükseltmesi'), t = tn >= 0 ? tn : tu; i = B.picks % 2 == 0 ? (wu >= 0 ? wu : t) : (t >= 0 ? t : wu);
+      // öncelikli tomlar: yeni tom slotu onlara saklanır (başka yeni tom alınmaz), kartta varsa üç seçimden ikisinde onlar seçilir
+      if (once.length) { const o1 = CHO.findIndex(o => once.includes(o.key)); if (o1 >= 0 && (B.picks % 3 || wu < 0)) i = o1; else if (i == tn && tn >= 0 && once.some(k => !P.T.find(t => 't_' + t.k == k))) i = wu >= 0 ? wu : tu >= 0 ? tu : tn; } }
     B.picks++;
     return Math.max(0, i);
   };
@@ -137,11 +143,11 @@ const chunk = (pg, n, mode, until) => pg.evaluate(([n, mode, until, mortal]) => 
   if (S === 'play') S = 'pause';
   const b = boss();
   return {
-    stop: done, S, stT: +P.stT.toFixed(1), tt: +P.tt.toFixed(1), lv: P.lv, mh: Math.round(P.mh), kills, taken: Math.round(B.taken), dmg: Math.round(dmgSum()),
+    stop: done, S, stT: +P.stT.toFixed(1), tt: +P.tt.toFixed(1), lv: P.lv, xp: Math.round(P.xpT || 0), cxp: +((P.C.xp || 1) * bonus()).toFixed(1), mh: Math.round(P.mh), kills, taken: Math.round(B.taken), dmg: Math.round(dmgSum()),
     w: P.W.map(w => w.k + w.lv).join(' '), t: Object.keys(P.T || {}).map(k => k + (P.T[k].lv || P.T[k])).join(' '), items: Object.values(P.I || {}).reduce((a, b) => a + b, 0),
     chests: B.chests, death: B.death || null, nan: !isFinite(P.x + P.y + P.z + P.hp + P.mh + P.xp + P.gold), hero: CR[CI].k, ot: Math.round(P.ot || 0), sT: Math.round(P.stT - (P.stS || 0)), dbg: (() => { const py = E.filter(e => !e.dead && e.kd && e.kd.fx && e.kd.fx.pylon); return { py: py.length, pd: py.map(o => Math.round(Math.hypot(o.m.position.x - P.x, o.m.position.z - P.z)) + '/' + Math.round(Math.hypot(o.m.position.x, o.m.position.z)) + '/' + (o.chg || 0).toFixed(1)).join(' '), ph: b ? b.ph : -1, inv: b ? +!!b.pyInv : -1, wdis: P.wdis, arena: ARENA, pr: Math.round(Math.hypot(P.x, P.z)), bd: b ? Math.round(Math.hypot(b.m.position.x - P.x, b.m.position.z - P.z)) : -1 }; })(), dps60: B.d60 ? Math.round((dmgSum() - B.d60.d) / Math.max(1, P.tt - B.d60.t)) : 0, bossDmg: Math.round(B.bossDmg), dist: Math.round(P.c && P.c.dist || 0), gate: GATE ? GATE.st : -1, bossHp: b ? Math.round(b.hp) : 0, bossMh: b ? Math.round(b.mh) : 0, en: E.length, stage: P.stage, tier: P.tier
   };
-}, [n, mode, until, MORTAL]);
+}, [n, mode, until, MORTAL, ONCE]);
 
 const out = [];
 for (const tier of tiers) {
@@ -158,10 +164,10 @@ for (const tier of tiers) {
   await pg.goto(url);
   await pg.waitForFunction(() => typeof S !== 'undefined' && S === 'menu', null, { timeout: 90000 });
   await sleep(2000);
-  await pg.evaluate(([t, tm, map, hero, all, chal]) => { SET.al = 0; SET.tips = 0; if (tm) tm.forEach((v, i) => TIERM[i] = v);
+  await pg.evaluate(([t, tm, map, hero, all, chal, ayar]) => { SET.al = 0; SET.tips = 0; if (tm) tm.forEach((v, i) => TIERM[i] = v); if (ayar) (0, eval)(ayar);
     if (all) { for (const T of [WD, TDF, ITD]) for (const k in T) if (T[k].lock) META.l[T[k].lock] = 1; for (const c of CR) if (c.lock) META.l[c.lock] = 1; }
     if (hero) { const i = CR.findIndex(c => c.k == hero); if (i < 0) throw new Error('kahraman yok: ' + hero); if (CR[i].lock) META.l[CR[i].lock] = 1; CI = i; }
-    selMap(map, t); MSEL.chal = chal || ''; resetRun(); start(); }, [tier, TM, MAP, HERO, ALL, CHALK]);
+    selMap(map, t); MSEL.chal = chal || ''; resetRun(); start(); }, [tier, TM, MAP, HERO, ALL, CHALK, AYAR]);
   await pg.waitForFunction(() => S === 'play', null, { timeout: 60000 });
   const mp = await pg.evaluate(() => { S = 'pause'; window.__bot = null; return P.map + ' K' + P.tier + (P.chal ? ' ' + P.chal.k : ''); });
   if (CHALK && !mp.endsWith(CHALK)) { console.log('meydan okuma uygulanmadı:', mp); await pg.close(); continue; }
@@ -197,7 +203,7 @@ for (const tier of tiers) {
     const sec = +(r.tt - pre.tt).toFixed(1), killed = r.stop == 'bossÖldü';
     if (r.stop == 'öldü' && r.death) console.log('ÖLÜM', JSON.stringify(r.death));
     out.push({
-      tier, stage: stage + 1, hero: pre.hero, nan: pre.nan || r.nan, hata: errs.length, boss: b0.n, uzatma: pre.ot, asamaSn: pre.sT, lv: pre.lv, w: pre.w, t: pre.t, items: pre.items, chests: pre.chests, mh: pre.mh,
+      tier, stage: stage + 1, hero: pre.hero, nan: pre.nan || r.nan, hata: errs.length, boss: b0.n, uzatma: pre.ot, asamaSn: pre.sT, lv: pre.lv, xp: pre.xp, cxp: pre.cxp, w: pre.w, t: pre.t, items: pre.items, chests: pre.chests, mh: pre.mh,
       dps: pre.dps60, bossHp: b0.mh, ttk: killed ? sec : '>' + sec, kalan: killed ? 0 : Math.round(r.bossHp / b0.mh * 100) + '%',
       bossDps: Math.round((r.bossDmg - pre.bossDmg) / Math.max(1, sec)), olum: r.stop == 'öldü' ? +r.tt.toFixed(0) : 0, dist: pre.dist, hasarAlinan: +(pre.taken / Math.max(1, pre.tt)).toFixed(1), hasarBoss: +((r.taken - pre.taken) / Math.max(1, sec)).toFixed(1), kills: pre.kills
     });
@@ -218,5 +224,5 @@ console.log('\n(dps: boss anından önceki son 60 sn, bütün düşmanlara)\nkad
 for (const o of out) console.log(o.hata ? `${o.tier} ${o.stage} HATA: ${o.hata} (S=${o.S}, stT=${o.stT})` :
   [pad(o.tier, 6), pad(o.stage, 5), pad(o.lv, 6), pad(o.mh, 5), pad(o.dps, 5), pad(o.bossHp, 9), pad(o.ttk + ' sn', 12), pad(o.bossDps, 9), pad(o.hasarAlinan, 10), pad(o.hasarBoss, 14), o.w].join(' '));
 fs.mkdirSync('test-results', { recursive: true });
-fs.writeFileSync(process.env.OUT || 'test-results/denge-' + MAP + (TM ? '-' + TM.join('_') : '') + '.json', JSON.stringify({ url, map: MAP, hero: HERO, mortal: MORTAL, bossAt, seed, tierm: TM, out }, null, 1));
+fs.writeFileSync(process.env.OUT || 'test-results/denge-' + MAP + (TM ? '-' + TM.join('_') : '') + '.json', JSON.stringify({ url, map: MAP, hero: HERO, mortal: MORTAL, bossAt, seed, tierm: TM, ayar: AYAR, out }, null, 1));
 await br.close();

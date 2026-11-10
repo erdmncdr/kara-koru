@@ -26,7 +26,7 @@ import { qCheck } from './flow.js';
 import { GPK } from './hero-anim.js';
 import { interact, useShrine } from './interact.js';
 import { drop, instHide, mkChest, mkPU, spot } from './objects.js';
-import { DMK, KZ_ADIM, bonus, calc, diffMul, diffPct, ghostSp, kzK, need, swT } from './stats.js';
+import { DMK, KZ_ADIM, SVD, bonus, calc, diffMul, diffPct, ghostSp, kzK, need, swT } from './stats.js';
 import { slUpd, vxUpd } from './weapon-fx.js';
 import { weapons } from './weapons.js';
 import { ANIM } from '../geo/anim.js';
@@ -512,7 +512,7 @@ export function upd(dt) {
         x: $G.P.x + rn(-30, 30),
         z: $G.P.z + rn(-30, 30)
       });
-      toast(sv ? 'Gümüş iskelet göründü. Yakalarsan anında seviye atlarsın.' : 'Altın yarasa göründü. Kaçmadan yakala.');
+      toast(sv ? $G.P.lv > SVD.odul ? 'Gümüş iskelet göründü. Yakalarsan bol tecrübe kazanırsın.' : 'Gümüş iskelet göründü. Yakalarsan anında seviye atlarsın.' : 'Altın yarasa göründü. Kaçmadan yakala.');
     }
   }
   // ara boss: anlar run.js MBT içinde; listedeki türler sırayla döner (Mezarlık: Kemik'in Babası, Hayalet Beyi, Kemik'in Babası)
