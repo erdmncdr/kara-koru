@@ -41,7 +41,7 @@ node tools/yerel-supa.mjs 8787 --tohum           # örnek veriyle yerel sunucu
 VITE_SUPABASE_URL=http://127.0.0.1:8787 VITE_SUPABASE_ANON_KEY=test npm run dev
 ```
 
-Panel `localhost:5173/yonetim.html`; sınama hesapları `tools/yerel-supa.mjs` başında.
+Panel `localhost:5173/yonetim.html`; sınama hesapları `tools/yerel-supa-sabit.mjs` içinde.
 
 ## Bilinen sınırlar
 

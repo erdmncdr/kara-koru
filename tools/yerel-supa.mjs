@@ -8,15 +8,14 @@
 //   VITE_SUPABASE_URL=http://127.0.0.1:8787 VITE_SUPABASE_ANON_KEY=test npm run dev
 //
 // --tohum: örnek veri (oyuncular, 14 günlük koşu kaydı, sıralama, bir etkinlik) ve bir yönetici hesabı açar.
-// Yerel sınama hesapları (yalnız bu taklit sunucuda geçerli): yönetici TOHUM_YONETICI, oyuncu TOHUM_OYUNCU (aşağıda).
+// Yerel sınama hesapları (yalnız bu taklit sunucuda geçerli): tools/yerel-supa-sabit.mjs.
 import http from 'node:http';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-export const TOHUM_YONETICI = { ad: 'yonetici', sifre: 'yerel-sinama-1' };
-export const TOHUM_OYUNCU = { ad: 'asena', sifre: 'yerel-sinama-2' };
+import { TOHUM_OYUNCU, TOHUM_YONETICI } from './yerel-supa-sabit.mjs';
 
 const mod = process.env.PGLITE;
 if (!mod) { console.error('PGLITE ortam değişkeni gerekli (dosyanın başındaki nota bak)'); process.exit(2); }
@@ -191,7 +190,7 @@ async function tohum() {
       ('Yeni denge yayında', 'Seviye 60''tan sonra tecrübe gereği artıyor; Mavi İskelet artık sınırlı tecrübe veriyor.', 'duyuru', now() - interval '1 day', null, '{}'),
       ('Bakım: Cumartesi 04:00', 'Yarım saatlik kesinti planlandı.', 'uyari', now() + interval '2 days', now() + interval '3 days', '{}');
   `);
-  log(`tohum: ${ids.length + 1} hesap, ${n} koşu kaydı; yönetici "${TOHUM_YONETICI.ad}", oyuncu "${TOHUM_OYUNCU.ad}" (şifreler bu dosyanın başında)`);
+  log(`tohum: ${ids.length + 1} hesap, ${n} koşu kaydı; yönetici "${TOHUM_YONETICI.ad}", oyuncu "${TOHUM_OYUNCU.ad}" (şifreler tools/yerel-supa-sabit.mjs içinde)`);
 }
 if (TOHUM) await tohum();
 sunucu.listen(PORT, '127.0.0.1', () => log('yerel supabase http://127.0.0.1:' + PORT + (TOHUM ? ' (örnek veriyle)' : '')));
