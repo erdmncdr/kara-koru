@@ -1,5 +1,5 @@
 // Unity için aşama nesneleri: setupStage'in sahneye koyduğu sandıklar, tapınaklar (sunaklar), tüccar/kazanlar, kapı,
-// çömlekler, kırılabilirler ve güçlendiriciler tek GLB'ye (ad: <tür>_<sıra>), etkileşim bilgileri JSON'a.
+// çömlekler, kırılabilirler, güçlendiriciler, Dört Mezar ve Kös davulları tek GLB'ye (ad: <tür>_<sıra>), etkileşim bilgileri JSON'a.
 // Tohum dünya dışa aktarımıyla aynı sıfırlanır (tools/unity-dunya.mjs): konumlar o haritayla örtüşür.
 // node tools/unity-asama.mjs <oyun url> <çıktı klasörü> [aşama=0 (biyomu da belirler: 0 Kara Koru, 1 Kızıl Bozkır, 2 Mezarlık)] [tohum=1]
 import { chromium } from 'playwright';
@@ -25,7 +25,7 @@ await new Promise(r => setTimeout(r, 2000));
 const res = await pg.evaluate(async () => {
   const { GLTFExporter } = await import('/@id/three/examples/jsm/exporters/GLTFExporter.js');
   const { $G } = await import('/src/core/store.js');
-  const objs = [], veri = { CH: [], SH: [], NP: [], GATE: null, POT: [], PU: [], BRK: [] };
+  const objs = [], veri = { CH: [], SH: [], NP: [], GATE: null, POT: [], PU: [], BRK: [], MZ: [], MZC: null, KS: [] };
   const ad = (o, n) => { o.name = n; objs.push(o); };
   const p3 = o => [+o.position.x.toFixed(3), +o.position.y.toFixed(3), +o.position.z.toFixed(3), +o.rotation.y.toFixed(4)];
   ($G.CH || []).forEach((c, i) => { ad(c.m, 'ch_' + i); veri.CH.push({ i, p: p3(c.m), free: !!c.free, gold: !!c.gold }); });
@@ -33,6 +33,10 @@ const res = await pg.evaluate(async () => {
   ($G.NP || []).forEach((n, i) => { ad(n.m, 'np_' + i); veri.NP.push({ i, p: p3(n.m), t: n.t, tier: n.tier || 0 }); });
   if ($G.GATE) { ad($G.GATE.m, 'gate'); veri.GATE = { x: $G.GATE.x, z: $G.GATE.z, ry: $G.GATE.ry }; }
   ($G.PU || []).forEach((u, i) => { ad(u.m, 'pu_' + i); veri.PU.push({ i, p: p3(u.m), t: u.t }); });
+  // Dört Mezar (features.js mkGraves: dört mezar + ortadaki dikili taş, gi 9) ve Kös davulları (mkDrums)
+  ($G.MZ || []).forEach((g, i) => { ad(g.m, 'mz_' + i); veri.MZ.push({ i, p: p3(g.m), gi: g.i }); });
+  if ($G.MZC) veri.MZC = { x: $G.MZC.x, z: $G.MZC.z };
+  ($G.KS || []).forEach((k, i) => { ad(k.m, 'ks_' + i); veri.KS.push({ i, p: p3(k.m) }); });
   // çömlekler ve kırılabilirler örnekli ağlar (objects.js potsBuild/brkBuild): her tür için geometri bir kez (geo_<tür>),
   // örnek dönüşümleri (konum, y dönüşü, ölçek) ve renkleri JSON'a
   const THREE = await import('/@id/three');
@@ -64,7 +68,7 @@ const adn = `asama_${bi}_${tohum}`;
 fs.writeFileSync(`${out}/${adn}.glb`, Buffer.from(res.b64, 'base64'));
 fs.writeFileSync(`${out}/${adn}.json`, JSON.stringify(res.veri));
 const v = res.veri;
-console.log(adn, 'nesne', res.n, 'sandık', v.CH.length, 'tapınak', v.SH.length, 'tüccar/kazan', v.NP.length, 'kapı', v.GATE ? 'var' : 'yok', 'çömlek', v.POT.length, 'kırılabilir', v.BRK.length, 'güç', v.PU.length);
+console.log(adn, 'nesne', res.n, 'sandık', v.CH.length, 'tapınak', v.SH.length, 'tüccar/kazan', v.NP.length, 'kapı', v.GATE ? 'var' : 'yok', 'çömlek', v.POT.length, 'kırılabilir', v.BRK.length, 'güç', v.PU.length, 'mezar', v.MZ.length, 'kös', v.KS.length);
 console.log('kırılabilir türleri', [...new Set(v.BRK.map(b => b.ty))].join(','), 'gümüş çömlek', v.POT.filter(p => p.sv).length, 'büyük', v.POT.filter(p => p.big).length);
 console.log('tapınak türleri', [...new Set(v.SH.map(s => s.t))].join(','), 'NP', [...new Set(v.NP.map(n => n.t))].join(','));
 console.log('hata:', errs.length ? errs.slice(0, 3) : 'yok');

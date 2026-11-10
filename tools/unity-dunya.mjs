@@ -97,6 +97,7 @@ const res = await pg.evaluate(async () => {
     OBS: OBS.map(o => ({ x: o.x, z: o.z, r: o.r, b: o.b, t: o.t > 1e8 ? 1e9 : o.t, nm: !!o.nm })),
     PLF: ($G.PLF || []).map(p => ({ x: p.x, z: p.z, w: p.w, d: p.d, y: p.y, h: p.h, b: p.b })),
     JP: ($G.JP || []).map(p => ({ x: p.x, y: p.y, z: p.z })),
+    LMS: ($G.LMS || []).map(l => ({ n: l.n, t: l.t, x: l.x, z: l.z, r: l.r })), // adlı yerler: keşif, mini harita halkası, büyük harita etiketi
     spawn: { x: P.x, y: P.y, z: P.z }, yaw: $G.yaw, pit: $G.pit
   };
   return { b64: btoa(s), hb64: btoa(hs), pb64: btoa(ps), cb64: btoa(cs), cltex, veri, turler, bytes: u.length };
