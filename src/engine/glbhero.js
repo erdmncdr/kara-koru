@@ -197,6 +197,24 @@ function yumruk(root, ad) {
   return n ? t.divideScalar(n) : null;
 }
 
+// miğferin tepesi: verilen yüksekliğin üstündeki derili köşelerin ortası (dinlenme duruşu). Tepe, baş ekleminin gerisinde kalır;
+// şapka eklemin değil tepenin hizasına oturur
+function tepeOrta(root, y) {
+  const t = new T.Vector3(), v = new T.Vector3();
+  let n = 0;
+  root.traverse(o => {
+    if (!o.isSkinnedMesh) return;
+    const p = o.geometry.attributes.position;
+    for (let i = 0; i < p.count; i++) {
+      o.getVertexPosition(i, v).applyMatrix4(o.matrixWorld);
+      if (v.y < y) continue;
+      t.add(v);
+      n++;
+    }
+  });
+  return n ? t.divideScalar(n) : null;
+}
+
 // kılıç ayarı (denetim aracından değiştirilebilir): yumruk ortasından kayma (boy oranı; ileri, yukarı, dışa),
 // ağzın ileri yönden yukarı eğimi (radyan), keskin kenarın yönü (+1 aşağı)
 export const KILIC = { ileri: 0, yukari: 0, disa: 0, egim: 0, kenar: 1, boy: .62 };
@@ -216,6 +234,8 @@ export function glbHero(H, key) {
     sk = ($G.META && $G.META.skin && $G.META.skin['cur' + $G.CI]) || '';
   // eski gövdenin boyu şimdi ölçülür, gövde hemen gizlenir: yüklenirken eski Alp görünüp sonra yenisine dönmesin
   const b0 = new T.Box3().setFromObject(hedef.g), h0 = Math.max(1, b0.max.y - b0.min.y);
+  // ölçüm anındaki gövde yüksekliği: model yüklenene kadar gövde yerine taşınmış olur, şapkanın yeri buna göre düzeltilir
+  const gy0 = hedef.g.getWorldPosition(new T.Vector3()).y;
   for (const c of hedef.g.children) c.visible = false;
   // eski gövdenin gözleri ayrı çizilir (engine/eyes.js, eski kemikten): yeni yüzün önünde havada kalmasın
   const gozler = hedef.eyes;
@@ -264,7 +284,8 @@ export function glbHero(H, key) {
     }
     // şapka: eski gövdenin baş kemiğinden yenisinin başına, miğferin tepesine
     if (hedef.hat) {
-      const bas = wp('Head'), tepe = new T.Vector3(bas.x, b0.min.y + h0 * .93, bas.z);
+      const taban = hedef.g.getWorldPosition(new T.Vector3()).y - gy0 + b0.min.y,
+        bas = tepeOrta(root, taban + h0 * .86) || wp('Head'), tepe = new T.Vector3(bas.x, taban + h0 * .93, bas.z);
       tak(hedef.hat, bone('Head'), tepe, yuk, hedef.hat.getWorldScale(new T.Vector3()).x);
       hedef.hat.visible = true;
     }
