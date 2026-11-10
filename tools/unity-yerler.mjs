@@ -1,5 +1,5 @@
-// Unity için adlı yerler (LMS: kule, tapınak, kamp...): dünya dışa aktarımıyla aynı tohum düzeninde oyunu açar ve yalnız
-// yer listesini var olan dünya verisi JSON'una "LMS" olarak ekler (GLB yeniden üretilmez). Yeni aktarımlarda unity-dunya.mjs
+// Unity için ortam verisi: adlı yerler (LMS: kule, tapınak, kamp...), ateşler (FIRES), kuşlar (BIRDS), yuvarlanan çalılar (TUMB).
+// Dünya dışa aktarımıyla aynı tohum düzeninde oyunu açar ve bu listeleri var olan dünya verisi JSON'una ekler (GLB yeniden üretilmez). Yeni aktarımlarda unity-dunya.mjs
 // bu alanı kendisi yazar. Dünya aynı mı diye engel sayısı JSON ile karşılaştırılır; tutmazsa dosyaya dokunulmaz.
 // node tools/unity-yerler.mjs <oyun url> <json yolu> [aşama=0] [tohum=1]
 import { chromium } from 'playwright';
@@ -19,10 +19,21 @@ await pg.evaluate(async ([b, t]) => { window.__tohum(t); start(); P.inv = 1e9 },
 await pg.waitForFunction(() => S === 'ready' || S === 'play', null, { timeout: 60000 });
 if (+bi > 0) await pg.evaluate(async ([n, t]) => { const { $G } = await import('/src/core/store.js'); const O = await import('/src/game/objects.js'); window.__tohum(t); $G.P.stage = n; $G.P.map = ['koru', 'bozkir', 'mezarlik'][n]; $G.P.stT = 0; O.setupStage(); }, [+bi, +tohum]);
 await new Promise(r => setTimeout(r, 3000));
-const r = await pg.evaluate(async () => { const { $G } = await import('/src/core/store.js'); return { n: ($G.OBS || []).length, LMS: ($G.LMS || []).map(l => ({ n: l.n, t: l.t, x: l.x, z: l.z, r: l.r })) } });
+const r = await pg.evaluate(async () => {
+  const { $G } = await import('/src/core/store.js');
+  return {
+    n: ($G.OBS || []).length,
+    LMS: ($G.LMS || []).map(l => ({ n: l.n, t: l.t, x: l.x, z: l.z, r: l.r })),
+    // ateşler (build.js mkHearth): k 0 kamp ateşi, 1 küçük ocak, 2 ruh ateşi (turkuaz), 3 meşale
+    FIRES: ($G.FIRES || []).map(f => ({ x: f.x, y: f.y, z: f.z, k: f.k })),
+    // kuşlar (mkBirds): daire merkezi, yükseklik, yarıçap, açı, hız, evre; GLB'deki sırayla
+    BIRDS: ($G.BIRDS || []).map(b => ({ cx: b.cx, cz: b.cz, h: b.h, R: b.R, a: b.a, s: b.s, ph: b.ph })),
+    TUMB: ($G.TUMB || []).map(t => t.s)
+  };
+});
 await br.close();
 const d = JSON.parse(fs.readFileSync(yol, 'utf8'));
 if (d.OBS.length != r.n) { console.log('dünya tutmuyor: json', d.OBS.length, 'oyun', r.n); process.exit(1); }
-d.LMS = r.LMS;
+d.LMS = r.LMS; d.FIRES = r.FIRES; d.BIRDS = r.BIRDS; d.TUMB = r.TUMB;
 fs.writeFileSync(yol, JSON.stringify(d));
-console.log('yazıldı', yol, r.LMS.length, r.LMS.map(l => l.n).join(', '));
+console.log('yazıldı', yol, 'yer', r.LMS.length, 'ateş', r.FIRES.length, '(tür ' + [...new Set(r.FIRES.map(f => f.k))].join(',') + ')', 'kuş', r.BIRDS.length, 'çalı', r.TUMB.length);

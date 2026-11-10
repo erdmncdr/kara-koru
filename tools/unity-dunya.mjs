@@ -98,6 +98,7 @@ const res = await pg.evaluate(async () => {
     PLF: ($G.PLF || []).map(p => ({ x: p.x, z: p.z, w: p.w, d: p.d, y: p.y, h: p.h, b: p.b })),
     JP: ($G.JP || []).map(p => ({ x: p.x, y: p.y, z: p.z })),
     LMS: ($G.LMS || []).map(l => ({ n: l.n, t: l.t, x: l.x, z: l.z, r: l.r })), // adlı yerler: keşif, mini harita halkası, büyük harita etiketi
+    FIRES: ($G.FIRES || []).map(f => ({ x: f.x, y: f.y, z: f.z, k: f.k })), BIRDS: ($G.BIRDS || []).map(b => ({ cx: b.cx, cz: b.cz, h: b.h, R: b.R, a: b.a, s: b.s, ph: b.ph })), TUMB: ($G.TUMB || []).map(t => t.s), // ateşler, kuşlar, yuvarlanan çalılar (tools/unity-yerler.mjs)
     spawn: { x: P.x, y: P.y, z: P.z }, yaw: $G.yaw, pit: $G.pit
   };
   return { b64: btoa(s), hb64: btoa(hs), pb64: btoa(ps), cb64: btoa(cs), cltex, veri, turler, bytes: u.length };
