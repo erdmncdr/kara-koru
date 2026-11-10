@@ -248,3 +248,23 @@ end;
 $$;
 revoke all on function public.kk_skor_gonder(integer, integer, integer, integer, integer, jsonb, jsonb) from public, anon;
 grant execute on function public.kk_skor_gonder(integer, integer, integer, integer, integer, jsonb, jsonb) to authenticated;
+
+-- ---- hesap silme (iOS uygulaması; App Store şartı: hesap açılabilen uygulamada hesap uygulama içinden silinebilmeli)
+-- Giriş yapmış oyuncunun kendi hesabını siler. auth.users satırı gider; kk_hesap, kk_skor ve kk_hafta satırları ile
+-- oturumlar (auth şemasındaki bağlı tablolar) zincirleme silinir. Geri alınamaz.
+create or replace function public.kk_hesap_sil() returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_id uuid := auth.uid();
+begin
+  if v_id is null then
+    raise exception 'giris gerekli' using errcode = '42501';
+  end if;
+  delete from auth.users where id = v_id;
+end;
+$$;
+revoke all on function public.kk_hesap_sil() from public, anon;
+grant execute on function public.kk_hesap_sil() to authenticated;
