@@ -690,36 +690,47 @@ function asaHedef(G, a) {
   // ön kolun yönü: ileri, biraz yukarı ve içe
   _f.copy(_ci).addScaledVector(_cu, .15).addScaledVector(_cs, -.3);
 }
-// Alp'in kılıcı: duruma göre tutuş (KT). Her satır: tutma noktası göğse göre [yana, ileri, yukarı] (boy oranı), ağzın yönü
-// [ileri, yukarı, yana]. Tutma noktası gövdenin sağında ve dışında, ağız hep ileri ve dışa bakar: bacaktan ve gövdeden geçmez.
-// Beklerken alçak ve rahat (uç yere yakın, önde), savaşta orta gard (uç ileri-yukarı), koşuda ileri uzanmış, atılmada ileri saplı.
+// Alp'in kılıcı: duruma göre kolun duruşu (KT). Her satır gövdeye göre üç yön, [sağa, ileri, yukarı]: üst kol (omuzdan dirseğe),
+// ön kol (dirsekten bileğe), ağız. Tutma noktası değil kolun kendisi verilir: dirsek hep bükük ve gövdenin yanında, bilek doğal kalır.
+// Beklerken ve yürürken kol sarkık, ağız ileri (alçak taşıma); savaşta ön kol ileri, ağız ileri-yukarı (orta gard); koşuda ağız
+// yukarı; havada baş üstünde vuruşa hazır; atılmada ve kayarken dışa açık. Ağız hep gövdeden dışarı bakar: bacaktan, gövdeden geçmez.
 export const KT = {
-  idle: [.27, .1, -.2, .75, -.55, .35], combat: [.25, .22, -.1, .72, .66, .1], walk: [.28, .12, -.17, .8, -.35, .3], run: [.3, .1, -.12, .85, -.1, .4],
-  jump: [.3, .14, -.04, .5, .8, .25], flip: [.3, .12, -.06, .5, .6, .6], slide: [.3, .15, -.05, .8, .45, .3], dash: [.26, .3, -.08, 1, .05, .15]
+  idle: [.46, -.02, -.9, .22, .4, -.9, .42, .88, -.1], combat: [.3, -.15, -.9, -.15, .95, .1, .05, .5, .85],
+  walk: [.52, -.1, -.86, .3, .5, -.82, .45, .82, .15], run: [.3, -.35, -.85, .05, .9, .25, .3, .25, .92],
+  jump: [.55, .1, -.5, .25, .45, .85, .1, -.5, .8], flip: [.5, -.2, -.6, .1, .8, .4, .6, 0, .8],
+  slide: [.4, -.3, -.7, .2, .85, .2, .45, .15, .88], dash: [.35, -.45, -.7, .25, .9, .1, .8, .2, .55]
 };
-const _kt = [0, 0, 0, 0, 0, 0];
+// bilek: ön kol ile ağız arasındaki açı bu aralıkta tutulur (90° düz çekiç tutuşu; ağız ön kolun devamı gibi durursa yumruk
+// bilekten kırık görünür). Kosinüs olarak: 62°..112°
+const BILEK = [-.37, .47];
+const _kt = [0, 0, 0, 0, 0, 0, 0, 0, 0], _ku = new T.Vector3();
 function kilicHedef(G, a) {
-  const w = G.w, h0 = G.h0;
+  const w = G.w;
   let t = 0;
   _kt.fill(0);
   for (const k of ANA) {
     const x = w[k] || 0;
     if (!x) continue;
     t += x;
-    for (let i = 0; i < 6; i++) _kt[i] += KT[k][i] * x;
+    for (let i = 0; i < 9; i++) _kt[i] += KT[k][i] * x;
   }
-  if (t < 1e-4) { t = 1; for (let i = 0; i < 6; i++) _kt[i] = KT.idle[i]; }
+  if (t < 1e-4) for (let i = 0; i < 9; i++) _kt[i] = KT.idle[i];
   cerceve(G, a, Math.min(1, (w.dash || 0) + (w.slide || 0) + (w.flip || 0) + (w.jump || 0) * .5));
-  // yürüyüşte ve koşuda kılıç adımla hafifçe salınır
+  // yürüyüşte ve koşuda ön kol adımla hafifçe salınır
   const yur = w.walk || 0, kos = w.run || 0, kl = yur >= kos ? G.A.walk : G.A.run,
     faz = yur + kos > .01 ? Math.sin(kl.time / kl.getClip().duration * Math.PI * 2) * (yur + kos) : 0;
-  _G.copy(_cA).addScaledVector(_cs, h0 * _kt[0] / t).addScaledVector(_ci, h0 * (_kt[1] / t + faz * .025)).addScaledVector(_cu, h0 * (_kt[2] / t + Math.abs(faz) * .015));
-  _s.set(0, 0, 0).addScaledVector(_ci, _kt[3] / t).addScaledVector(_cu, _kt[4] / t + faz * .06).addScaledVector(_cs, _kt[5] / t).normalize();
-  // ön kol: omzun altında, biraz geride ve dışta duran dirsekten tutma noktasına
-  a.kol.getWorldPosition(_S);
-  a.on.getWorldPosition(_E);
-  const L1 = _E.distanceTo(_S);
-  _f.copy(_G).sub(_S).addScaledVector(_cu, L1 * .85).addScaledVector(_ci, L1 * .25).addScaledVector(_cs, -L1 * .2);
+  const yon = (v, i, ek) => v.set(0, 0, 0).addScaledVector(_cs, _kt[i]).addScaledVector(_ci, _kt[i + 1] + ek).addScaledVector(_cu, _kt[i + 2]).normalize();
+  yon(_ku, 0, 0);
+  yon(_f, 3, faz * .1);
+  yon(_s, 6, 0);
+  // bilek sınırı: ağız, ön kol ile ağzın düzleminde izin verilen açıya çekilir
+  const c = _f.dot(_s), cs = Math.min(BILEK[1], Math.max(BILEK[0], c));
+  if (cs != c) {
+    _v1.copy(_s).addScaledVector(_f, -c);
+    if (_v1.lengthSq() < 1e-6) _v1.copy(_cu).addScaledVector(_f, -_cu.dot(_f));
+    _s.copy(_v1.normalize()).multiplyScalar(Math.sqrt(1 - cs * cs)).addScaledVector(_f, cs);
+  }
+  if (__KOPRU__) a.bilek = Math.acos(_f.dot(_s)) * 180 / Math.PI; // denetim: bileğin açısı (derece)
 }
 function sagKol(G, a, dt, ani) {
   // darbede de eldeki kalır (darbe klibi kolu savurur, asa başın üstünde yatay döner); yalnız saldırı klipleri kolu alır
@@ -730,32 +741,48 @@ function sagKol(G, a, dt, ani) {
   a.kol.updateWorldMatrix(false, true);
   if (a.tur == 'kilic') kilicHedef(G, a);
   else asaHedef(G, a);
-  // iki kemikli ters kinematik: omuz S, dirsek E, bilek T. Dirsek aşağı, geride ve biraz dışta (asada atılırken ve kayarken
-  // dışta ve yukarıda: ön kol asaya dik gelsin, asa ön kolun içinden geçmesin)
+  // iki kemikli ters kinematik: omuz S, dirsek E, bilek T
   a.kol.getWorldPosition(_S);
   a.on.getWorldPosition(_E);
   a.el.getWorldPosition(_H);
   a.el.getWorldScale(_sc);
-  const L1 = _E.distanceTo(_S), L2 = _H.distanceTo(_E), dk = a.tur == 'asa' ? Math.min(1, (G.w.dash || 0) + (G.w.slide || 0)) : 0;
+  const L1 = _E.distanceTo(_S), L2 = _H.distanceTo(_E);
   let uz = 0, co = 1, si = 0;
-  // iki geçiş: elin dönüşü ön kolun yönüne bağlı, bilek hedefi de elin dönüşüne. İlkinde tahmini ön kol yönüyle dirsek bulunur,
-  // ikincisinde elin kol ekseni gerçek ön kol yönüne (eldeki nesneye dik bileşenine) getirilir: bilek ters dönmez
-  for (let gec = 0; gec < 2; gec++) {
-    _f.addScaledVector(_s, -_f.dot(_s));
-    if (_f.lengthSq() < 1e-6) _f.copy(_ci).addScaledVector(_s, -_ci.dot(_s));
-    _f.normalize();
-    elDonus(a.h, a.a, _s, _f);
-    // bilek hedefi: yumruğun ortası tutma noktasına gelsin
-    _T.copy(a.c).multiplyScalar(_sc.x).applyQuaternion(_qR);
-    _T.subVectors(_G, _T);
+  if (a.tur == 'kilic') {
+    // kılıç: kolun yönleri doğrudan verilmiştir (_ku üst kol, _f ön kol); bilek omuzdan o yönlerle bulunur, el ağzı _s'ye çevirir
+    _T.copy(_S).addScaledVector(_ku, L1).addScaledVector(_f, L2);
     _d.subVectors(_T, _S);
     uz = Math.min(L1 + L2 - 1e-3, Math.max(Math.abs(L1 - L2) + 1e-3, _d.length()));
     _d.normalize();
     co = Math.min(1, Math.max(-1, (L1 * L1 + uz * uz - L2 * L2) / (2 * L1 * uz)));
     si = Math.sqrt(1 - co * co);
-    _pl.copy(_cu).multiplyScalar(-1 + dk * 1.2).addScaledVector(_ci, -.55 * (1 - dk)).addScaledVector(_cs, .4 + dk * .6);
-    _pl.addScaledVector(_d, -_pl.dot(_d)).normalize();
-    if (!gec) _f.copy(_d).multiplyScalar(uz - L1 * co).addScaledVector(_pl, -L1 * si); // dirsekten bileğe
+    _pl.copy(_ku).addScaledVector(_d, -_ku.dot(_d));
+    if (_pl.lengthSq() < 1e-6) _pl.copy(_cu).multiplyScalar(-1).addScaledVector(_d, _cu.dot(_d));
+    _pl.normalize();
+    _f.addScaledVector(_s, -_f.dot(_s)).normalize();
+    elDonus(a.h, a.a, _s, _f);
+  } else {
+    // asa: tutma noktası verilmiştir. Dirsek aşağı, geride ve biraz dışta (atılırken ve kayarken dışta ve yukarıda: ön kol asaya
+    // dik gelsin, asa ön kolun içinden geçmesin). İki geçiş: elin dönüşü ön kolun yönüne bağlı, bilek hedefi de elin dönüşüne.
+    // İlkinde tahmini ön kol yönüyle dirsek bulunur, ikincisinde elin kol ekseni gerçek ön kol yönüne getirilir: bilek ters dönmez
+    const dk = Math.min(1, (G.w.dash || 0) + (G.w.slide || 0));
+    for (let gec = 0; gec < 2; gec++) {
+      _f.addScaledVector(_s, -_f.dot(_s));
+      if (_f.lengthSq() < 1e-6) _f.copy(_ci).addScaledVector(_s, -_ci.dot(_s));
+      _f.normalize();
+      elDonus(a.h, a.a, _s, _f);
+      // bilek hedefi: yumruğun ortası tutma noktasına gelsin
+      _T.copy(a.c).multiplyScalar(_sc.x).applyQuaternion(_qR);
+      _T.subVectors(_G, _T);
+      _d.subVectors(_T, _S);
+      uz = Math.min(L1 + L2 - 1e-3, Math.max(Math.abs(L1 - L2) + 1e-3, _d.length()));
+      _d.normalize();
+      co = Math.min(1, Math.max(-1, (L1 * L1 + uz * uz - L2 * L2) / (2 * L1 * uz)));
+      si = Math.sqrt(1 - co * co);
+      _pl.copy(_cu).multiplyScalar(-1 + dk * 1.2).addScaledVector(_ci, -.55 * (1 - dk)).addScaledVector(_cs, .4 + dk * .6);
+      _pl.addScaledVector(_d, -_pl.dot(_d)).normalize();
+      if (!gec) _f.copy(_d).multiplyScalar(uz - L1 * co).addScaledVector(_pl, -L1 * si); // dirsekten bileğe
+    }
   }
   _a1.copy(a.kol.quaternion);
   _a2.copy(a.on.quaternion);
