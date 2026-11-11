@@ -28,7 +28,7 @@ const URLS = {
 // ustSabit: yürürken ve koşarken üst gövde yürüyüş klibi yerine duruşta kalır (elde dik tutulan asa sallanmasın).
 // basOlcu: boy eski gövdenin kutusuna göre değil baş eklemine göre eşlenir (eski gövdede baştan uzun asa ya da boynuz varsa).
 const KAHRAMAN = {
-  alp: { sal: { atkR: [.12, .95], atkL: [.3, 1.2] }, onYukle: 1 },
+  alp: { sal: { atkR: [.12, .95], atkL: [.3, 1.2] } },
   kam: { sal: { atkR: [.3, 1.3], atkL: [.75, 1.65] }, ustSabit: 1, basOlcu: 1, pingpong: ['idle', 'combat'] }
 };
 // kliplerin kendi ayak hızı (boy/sn): oyunda sabit hızla ilerletilen modelde yerdeki ayağın kaymasını en aza indiren
@@ -343,6 +343,8 @@ function takKam({ O, root, bone, wp, yuk, h0, sk }) {
     pv = kb.getCenter(new T.Vector3()),
     nes = kap(O.asa, pv, hk, sk);
   tak(nes, el, orta, yon, h0 * ASA.boy);
+  // koşu düzeltmesi için (glbTick): asa nesnesi kemikte durur; ekseni elin uzayında nes.quaternion ile döndürülmüş +Y
+  el.userData.asaYon = new T.Vector3(0, 1, 0).applyQuaternion(nes.quaternion);
   // kor taşı: asanın tepesinde toplamalı ışıma (asayla birlikte ölçeklenir)
   const isik = new T.Sprite(new T.SpriteMaterial({ map: HALO, color: 0xff8a30, transparent: true, opacity: .8, blending: T.AdditiveBlending, depthWrite: false, fog: true }));
   isik.position.set(0, (bt.max.y - hk * .09 - pv.y) / hk, 0);
@@ -368,8 +370,8 @@ export function glbHero(H, key) {
   const hedef = H,
     sk = ($G.META && $G.META.skin && $G.META.skin['cur' + $G.CI]) || '';
   const ay = KAHRAMAN[key] || {};
-  // eski gövdenin boyu şimdi ölçülür. Dosyaları açılışta inen kahramanda (Alp) gövde hemen gizlenir: yüklenirken eski gövde
-  // görünüp sonra yenisine dönmesin. Diğerlerinde dosyalar seçilince iner; o sürede eski gövde görünür kalır.
+  // eski gövdenin boyu şimdi ölçülür. Dosyaları inmiş kahramanda (açılışta Alp ve seçili kahraman; kahraman sayfası açılınca
+  // diğerleri) gövde hemen gizlenir: eski gövde görünüp sonra yenisine dönmesin. İnmemişse o sürede eski gövde görünür kalır.
   hedef.g.updateMatrixWorld(true);
   const b0 = new T.Box3().setFromObject(hedef.g);
   let h0 = Math.max(1, b0.max.y - b0.min.y);
@@ -378,7 +380,7 @@ export function glbHero(H, key) {
   // ölçüm anındaki gövde yüksekliği: model yüklenene kadar gövde yerine taşınmış olur, şapkanın yeri buna göre düzeltilir
   const gy0 = hedef.g.getWorldPosition(new T.Vector3()).y;
   const eskiler = hedef.g.children.slice(), gizle = () => { for (const c of eskiler) c.visible = false; };
-  if (ay.onYukle) gizle();
+  if (hazir[key]) gizle();
   // eski gövdenin gözleri ayrı çizilir (engine/eyes.js, eski kemikten): yeni yüzün önünde havada kalmasın
   const gozler = hedef.eyes;
   hedef.eyes = null;
@@ -436,9 +438,12 @@ export function glbHero(H, key) {
       if (A[k + '_u']) A[k + '_u'].timeScale = 0;
     }
     G = { H: hedef, root, mixer, A, h0, w: { idle: 1 }, wu: 0, slT: 0, ust: null, ay, sal: ay.sal || KAHRAMAN.alp.sal };
+    // asa taşıyan kahraman: koşuda asayı dik tutmak için el kemiği (glbTick)
+    { const el = bone('RightHand'); if (el && el.userData.asaYon) /** @type {any} */ (G).asaEl = el; }
     // denetim araçları için (tools/meshy-el.mjs): duruşu dondurup tek klip anı göstermek. Yayın derlemesinde pencereye açılmaz
     if (__KOPRU__) /** @type {any} */ (window).__glb = G;
     /** @type {any} */ (G).tick = glbTick;
+    /** @type {any} */ (G).asaDik = () => asaDik(G); // denetim aracı dondurulmuş duruşta da uygulayabilsin
     /** @type {any} */ (G).ayak = AYAK;
   }).catch(e => {
     // yüklenemezse eski gövde geri gelir
@@ -452,10 +457,28 @@ export function glbHero(H, key) {
 // (ui/yukle.js); dönen dizi: [model dosyası, klipler ve silahlar]
 export function glbOnYukle() {
   if (!meshyOn()) return [];
-  // yalnız açılış kahramanı (Alp); diğerlerinin dosyaları seçilince iner (Kam ~3,4 MB: ilk açılışı ağırlaştırmasın)
-  const a = [modelBuf('alp'), ortak('alp')];
-  for (const p of a) p.catch(() => {});
+  // Alp her zaman (ortak klipler onun dosyalarında); son seçilen kahraman Kam ise o da (açılışta eski gövde görünmesin).
+  // Diğer durumda Kam'ın dosyaları (~3,4 MB) kahraman sayfası açılınca iner: ilk açılışı ağırlaştırmaz.
+  const a = [...indir('alp')];
+  try {
+    const k = ACILIS[localStorage.getItem('kk_ci') || ''];
+    if (k) a.push(...indir(k));
+  } catch (e) {}
   return a;
+}
+// kayıttaki kahraman sırası (kk_ci) → anahtar; sıra kalıcıdır (game/heroes.js CR)
+const ACILIS = { 1: 'kam' };
+// dosyaları inmiş kahramanlar
+const hazir = {};
+function indir(k) {
+  const a = [modelBuf(k), ortak(k)];
+  Promise.all(a).then(() => (hazir[k] = 1), () => {});
+  return a;
+}
+// kahraman sayfası açılınca: açılışta inmeyen kahramanların dosyaları arkada iner, seçilince model hemen gelir
+export function glbHazirla() {
+  if (!meshyOn()) return;
+  for (const k of Object.keys(URLS)) if (!hazir[k]) indir(k);
 }
 
 const ANA = ['idle', 'combat', 'walk', 'run', 'jump', 'flip', 'slide', 'dash'];
@@ -519,4 +542,25 @@ export function glbTick(dt) {
     A[n + '_u'].setEffectiveWeight(G.w[n] * (1 - G.wu));
   }
   G.mixer.update(dt);
+  asaDik(G);
+}
+
+// Koşuda gövde öne yatar (hızlı koşu klibi) ve gövdeye göre dik tutulan asa onunla birlikte yatıp ucu yere saplanır. Asa
+// koşarken hafif öne eğik, dike yakın taşınsın diye el kemiği her karede klipten sonra döndürülür: asanın o andaki yönü
+// hedef yöne (yukarı + biraz ileri) koşu ağırlığı kadar çevrilir. Saldırı ve darbe sırasında karışmaz.
+const _q = new T.Quaternion(), _qp = new T.Quaternion(), _qd = new T.Quaternion(), _qi = new T.Quaternion(), _c = new T.Vector3(), _d = new T.Vector3();
+function asaDik(G) {
+  const el = G.asaEl, k = (G.w.run || 0) * (1 - G.wu);
+  if (!el || k < .01) return;
+  el.parent.updateWorldMatrix(true, false);
+  el.parent.getWorldQuaternion(_qp);
+  _q.copy(_qp).multiply(el.quaternion); // elin dünya dönüşü
+  _c.copy(el.userData.asaYon).applyQuaternion(_q).normalize();
+  // hedef: yukarı, gövdenin baktığı yöne doğru biraz eğik
+  G.H.g.getWorldQuaternion(_qd);
+  _d.set(0, 0, 1).applyQuaternion(_qd).multiplyScalar(.3).add(_c.set(0, 1, 0)).normalize();
+  _c.copy(el.userData.asaYon).applyQuaternion(_q).normalize();
+  _qd.setFromUnitVectors(_c, _d);
+  _q.premultiply(_qd.slerp(_qi, 1 - k)); // k kadar çevir (_qi: dönüşsüz)
+  el.quaternion.copy(_qp.invert().multiply(_q));
 }

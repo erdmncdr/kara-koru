@@ -1,10 +1,12 @@
 // Meshy Alp el denetimi: seçim ekranında modeli dört yönden, bekleme ve hareket anlarında çeker; kalkan ve kılıç elinin yakın planı.
 // node tools/meshy-el.mjs <url> <çıkış.png>   (CHROME ortam değişkeni Chrome yolunu verir)
+// HERO=kam: başka bir Meshy kahramanı (daha geniş kare; saldırı anları kahramanın saldırı aralığının ortasından). GPU=1: gerçek ekran kartı.
 import { chromium } from 'playwright';
 import fs from 'node:fs';
 const [url, out] = process.argv.slice(2);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-const br = await chromium.launch({ executablePath: process.env.CHROME, headless: true, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const HERO = process.env.HERO || 'alp', GENIS = HERO != 'alp';
+const br = await chromium.launch({ executablePath: process.env.CHROME, headless: true, args: process.env.GPU ? ['--use-angle=metal', '--ignore-gpu-blocklist'] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 const pg = await br.newPage({ viewport: { width: 1280, height: 720 } });
 const errs = []; pg.on('pageerror', e => errs.push(e.message));
 await pg.addInitScript(() => {
@@ -14,9 +16,9 @@ await pg.addInitScript(() => {
 await pg.goto(url, { waitUntil: 'domcontentloaded', timeout: 90000 });
 await pg.waitForFunction(() => typeof S !== 'undefined' && S === 'menu', null, { timeout: 90000 });
 await pg.addStyleTag({ content: '#ov,#tip{display:none!important}' });
-await pg.evaluate(() => { menuPage('kahraman'); selC(1, 1); selC(0, 1) });
-await pg.waitForFunction(() => window.__glb, null, { timeout: 60000 }); await sleep(1500);
-const ANLAR = [['bekle', 'idle', 1.2], ['savas', 'combat', .6], ['sag_savurus', 'atkR', .55], ['sol_savurus', 'atkL', .75], ['yuru', 'walk', .3], ['kos', 'run', .15], ['zipla', 'jump', .8], ['takla', 'flip', 1.6], ['atil', 'dash', .45], ['darbe', 'hit', .5]];
+await pg.evaluate(h => { const i = CR.findIndex(c => c.k == h); menuPage('kahraman'); selC(i ? 0 : 1, 1); selC(i, 1); }, HERO);
+await pg.waitForFunction(h => window.__glb && window.__glb.H === H && CR[CI].k == h, HERO, { timeout: 60000 }); await sleep(1500);
+const ANLAR = [['bekle', 'idle', 1.2], ['savas', 'combat', .6], ['sag_savurus', 'atkR', .55], ['sol_savurus', 'atkL', .75], ['yuru', 'walk', .3], ['kos', 'run', .15], ['zipla', 'jump', .8], ['takla', 'flip', 1.6], ['atil', 'dash', .45], ['kay', 'slide', .3], ['darbe', 'hit', .5]];
 const YON = [0, Math.PI / 2, Math.PI, -Math.PI / 2];
 const kareler = [];
 for (const [ad, k, t] of ANLAR) for (const y of YON) {
@@ -26,14 +28,17 @@ for (const [ad, k, t] of ANLAR) for (const y of YON) {
     const tum = ['atkR', 'atkL', 'hit'].includes(k);
     // üst gövde kliplerinde bacaklar bekleme duruşunda
     if (tum) { G.A.combat.setEffectiveWeight(1); G.A.combat.time = .6; }
+    if (tum && k != 'hit' && G.sal && G.sal[k]) t = (G.sal[k][0] + G.sal[k][1]) / 2;
     G.A[k].setEffectiveWeight(1); G.A[k].time = t; if (G.A[k + '_u']) { G.A[k + '_u'].setEffectiveWeight(1); G.A[k + '_u'].time = t; }
     for (const a of Object.values(G.A)) a.paused = false;
+    H.g.rotation.y = y; H.g.updateMatrixWorld(true);
     G.mixer.update(0);
-    H.g.rotation.y = y;
+    // koşuda asayı dik tutan düzeltme (glbhero.js asaDik) dondurulmuş duruşta da uygulansın
+    if (G.asaDik) { G.w = { run: k == 'run' ? 1 : 0 }; G.wu = 0; G.asaDik(); }
   }, [k, t, y]);
   await sleep(450);
   const f = out.replace(/\.png$/, `_${ad}_${YON.indexOf(y)}.png`);
-  await pg.screenshot({ path: f, clip: { x: 740, y: 220, width: 360, height: 400 } });
+  await pg.screenshot({ path: f, clip: GENIS ? { x: 640, y: 90, width: 560, height: 620 } : { x: 740, y: 220, width: 360, height: 400 } });
   kareler.push([f, ad + ' · ' + ['ön', 'sağ', 'arka', 'sol'][YON.indexOf(y)]]);
 }
 const p2 = await br.newPage({ viewport: { width: 1460, height: 1300 } });

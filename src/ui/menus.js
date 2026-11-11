@@ -1,7 +1,7 @@
 // ui/menus.js · Kara Koru
 // Bu dosya tek dosyalık sürümden (v22) otomatik ayrıldı. Ortak oyun durumu core/store.js içindeki $G nesnesinde.
 
-import { glbHero } from '../engine/glbhero.js';
+import { glbHazirla, glbHero } from '../engine/glbhero.js';
 import { $G } from '../core/store.js';
 import { aVol, sfx } from '../audio/engine.js';
 import { ov, skFree, toast } from '../core/helpers.js';
@@ -52,6 +52,7 @@ export function menuPage(k) {
   }
   $G.menuPg = k;
   sfx('ui');
+  if (k == 'kahraman') glbHazirla(); // Meshy kahramanlarının dosyaları arkada iner (engine/glbhero.js)
   renderMenu(1);
 }
 
