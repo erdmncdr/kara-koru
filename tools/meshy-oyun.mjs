@@ -1,6 +1,6 @@
 // Meshy Alp gerçek oyun denetimi: gerçek tuşlarla yürü, koş, dön, zıpla, çift zıpla (takla), kay, atıl, saldırı sırasında
 // koş; her anda kare çeker. Ayak kaymasını ölçer: yerdeki ayağın dünya konumu adım boyunca ne kadar kayıyor.
-// Telefon (dikey) görünümünde de bir kare. node tools/meshy-oyun.mjs <url> <klasör>   (KI=1: Kam; kahramanın kayıt sırası. GPU=1: gerçek ekran kartı)
+// Telefon (dikey) görünümünde de bir kare. node tools/meshy-oyun.mjs <url> <klasör>   (KI=1: Kam; kahramanın kayıt sırası. GPU=1: gerçek ekran kartı. AYAK=0.7,3.7 OLC=1: ayak hızı taraması)
 import { chromium } from 'playwright';
 import fs from 'node:fs';
 const [url, out] = process.argv.slice(2); fs.mkdirSync(out, { recursive: true });
@@ -51,6 +51,8 @@ const olc = async (sn, ust = 99) => pg.evaluate(async ([sn, ust]) => {
   return { yerdeKare: n, ayakKaymaHizi: +(kay / Math.max(dt, temas)).toFixed(2), govdeHizi: +hiz.toFixed(1), oran: +(kay / Math.max(dt, temas) / Math.max(.1, hiz)).toFixed(3) };
 }, [sn, ust]);
 const sonuc = {};
+// AYAK=yürüme,koşu: klibin ayak hızını (boy/sn) ölçüm için değiştirir; OLC=1: yalnız ölçer (kare ve telefon yok). Değer taramak için
+if (process.env.AYAK) await pg.evaluate(a => { window.__glb.ayak = { walk: a[0], run: a[1] }; }, process.env.AYAK.split(',').map(Number));
 await pg.evaluate(() => { K.w = 1 }); await sleep(1500);
 sonuc.kos = await olc(2); await kare('1_kos');
 await pg.evaluate(() => { K.d = 1 }); await sleep(500); await kare('2_kos_don'); await pg.evaluate(() => { K.d = 0 });
@@ -63,6 +65,7 @@ await pg.evaluate(() => { K.w = 0 }); await sleep(1500); await kare('8_savas_dur
 // yavaş yürüme: hızı düşür
 await pg.evaluate(() => { window.__yv = setInterval(() => { const m = Math.hypot(P.vx, P.vz); if (m > 3.2) { P.vx *= 3.2 / m; P.vz *= 3.2 / m; } }, 4); K.w = 1 }); await sleep(1200);
 sonuc.yuru = await olc(2, 3.2); await kare('9_yuru');
+if (process.env.OLC) { console.log(JSON.stringify(sonuc)); await br.close(); process.exit(0); }
 await pg.evaluate(() => { clearInterval(window.__yv); K.w = 0 });
 sonuc.kareHizi = await pg.evaluate(async () => { await new Promise(r => setTimeout(r, 5200)); return PERF.lastFps && +PERF.lastFps.toFixed(1); });
 await pg.close();

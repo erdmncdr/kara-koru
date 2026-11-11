@@ -3,6 +3,7 @@
 // kodla kurulmuş eski gövdeyi geri getirir. Kahraman seçiliyken eski gövde gizlenir, aynı boya ölçeklenmiş GLB konur.
 // Meshy iskeletlerinde kemik adları ortak: yürüme, koşu, zıplama, kayma, atılma, takla ve darbe klipleri Alp'in dosyalarından
 // bütün kahramanlarda oynar (KLIP); kahramana özel olan yalnız model, elindekiler ve saldırı/duruş klipleri (KAHRAMAN).
+// Alp (11 Kasım 2026, ikinci model): maskeli şampiyon, 17.742 üçgen, 2K doku; kızıl sorguç kodla kurulur (sorguc) ve savrulur.
 // Kam (11 Kasım 2026): 18.485 üçgen, 2K doku. Bekleme, yürüme ve koşu Alp'le aynı doğal klipler; asa sağ yumruğun deliğinden
 // geçer, yere basılı ve dik durur, sağ kol her karede asaya göre bükülür (asaTut: iki kemikli ters kinematik). Saldırıda kol
 // serbest kalır: asayı göğe kaldırma ve ileri itme klipleri oynar.
@@ -29,7 +30,7 @@ const URLS = {
 // ayak, kosUst: kahramanın kendi koşu klibi varsa onun ayak hızı ve hızlanma üst sınırı (yoksa ortak AYAK, KOS_UST).
 // basOlcu: boy eski gövdenin kutusuna göre değil baş eklemine göre eşlenir (eski gövdede baştan uzun asa ya da boynuz varsa).
 const KAHRAMAN = {
-  alp: { sal: { atkR: [.12, .95], atkL: [.3, 1.2] } },
+  alp: { sal: { atkR: [.12, .95], atkL: [.3, 1.2] }, ayak: { walk: .5, run: 3.7 } },
   kam: { sal: { atkR: [.3, 1.3], atkL: [.75, 1.65] }, basOlcu: 1, ayak: { walk: .7, run: 1.65 }, kosUst: 1.65 }
 };
 // kliplerin kendi ayak hızı (boy/sn): oyunda sabit hızla ilerletilen modelde yerdeki ayağın kaymasını en aza indiren
@@ -270,8 +271,55 @@ function tepeOrta(root, y) {
   return n ? t.divideScalar(n) : null;
 }
 
+// sorguç: miğferin tepesinden arkaya dökülen kızıl at kılı. Meshy ince kılı modele çıkarmıyor; kodla kurulur ve baş kemiğine
+// bağlanır. Ortada kalın bir tutam, çevresinde ince teller; her biri eğri boyunca kalınlaşıp incelen bir boru; köşe renkli.
+// Birim kahramanın boyu (tak ile h0'a ölçeklenir): +Y yukarı, -Z arkaya. İçteki grup (ic) koşuda ve havada savrulur (glbTick).
+export const SORGUC = { boy: 1, kal: 1, yuk: -.012 };
+function sorguc(sk) {
+  const pos = [], col = [], idx = [], f = SKINF[sk], c0 = [.78, .09, .09], c1 = [.42, .03, .05], sag = new T.Vector3(1, 0, 0),
+    p = new T.Vector3(), tg = new T.Vector3(), nr = new T.Vector3(), c = new T.Color();
+  const tutam = (N, kal, n = 12, m = 7) => {
+    const eg = new T.CatmullRomCurve3(N.map(a => new T.Vector3(a[0], a[1], a[2]).multiplyScalar(SORGUC.boy))), t0 = pos.length / 3;
+    for (let i = 0; i <= n; i++) {
+      const t = i / n, r = kal * SORGUC.kal * (Math.sin(Math.PI * Math.pow(t, .6)) * .9 + .12 * (1 - t));
+      eg.getPoint(t, p);
+      eg.getTangent(t, tg);
+      nr.crossVectors(tg, sag).normalize();
+      for (let j = 0; j < m; j++) {
+        const a = j / m * Math.PI * 2, ca = Math.cos(a) * r * .8, sa = Math.sin(a) * r, k = j % 2 ? 1 : .7;
+        pos.push(p.x + sag.x * ca + nr.x * sa, p.y + nr.y * sa, p.z + nr.z * sa);
+        let rgb = [0, 1, 2].map(q => (c0[q] + (c1[q] - c0[q]) * t) * k);
+        if (f) rgb = f(rgb[0], rgb[1], rgb[2]).map(v => Math.min(1, v));
+        c.setRGB(rgb[0], rgb[1], rgb[2], T.SRGBColorSpace);
+        col.push(c.r, c.g, c.b);
+      }
+    }
+    for (let i = 0; i < n; i++) for (let j = 0; j < m; j++) {
+      const a = t0 + i * m + j, b = t0 + i * m + (j + 1) % m, d = a + m, e = b + m;
+      idx.push(a, d, b, b, d, e);
+    }
+  };
+  // ana tutam ve çevresinde uçlara doğru açılan ince teller: tek bir püskül gibi okunur, ucu saçaklıdır
+  const ANA = [[0, 0, 0], [0, .035, -.004], [0, .06, -.03], [0, .055, -.075], [0, .02, -.115], [0, -.04, -.14], [0, -.11, -.155], [0, -.17, -.16]];
+  tutam(ANA, .03);
+  [[-.022, .012, 1.08, .9], [.022, .008, 1.1, .82], [-.011, -.014, .9, 1.06], [.012, -.018, .86, 1], [0, .02, 1.16, .74]].forEach(([x, dy, kz, boy]) =>
+    tutam(ANA.map((q, i) => { const t = i / (ANA.length - 1); return [x * t * (2 - t), q[1] * boy + dy * t, q[2] * kz]; }), .017, 10, 5));
+  const g = new T.BufferGeometry();
+  g.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
+  g.setAttribute('color', new T.Float32BufferAttribute(col, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  const mt = new T.MeshStandardMaterial({ vertexColors: true, side: T.DoubleSide }), o = new T.Mesh(g, mt), ic = new T.Group(), dis = new T.Group();
+  malzeme(o, '');
+  mt.emissive.setRGB(.1, .012, .012);
+  ic.add(o);
+  dis.add(ic);
+  dis.userData.ic = ic;
+  return dis;
+}
+
 // ---- Alp: kılıç sağ yumrukta, kalkan sol ön kolda
-function takAlp({ O, root, bone, wp, ileri, sol, yuk, gq, h0, sk }) {
+function takAlp({ O, root, bone, wp, ileri, sol, yuk, gq, h0, sk, sapka }) {
   // kılıç: model dik, ağız +Y. Yumruğun içindeki delik dinlenme duruşunda öne bakar (başparmak önde): kabza deliğin
   // ekseni boyunca, kabzanın ortası yumruğun ortasında; ağız başparmak tarafından (öne) çıkar, keskin kenar aşağıda.
   // Kılıç el kemiğine bağlıdır: kol nasıl dönerse yumrukla birlikte döner.
@@ -296,6 +344,13 @@ function takAlp({ O, root, bone, wp, ileri, sol, yuk, gq, h0, sk }) {
     const merkez = a.clone().lerp(b, .82).addScaledVector(n, h0 * KALKAN_ON);
     tak(kap(O.kalkan, bt.getCenter(new T.Vector3()), cap, sk), bone('LeftForeArm'), merkez, n, h0 * .3, new T.Vector3(0, 0, 1));
     bone('LeftHand').scale.setScalar(.7);
+  }
+  // sorguç: miğferin sivri ucuna (dinlenme duruşunda modelin en üst noktası). Şapka takılıysa konmaz (şapka aynı yere oturur)
+  if (!sapka) {
+    const ust = new T.Box3().setFromObject(root).max.y, uc = tepeOrta(root, ust - h0 * .012) || new T.Vector3(wp('Head').x, ust, wp('Head').z),
+      s = sorguc(sk);
+    tak(s, bone('Head'), uc.addScaledVector(yuk, h0 * SORGUC.yuk), yuk, h0, undefined, 0, sol);
+    bone('RightHand').userData.sorguc = s.userData.ic;
   }
 }
 
@@ -401,7 +456,7 @@ export function glbHero(H, key) {
       ileri = new T.Vector3(0, 0, 1).applyQuaternion(gq),
       sol = new T.Vector3(1, 0, 0).applyQuaternion(gq),
       yuk = new T.Vector3(0, 1, 0);
-    const ctx = { O, root, bone, wp, ileri, sol, yuk, gq, h0, sk };
+    const ctx = { O, root, bone, wp, ileri, sol, yuk, gq, h0, sk, sapka: !!hedef.hat };
     if (key == 'alp') takAlp(ctx);
     else if (key == 'kam') takKam(ctx);
     // şapka: eski gövdenin baş kemiğinden yenisinin başına, miğferin tepesine
@@ -427,6 +482,7 @@ export function glbHero(H, key) {
     G = { H: hedef, root, mixer, A, h0, w: { idle: 1 }, wu: 0, slT: 0, ust: null, ay, sal: ay.sal || KAHRAMAN.alp.sal, ayak: ay.ayak || AYAK, kosUst: ay.kosUst || KOS_UST };
     // asa taşıyan kahraman: sağ kol her karede asaya göre bükülür (asaTut)
     { const el = bone('RightHand'); if (el && el.userData.asa) /** @type {any} */ (G).asa = el.userData.asa; }
+    { const el = bone('RightHand'); if (el && el.userData.sorguc) /** @type {any} */ (G).sorguc = el.userData.sorguc; }
     // denetim araçları için (tools/meshy-el.mjs): duruşu dondurup tek klip anı göstermek. Yayın derlemesinde pencereye açılmaz
     if (__KOPRU__) /** @type {any} */ (window).__glb = G;
     /** @type {any} */ (G).tick = glbTick;
@@ -478,6 +534,13 @@ export function glbTick(dt) {
     vm = pl ? Math.hypot(P.vx || 0, P.vz || 0) : 0,
     A = G.A,
     h0 = G.h0;
+  // sorguç: koşuda ve düşerken rüzgârla kalkar, yükselirken yatışır; dururken hafifçe salınır
+  if (/** @type {any} */ (G).sorguc) {
+    const sg = /** @type {any} */ (G).sorguc, T0 = $G.T || 0, vy = pl && P.air ? P.vy || 0 : 0,
+      aci = Math.min(.5, vm * .045) + Math.max(-.15, Math.min(.4, -vy * .025)) + Math.sin(T0 * 2.1) * .04 + Math.sin(T0 * 7.3) * .02 * Math.min(1, vm / 6);
+    sg.rotation.x += (aci - sg.rotation.x) * Math.min(1, dt * 7);
+    sg.rotation.z = Math.sin(T0 * 1.6) * .05;
+  }
   // ana durum ve hedef ağırlıklar
   const st = pl && P.dsh > 0 ? 'dash' : pl && P.sl ? 'slide' : pl && P.air ? (P.flip > 0 ? 'flip' : 'jump') : vm > 1.2 ? 'move' : pl ? 'combat' : 'idle';
   const kos = sm(3.5, 7.5, vm),
