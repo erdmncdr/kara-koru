@@ -15,7 +15,7 @@ import { PUD, SHC } from '../data/content.js';
 import { spawn } from './enemies.js';
 import { chestBeam } from '../engine/gfx.js';
 import { BM, BMc, VMAT, envG, gCn, gSp, glow, mk, sc } from '../engine/renderer.js';
-import { gCoin, gPU, gXp, mGem, mGold, mHeal } from '../engine/vfx.js';
+import { gCoin, gXp, mGem, mGold, mHeal } from '../engine/vfx.js';
 import { mkDrums, mkGraves } from './features.js';
 import { calc } from './stats.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -347,36 +347,122 @@ export function brkBuild() {
   }
 }
 
-// lahmacun (Lahmacun eşyasının bıraktığı yiyecek): ince hamur, kızarmış kenar, kıymalı üst, maydanoz ve domates, limon dilimi.
-// Eğik durur: kendi çevresinde dönerken yüzü kameraya görünür. Parçaların yeri sabit (her lahmacun aynı), tek ağ.
-let gLah = null, mLah = null;
-function lahmacun() {
-  if (gLah) return gLah;
-  const P = [],
-    ek = (g, hex) => {
-      const c = new THREE.Color(hex), n = g.attributes.position.count, a = new Float32Array(n * 3);
-      for (let i = 0; i < n; i++) a[i * 3] = c.r, a[i * 3 + 1] = c.g, a[i * 3 + 2] = c.b;
-      g.setAttribute('color', new THREE.BufferAttribute(a, 3));
-      P.push(g);
-    };
-  ek(new THREE.CylinderGeometry(.82, .78, .07, 22), 0xedca8e);
-  ek(new THREE.TorusGeometry(.8, .06, 6, 22).rotateX(Math.PI / 2), 0xc98f4a);
-  ek(new THREE.CylinderGeometry(.69, .69, .03, 20).translate(0, .045, 0), 0xb8432a);
-  for (let i = 0; i < 9; i++) {
-    const a = i * 2.4, r = .16 + i % 3 * .2;
-    ek(new THREE.BoxGeometry(.15, .035, .1).rotateY(a * 1.7).translate(Math.cos(a) * r, .07, Math.sin(a) * r), i % 3 == 2 ? 0xf06a3a : 0x55a83c);
+// ---- yerdeki güçlerin ağları. Her gücün kendi şekli var; tek ağ, köşe renkli, ilk istendiğinde kurulur.
+// Güçler ışıksız çizilir (gece ve gölgede de okunsun); biçim, köşe rengine işlenen sabit bir üst ışıkla verilir (golgele).
+const GUC = {}, GISIK = new THREE.Vector3(.3, .85, .43).normalize();
+let mGuc = null, mLah = null;
+// parçayı boyar: hex gövde rengi; hexYuz verilirse ±z'ye bakan yüzler o renkte (yassı parçaların ön ve arka yüzü)
+function boya(g, hex, hexYuz) {
+  if (g.index) g = g.toNonIndexed();
+  const c = new THREE.Color(hex), c2 = hexYuz == null ? c : new THREE.Color(hexYuz),
+    nr = g.attributes.normal, n = g.attributes.position.count, a = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    const k = Math.abs(nr.getZ(i)) > .9 ? c2 : c;
+    a[i * 3] = k.r, a[i * 3 + 1] = k.g, a[i * 3 + 2] = k.b;
   }
-  ek(new THREE.CylinderGeometry(.24, .24, .1, 8, 1, false, 0, Math.PI).rotateY(.6).translate(.4, .1, .22), 0xf6dc4e);
-  gLah = mergeGeometries(P, false).rotateX(.8);
-  mLah = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .8, emissive: 0x2a1408 });
-  return gLah;
+  g.setAttribute('color', new THREE.BufferAttribute(a, 3));
+  return g;
+}
+function golgele(g) {
+  const nr = g.attributes.normal, c = g.attributes.color, v = new THREE.Vector3();
+  for (let i = 0; i < c.count; i++) {
+    const k = .6 + .4 * (.5 + .5 * v.fromBufferAttribute(nr, i).dot(GISIK));
+    c.setXYZ(i, c.getX(i) * k, c.getY(i) * k, c.getZ(i) * k);
+  }
+  return g;
+}
+const sil = (r, h, n = 16) => new THREE.CylinderGeometry(r, r, h, n),
+  koni = (r, h, n = 12) => new THREE.ConeGeometry(r, h, n),
+  kure = r => new THREE.SphereGeometry(r, 12, 8),
+  kutu = (x, y, z) => new THREE.BoxGeometry(x, y, z);
+const GUCAG = {
+  // Mor Yıldırım: kırık çizgili şimşek, yassı; yüzleri açık, kenarları koyu mor
+  bolt(ek) {
+    const s = new THREE.Shape();
+    [[-.05, 1], [.45, 1], [.05, .2], [.45, .2], [-.25, -1], [-.02, -.05], [-.45, -.05]].forEach(([x, y], i) => i ? s.lineTo(x * .78, y * .78) : s.moveTo(x * .78, y * .78));
+    ek(new THREE.ExtrudeGeometry(s, { depth: .24, bevelEnabled: false }).translate(0, 0, -.12), 0x8a4fe0, 0xc9a2ff);
+  },
+  // Altın: üst üste üç altın, tepede dik duran damgalı bir altın
+  gold(ek) {
+    [[0, -.6, 0, 0xf0b840], [.1, -.46, .06, 0xffd36a], [-.07, -.32, -.05, 0xf0b840]].forEach(([x, y, z, c]) => ek(sil(.46, .13, 18).translate(x, y, z), c));
+    ek(sil(.5, .12, 20).rotateX(Math.PI / 2).translate(.02, .25, 0), 0xd9a13a);
+    ek(sil(.4, .17, 20).rotateX(Math.PI / 2).translate(.02, .25, 0), 0xffd36a);
+    ek(kutu(.26, .26, .21).rotateZ(Math.PI / 4).translate(.02, .25, 0), 0xc98a2a);
+  },
+  // Kalkan: kubbeli yuvarlak kalkan; koyu kasnak, tunç kuşak ve perçinler, kızıl orta, çelik göbek ve sivri uç; eğik durur
+  shield(ek) {
+    const P = [], e = (g, c) => P.push(boya(g, c));
+    e(sil(.8, .08, 22), 0x6e4322);
+    e(kure(.75).scale(1, .34, 1).translate(0, -.03, 0), 0x5a3a22); // arka yüz: koyu deri
+    e(kure(.74).scale(1, .32, 1).translate(0, .02, 0), 0xd9a441);
+    e(kure(.5).scale(1, .45, 1).translate(0, .1, 0), 0x9c2f26);
+    for (let i = 0; i < 8; i++) e(kure(.055).translate(Math.cos(i * Math.PI / 4) * .6, .16, Math.sin(i * Math.PI / 4) * .6), 0xf2ecdc);
+    e(kure(.2).scale(1, .6, 1).translate(0, .33, 0), 0xf2ecdc);
+    e(koni(.09, .26, 8).translate(0, .55, 0), 0xf2ecdc);
+    for (const g of P) ek(g.rotateX(1.05));
+  },
+  // Saat: kum saati; üstte cam, altta birikmiş kum, ahşap tablalar ve üç direk
+  clock(ek) {
+    for (const y of [-.7, .7]) ek(sil(.5, .1, 16).translate(0, y, 0), 0xa8743a);
+    ek(koni(.4, .66, 14).translate(0, -.32, 0), 0xf0cf7a);
+    ek(koni(.4, .66, 14).rotateX(Math.PI).translate(0, .32, 0), 0x9fd8ff);
+    ek(sil(.07, .08, 8), 0xa8743a);
+    for (let i = 0; i < 3; i++) ek(sil(.045, 1.4, 6).translate(Math.cos(i * 2.0944) * .45, 0, Math.sin(i * 2.0944) * .45), 0x7a4f26);
+  },
+  // Mıknatıs: at nalı; kırmızı gövde, gümüş uçlar yukarıda
+  mag(ek) {
+    const R = .4, K = .26, Y = -.14;
+    for (let i = 0; i < 7; i++) {
+      const a = Math.PI + (i + .5) * Math.PI / 7;
+      ek(kutu(.27, K, K).rotateZ(a + Math.PI / 2).translate(Math.cos(a) * R, Y + Math.sin(a) * R, 0), 0xd63c34);
+    }
+    for (const x of [-R, R]) {
+      ek(kutu(K, .5, K).translate(x, Y + .25, 0), 0xd63c34);
+      ek(kutu(K, .3, K).translate(x, Y + .65, 0), 0xeef0f4);
+    }
+  },
+  // Tengri Ateşi: ortada açık renkli uzun alev, çevresinde dışa yatan üç turuncu dil
+  nuke(ek) {
+    const dil = (r, boy, egim, yon, ro, y, c) => {
+      const yer = g => ek(g.rotateZ(-egim).rotateY(yon).translate(Math.cos(yon) * ro, y, -Math.sin(yon) * ro), c);
+      yer(kure(r).scale(1, .9, 1));
+      yer(koni(r * .93, r * boy, 12).translate(0, r * (.33 + boy / 2), 0));
+    };
+    dil(.34, 2.9, 0, 0, 0, -.36, 0xffd84a);
+    [0xff8a2a, 0xf2562a, 0xff7028].forEach((c, i) => dil(.25, 2.4, .38, .5 + i * 2.0944, .27, -.44, c));
+  },
+  // Lahmacun (Lahmacun eşyasının bıraktığı yiyecek): ince hamur, kızarmış kenar, kıymalı üst, maydanoz ve domates, limon dilimi.
+  // Eğik durur: kendi çevresinde dönerken yüzü kameraya görünür. Güç değil yiyecek: ışıklı malzemeyle çizilir (mLah).
+  heal(ek) {
+    const P = [], e = (g, c) => P.push(boya(g, c));
+    e(new THREE.CylinderGeometry(.82, .78, .07, 22), 0xedca8e);
+    e(new THREE.TorusGeometry(.8, .06, 6, 22).rotateX(Math.PI / 2), 0xc98f4a);
+    e(sil(.69, .03, 20).translate(0, .045, 0), 0xb8432a);
+    for (let i = 0; i < 9; i++) {
+      const a = i * 2.4, r = .16 + i % 3 * .2;
+      e(kutu(.15, .035, .1).rotateY(a * 1.7).translate(Math.cos(a) * r, .07, Math.sin(a) * r), i % 3 == 2 ? 0xf06a3a : 0x55a83c);
+    }
+    e(new THREE.CylinderGeometry(.24, .24, .1, 8, 1, false, 0, Math.PI).rotateY(.6).translate(.4, .1, .22), 0xf6dc4e);
+    for (const g of P) ek(g.rotateX(.8));
+  }
+};
+function gucAgi(t) {
+  if (GUC[t]) return GUC[t];
+  const P = [];
+  GUCAG[t]((g, hex, hexYuz) => P.push(hex == null ? g : boya(g, hex, hexYuz)));
+  const g = mergeGeometries(P, false);
+  if (!mGuc) {
+    mGuc = new THREE.MeshBasicMaterial({ vertexColors: true });
+    mLah = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .8, emissive: 0x2a1408 });
+  }
+  return GUC[t] = t == 'heal' ? g : golgele(g);
 }
 
 export function mkPU(x, z, t, fy) {
   const yemek = t == 'heal',
-    m = yemek ? mk(lahmacun(), mLah, x, fy + 1.2, z) : mk(gPU, BMc(PUD[t].c), x, fy + 1.2, z);
-  // yiyecekte ışıma zayıf ve sıcak: ağın kendisi okunsun
-  if (yemek) glow(0xffb070, 2.6, m, .3);else glow(PUD[t].c, 3, m, .6);
+    m = mk(gucAgi(t), yemek ? mLah : mGuc, x, fy + 1.2, z);
+  // ışıma zayıf: ağın kendisi okunsun (yiyecekte sıcak renk)
+  glow(yemek ? 0xffb070 : PUD[t].c, yemek ? 2.6 : 3, m, .3);
   $G.PU.push({
     m,
     t,

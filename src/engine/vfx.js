@@ -9,7 +9,7 @@ import { rn } from '../core/util.js';
 import { BM, FLMS, cam, glow, mk, sc } from './renderer.js';
 import { TELM } from '../game/creatures.js';
 
-export let VFX, shad, gBl, mBolt, mEB, gEB, gXp, gCoin, gHeart, mGem, mGold, mSilv, mHeal, mFire, mZap, mIce, gRing, gCirc, gPU, gIce, FLM, DN, tv;
+export let VFX, shad, gBl, mBolt, mEB, gEB, gXp, gCoin, gHeart, mGem, mGold, mSilv, mHeal, mFire, mZap, mIce, gRing, gCirc, gIce, FLM, DN, tv;
 
 export function __init_51() {
   // ---- efekt sistemi: kameraya bakan yumuşak parçacıklar, kıvılcım izleri, sekip duran kırıntılar, ışık sütunları
@@ -965,7 +965,6 @@ export function __init_52() {
   mIce = BM(0xbff2ff);
   gRing = new THREE.RingGeometry(.92, 1, 48);
   gCirc = new THREE.CircleGeometry(1, 16);
-  gPU = new THREE.IcosahedronGeometry(.7, 0);
   gIce = new THREE.OctahedronGeometry(.4);
   FLM = BM(0xffffff);
   DN = [];
