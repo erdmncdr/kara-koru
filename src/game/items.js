@@ -178,7 +178,7 @@ export const IH = {
   },
   pelerin: { hurt(c, n) { const S = IS(); S.ccN = Math.min(2, (S.bT > 0 ? S.ccN || 0 : 0) + 1); burst(3, 1 + .3 * S.ccN, 1); } },
   ayna: { hurt(c, n) { const S = IS(); if ((S.aynaT || 0) > 0) return; S.aynaT = Math.max(4, 8 - (n - 1)); aoe(P().x, P().z, 5, c.d * (1 + .25 * n), { src: 'item' }); ringFx(P().x, P().y - .5, P().z, 0xcfe0ff, 5, 20); }, tick(c) { const S = IS(); if (S.aynaT > 0) S.aynaT -= c.dt; } },
-  altinkalkan: { hurt(c, n) { const g = (6 + Math.min(20, $G.P.lv * .2)) * n; $G.P.gold += g; $G.P.goldT += g; } },
+  altinkalkan: { hurt(c, n) { const g = Math.round((6 + Math.min(20, $G.P.lv * .2)) * n); $G.P.gold += g; $G.P.goldT += g; } },
   gazmaske: {
     calc(L, n, c1) { let k = 0; for (const e of $G.E) if (!e.dead && hasStatus(e, 'poi')) k++; addStats(L, { arm: Math.min(.4, .005 * k * n), overheal: Math.min(.25, .005 * k * n) }); },
     tick(c) { if (every('gazT', 1, c.dt)) calc(); }

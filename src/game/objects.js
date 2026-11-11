@@ -18,6 +18,7 @@ import { BM, BMc, VMAT, envG, gCn, gSp, glow, mk, sc } from '../engine/renderer.
 import { gCoin, gPU, gXp, mGem, mGold, mHeal } from '../engine/vfx.js';
 import { mkDrums, mkGraves } from './features.js';
 import { calc } from './stats.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { buildWorld, gPot } from '../world/ambient.js';
 import { MAPM } from '../world/mapm.js';
 import { mkCauldron, mkGate, mkMerchant } from '../world/props.js';
@@ -346,9 +347,36 @@ export function brkBuild() {
   }
 }
 
+// lahmacun (Lahmacun eşyasının bıraktığı yiyecek): ince hamur, kızarmış kenar, kıymalı üst, maydanoz ve domates, limon dilimi.
+// Eğik durur: kendi çevresinde dönerken yüzü kameraya görünür. Parçaların yeri sabit (her lahmacun aynı), tek ağ.
+let gLah = null, mLah = null;
+function lahmacun() {
+  if (gLah) return gLah;
+  const P = [],
+    ek = (g, hex) => {
+      const c = new THREE.Color(hex), n = g.attributes.position.count, a = new Float32Array(n * 3);
+      for (let i = 0; i < n; i++) a[i * 3] = c.r, a[i * 3 + 1] = c.g, a[i * 3 + 2] = c.b;
+      g.setAttribute('color', new THREE.BufferAttribute(a, 3));
+      P.push(g);
+    };
+  ek(new THREE.CylinderGeometry(.82, .78, .07, 22), 0xedca8e);
+  ek(new THREE.TorusGeometry(.8, .06, 6, 22).rotateX(Math.PI / 2), 0xc98f4a);
+  ek(new THREE.CylinderGeometry(.69, .69, .03, 20).translate(0, .045, 0), 0xb8432a);
+  for (let i = 0; i < 9; i++) {
+    const a = i * 2.4, r = .16 + i % 3 * .2;
+    ek(new THREE.BoxGeometry(.15, .035, .1).rotateY(a * 1.7).translate(Math.cos(a) * r, .07, Math.sin(a) * r), i % 3 == 2 ? 0xf06a3a : 0x55a83c);
+  }
+  ek(new THREE.CylinderGeometry(.24, .24, .1, 8, 1, false, 0, Math.PI).rotateY(.6).translate(.4, .1, .22), 0xf6dc4e);
+  gLah = mergeGeometries(P, false).rotateX(.8);
+  mLah = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .8, emissive: 0x2a1408 });
+  return gLah;
+}
+
 export function mkPU(x, z, t, fy) {
-  const m = mk(gPU, BMc(PUD[t].c), x, fy + 1.2, z);
-  glow(PUD[t].c, 3, m, .6);
+  const yemek = t == 'heal',
+    m = yemek ? mk(lahmacun(), mLah, x, fy + 1.2, z) : mk(gPU, BMc(PUD[t].c), x, fy + 1.2, z);
+  // yiyecekte ışıma zayıf ve sıcak: ağın kendisi okunsun
+  if (yemek) glow(0xffb070, 2.6, m, .3);else glow(PUD[t].c, 3, m, .6);
   $G.PU.push({
     m,
     t,
