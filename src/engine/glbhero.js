@@ -26,14 +26,16 @@ const KLIP = { yuru: U('alp_yuru'), hareket: U('alp_hareket'), hareket2: U('alp_
 // kahramana özel dosyalar: model, elindekiler (es), kendi klipleri (klip)
 const URLS = {
   alp: { model: U('alp'), es: { kilic: U('alp_kilic'), kalkan: U('alp_kalkan') } },
-  kam: { model: U('kam'), es: { asa: U('kam_asa') }, klip: U('kam_buyu') }
+  kam: { model: U('kam'), es: { asa: U('kam_asa') }, klip: U('kam_buyu') },
+  kemik: { model: U('kemik') }
 };
 // kahraman ayarı. sal: saldırı kliplerinin oyunun 0.42 sn'lik saldırı ilerlemesine eşlenen aralığı (sn).
 // ayak, kosUst: kahramanın kendi koşu klibi varsa onun ayak hızı ve hızlanma üst sınırı (yoksa ortak AYAK, KOS_UST).
 // basOlcu: boy eski gövdenin kutusuna göre değil baş eklemine göre eşlenir (eski gövdede baştan uzun asa ya da boynuz varsa).
 const KAHRAMAN = {
   alp: { sal: { atkR: [.12, .95], atkL: [.3, 1.2] }, ayak: { walk: .5, run: 3.7 } },
-  kam: { sal: { atkR: [.3, 1.3], atkL: [.75, 1.65] }, basOlcu: 1, ayak: { walk: .7, run: 1.65 }, kosUst: 1.65 }
+  kam: { sal: { atkR: [.3, 1.3], atkL: [.75, 1.65] }, basOlcu: 1, ayak: { walk: .7, run: 1.65 }, kosUst: 1.65 },
+  kemik: { ayak: { walk: .52, run: 3.7 } }
 };
 // kliplerin kendi ayak hızı (boy/sn): oyunda sabit hızla ilerletilen modelde yerdeki ayağın kaymasını en aza indiren
 // değer tarandı (tools/meshy-oyun.mjs ölçümü). Kalan ~%35, bileğin topuktan parmağa yuvarlanması
@@ -376,6 +378,24 @@ function takAlp({ O, root, bone, wp, ileri, sol, yuk, gq, h0, sk, sapka, gp }) {
 export const ASA = { boy: 1.15, tut: .47 };
 // denetim: test derlemesinde adresle denenir (?asayan=.34&asayuk=.6)
 
+// ---- Kemik: elinde bir şey yok (kemikleri fırlatır). Göğüs kafesinin içinde ve göz çukurlarında kor ışığı: toplamalı ışıma,
+// göğüs ve baş kemiklerine bağlı (dokudaki turuncu boya gölgede sönük kalıyor; ışık kaburgaların arasından görünür)
+function takKemik({ bone, wp, ileri, h0, sk }) {
+  const f = SKINF[sk], c = new T.Color(1, .5, .14);
+  if (f) { const r = f(c.r, c.g, c.b); c.setRGB(Math.min(1, r[0]), Math.min(1, r[1]), Math.min(1, r[2])); }
+  const isik = (kemik, yer, boy, op) => {
+    const o = new T.Sprite(new T.SpriteMaterial({ map: HALO, color: c, transparent: true, opacity: op, blending: T.AdditiveBlending, depthWrite: false, fog: true }));
+    kemik.updateWorldMatrix(true, false);
+    o.position.copy(kemik.worldToLocal(yer));
+    o.scale.setScalar(boy / kemik.getWorldScale(new T.Vector3()).x);
+    kemik.add(o);
+    return o;
+  };
+  const g = bone('Spine02'), bas = bone('Head');
+  if (g) isik(g, wp('Spine02').addScaledVector(ileri, h0 * .07), h0 * .42, .9);
+  if (bas) isik(bas, wp('Head').addScaledVector(ileri, h0 * .1).add(new T.Vector3(0, h0 * .05, 0)), h0 * .2, .85);
+}
+
 // ---- Kam: asa sağ yumrukta, yumruğun deliğinden geçer (delik dinlenme duruşunda öne bakar, başparmak önde: Alp'in kılıcı gibi).
 // Asa el kemiğine bağlıdır; beklerken ve yürürken eli asanın olması gereken yere asaTut götürür. Ucundaki kor taşına ışıma eklenir.
 function takKam({ O, root, bone, wp, ileri, h0, sk, gp }) {
@@ -472,6 +492,7 @@ export function glbHero(H, key) {
     const ctx = { O, root, bone, wp, ileri, sol, yuk, gq, h0, sk, sapka: !!hedef.hat, gp: hedef.g.getWorldPosition(new T.Vector3()) };
     if (key == 'alp') takAlp(ctx);
     else if (key == 'kam') takKam(ctx);
+    else if (key == 'kemik') takKemik(ctx);
     // şapka: eski gövdenin baş kemiğinden yenisinin başına, miğferin tepesine
     if (hedef.hat) {
       const taban = hedef.g.getWorldPosition(new T.Vector3()).y - gy0 + b0.min.y,
@@ -524,7 +545,7 @@ export function glbOnYukle() {
   return a;
 }
 // kayıttaki kahraman sırası (kk_ci) → anahtar; sıra kalıcıdır (game/heroes.js CR)
-const ACILIS = { 1: 'kam' };
+const ACILIS = { 1: 'kam', 8: 'kemik' };
 // dosyaları inmiş kahramanlar
 const hazir = {};
 function indir(k) {

@@ -19,7 +19,8 @@ async function oyun(opts) {
   await pg.goto(url, { waitUntil: 'domcontentloaded', timeout: 90000 });
   await pg.waitForFunction(() => typeof S !== 'undefined' && S === 'menu', null, { timeout: 90000 });
   await pg.addStyleTag({ content: '#tip{display:none!important}' });
-  await pg.evaluate(() => { start(); P.inv = 1e9 });
+  // kilitli kahraman: sınamada kilidi açıp seçer (yoksa oyun Alp'le açılır)
+  await pg.evaluate(ki => { const c = CR[ki]; if (c && c.lock && !META.l[c.lock]) { META.l[c.lock] = 1; selC(ki, 1, 1); } start(); P.inv = 1e9; }, +(process.env.KI || 0));
   await sleep(6000); await pg.evaluate(() => { if (S === 'ready') goReady() });
   await pg.waitForFunction(() => window.__glb && __glb.H === H, null, { timeout: 30000 }); await sleep(1500);
   return pg;
@@ -67,6 +68,7 @@ await pg.evaluate(() => { window.__yv = setInterval(() => { const m = Math.hypot
 sonuc.yuru = await olc(2, 3.2); await kare('9_yuru');
 if (process.env.OLC) { console.log(JSON.stringify(sonuc)); await br.close(); process.exit(0); }
 await pg.evaluate(() => { clearInterval(window.__yv); K.w = 0 });
+sonuc.kahraman = await pg.evaluate(() => CR[CI].k);
 sonuc.kareHizi = await pg.evaluate(async () => { await new Promise(r => setTimeout(r, 5200)); return PERF.lastFps && +PERF.lastFps.toFixed(1); });
 await pg.close();
 // telefon dikey
