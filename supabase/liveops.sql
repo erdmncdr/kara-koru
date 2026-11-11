@@ -419,7 +419,8 @@ begin
   select v_sezon, s.id, s.ad, s.k, s.c, s.s, s.t, s.lv, s.ch, s.at from public.kk_skor s where not s.gizli;
   get diagnostics v_n = row_count;
   update public.kk_sezon z set satir = v_n where z.id = v_sezon;
-  delete from public.kk_skor;
+  -- `where true` şart: Supabase API oturumlarında koşulsuz DELETE / UPDATE'i engeller (pg_safeupdate: "DELETE requires a WHERE clause")
+  delete from public.kk_skor where true;
   perform public.kk_y_not(v_kim, 'sezon_kapat', jsonb_build_object('sezon', v_sezon, 'ad', v_ad, 'satir', v_n));
   return v_n;
 end;

@@ -41,6 +41,14 @@ async function sor(kim, sql, par = []) {
 const kok_ = (sql, par) => sor(null, sql, par);
 const hataMi = (r, kod) => r && r.hata == kod;
 
+// ---- 0. koşulsuz DELETE / UPDATE olmamalı: Supabase API oturumlarında pg_safeupdate bunları reddeder ("DELETE requires a WHERE
+// clause"); PGlite'ta bu eklenti yok, o yüzden burada metinden denetlenir (11 Kasım 2026: sezon kapatma canlıda böyle takıldı)
+for (const f of ['siralama.sql', 'liveops.sql']) {
+  const kosulsuz = oku(f).replace(/--[^\n]*/g, '').split(';').map(x => x.replace(/\s+/g, ' ').toLowerCase())
+    .map(t => { const m = /\b(delete from|update) public\.\w+/.exec(t); return m && !/ where /.test(t.slice(m.index) + ' ') && !/on conflict/.test(t) ? t.slice(m.index, m.index + 70) : null; }).filter(Boolean);
+  tamam(f + ': koşulsuz DELETE / UPDATE yok', kosulsuz.length == 0, kosulsuz.join(' | '));
+}
+
 // ---- 1. dosyalar iki kez çalışır
 for (let i = 0; i < 2; i++) for (const f of ['siralama.sql', 'liveops.sql']) {
   try { await db.exec(oku(f)); } catch (e) { tamam(`${f} çalışır (${i + 1}. kez)`, false, e.message); process.exit(1); }
