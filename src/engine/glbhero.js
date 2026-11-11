@@ -1,6 +1,10 @@
 // engine/glbhero.js · Kara Koru
-// Meshy ile üretilmiş, iskeletli Alp. Varsayılan açık; adreste ?eski (ya da localStorage kk_meshy=0) kodla kurulmuş
-// eski gövdeyi geri getirir. Alp seçiliyken eski gövde gizlenir, aynı boya ölçeklenmiş GLB konur.
+// Meshy ile üretilmiş, iskeletli kahramanlar: Alp ve Kam. Varsayılan açık; adreste ?eski (ya da localStorage kk_meshy=0)
+// kodla kurulmuş eski gövdeyi geri getirir. Kahraman seçiliyken eski gövde gizlenir, aynı boya ölçeklenmiş GLB konur.
+// Meshy iskeletlerinde kemik adları ortak: yürüme, koşu, zıplama, kayma, atılma, takla ve darbe klipleri Alp'in dosyalarından
+// bütün kahramanlarda oynar (KLIP); kahramana özel olan yalnız model, elindekiler ve saldırı/duruş klipleri (KAHRAMAN).
+// Kam (11 Kasım 2026): 18.485 üçgen, 2K doku; sağ elde asa (duruşta dik), saldırıda asayı göğe kaldırma ve ileri itme,
+// beklerken ve yürürken asa göğüs hizasında tutulan duruş (üst gövde hep duruşta, bacaklar yürür).
 // Hareketler (Meshy kütüphanesi): menüde rahat bekleme, oyunda kılıç-kalkan savaş duruşu; hıza göre yürüme ile hızlı
 // koşu karışımı (ayak hızı ölçülerek eşlenir); zıplama (dikey hıza göre kare), çift zıplamada takla büzülmesi (oyun
 // gövdeyi kendisi döndürür), kayma (en alçak duruş), atılma (dönen hızlı adım); saldırı ve darbe yalnız üst gövdede.
@@ -10,11 +14,22 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as T from 'three';
 import { $G } from '../core/store.js';
 import { SKINF } from '../game/heroes.js';
-import { RIMU } from './renderer.js';
+import { HALO, RIMU } from './renderer.js';
 
 const U = n => new URL(`../assets/model/${n}.glb`, import.meta.url).href;
+// ortak klip dosyaları (bütün kahramanlar)
+const KLIP = { yuru: U('alp_yuru'), hareket: U('alp_hareket'), hareket2: U('alp_hareket2') };
+// kahramana özel dosyalar: model, elindekiler (es), kendi klipleri (klip)
 const URLS = {
-  alp: { model: U('alp'), yuru: U('alp_yuru'), hareket: U('alp_hareket'), hareket2: U('alp_hareket2'), kilic: U('alp_kilic'), kalkan: U('alp_kalkan') }
+  alp: { model: U('alp'), es: { kilic: U('alp_kilic'), kalkan: U('alp_kalkan') } },
+  kam: { model: U('kam'), es: { asa: U('kam_asa') }, klip: U('kam_buyu') }
+};
+// kahraman ayarı. sal: saldırı kliplerinin oyunun 0.42 sn'lik saldırı ilerlemesine eşlenen aralığı (sn).
+// ustSabit: yürürken ve koşarken üst gövde yürüyüş klibi yerine duruşta kalır (elde dik tutulan asa sallanmasın).
+// basOlcu: boy eski gövdenin kutusuna göre değil baş eklemine göre eşlenir (eski gövdede baştan uzun asa ya da boynuz varsa).
+const KAHRAMAN = {
+  alp: { sal: { atkR: [.12, .95], atkL: [.3, 1.2] }, onYukle: 1 },
+  kam: { sal: { atkR: [.3, 1.3], atkL: [.75, 1.65] }, ustSabit: 1, basOlcu: 1, pingpong: ['idle', 'combat'] }
 };
 // kliplerin kendi ayak hızı (boy/sn): oyunda sabit hızla ilerletilen modelde yerdeki ayağın kaymasını en aza indiren
 // değer tarandı (tools/meshy-oyun.mjs ölçümü). Kalan ~%35, bileğin topuktan parmağa yuvarlanması
@@ -53,26 +68,55 @@ function modelBuf(k) {
   }
   return buf[k];
 }
-// klipler ve silahlar bir kez yüklenir; model her kahraman kurulumunda yeniden ayrıştırılır (sahne nesnesi paylaşılamaz)
+// ortak klipler bir kez yüklenir ve kök hareketi bir kez silinir
+let klipP = null;
+function ortakKlip() {
+  if (!klipP) {
+    klipP = Promise.all([KLIP.yuru, KLIP.hareket, KLIP.hareket2].map(x => LD.loadAsync(x))).then(([w, h, h2]) => {
+      const by = (g, n) => g.animations.find(a => a.name == n);
+      return kok({
+        walk: w.animations[0], idle: by(h, 'Idle'), atkR: by(h, 'Right_Hand_Sword_Slash'), atkL: by(h, 'Left_Slash'),
+        jump: by(h, 'Regular_Jump'), slide: by(h, 'slide_light'), hit: by(h, 'Hit_Reaction'),
+        combat: by(h2, 'Combat_Stance'), run: by(h2, 'RunFast'), flip: by(h2, 'Backflip_Jump'), dash: by(h2, 'Quick_Step_and_Spin_Dodge')
+      });
+    }).catch(e => {
+      klipP = null;
+      throw e;
+    });
+  }
+  return klipP;
+}
+// kahramanın klip kümesi ve elindekiler bir kez yüklenir; model her kurulumda yeniden ayrıştırılır (sahne nesnesi paylaşılamaz)
 function ortak(k) {
   if (!cache[k]) {
-    const u = URLS[k];
-    cache[k] = Promise.all([u.yuru, u.hareket, u.hareket2, u.kilic, u.kalkan].map(x => LD.loadAsync(x))).then(([w, h, h2, kl, kn]) => {
-      const by = (g, n) => g.animations.find(a => a.name == n);
-      return {
-        C: kok({
-          walk: w.animations[0], idle: by(h, 'Idle'), slashR: by(h, 'Right_Hand_Sword_Slash'), slashL: by(h, 'Left_Slash'),
-          jump: by(h, 'Regular_Jump'), slide: by(h, 'slide_light'), hit: by(h, 'Hit_Reaction'),
-          combat: by(h2, 'Combat_Stance'), run: by(h2, 'RunFast'), flip: by(h2, 'Backflip_Jump'), dash: by(h2, 'Quick_Step_and_Spin_Dodge')
-        }),
-        kilic: kl.scene, kalkan: kn.scene
-      };
+    const u = URLS[k], es = Object.entries(u.es || {});
+    cache[k] = Promise.all([ortakKlip(), u.klip ? LD.loadAsync(u.klip) : null, ...es.map(([, x]) => LD.loadAsync(x))]).then(([C0, kg, ...E]) => {
+      let C = C0;
+      if (k == 'kam') {
+        const by = n => kg.animations.find(a => a.name == n), durus = by('Durus');
+        // duruşta sağ kol tek karede dondurulur: klipte bilek sürekli döner (asa 0-56° yalpalıyordu); gövde, baş ve sol el oynamaya devam eder
+        sabitle(durus, /^Right(Shoulder|Arm|ForeArm|Hand)\./, ASA.an);
+        C = { ...C0, ...kok({ atkR: by('Asa_Kaldir'), atkL: by('Asa_It'), idle: durus }), combat: durus };
+      }
+      const O = { C };
+      es.forEach(([ad], i) => (O[ad] = E[i].scene));
+      return O;
     }).catch(e => {
       delete cache[k];
       throw e;
     });
   }
   return cache[k];
+}
+
+// klibin adı desene uyan izlerini verilen andaki değerinde dondurur
+function sabitle(c, desen, an) {
+  for (const tr of c.tracks) {
+    if (!desen.test(tr.name)) continue;
+    const v = Array.from(tr.createInterpolant().evaluate(an));
+    tr.times = new Float32Array([0, c.duration]);
+    tr.values = new Float32Array([...v, ...v]);
+  }
 }
 
 // kök hareketini sil: oyun karakterin yerini kendisi taşır. Kalçanın x/z kayması hep, y'si zıplama ve taklada silinir
@@ -235,6 +279,77 @@ function tepeOrta(root, y) {
   return n ? t.divideScalar(n) : null;
 }
 
+// ---- Alp: kılıç sağ yumrukta, kalkan sol ön kolda
+function takAlp({ O, root, bone, wp, ileri, sol, yuk, gq, h0, sk }) {
+  // kılıç: model dik, ağız +Y. Yumruğun içindeki delik dinlenme duruşunda öne bakar (başparmak önde): kabza deliğin
+  // ekseni boyunca, kabzanın ortası yumruğun ortasında; ağız başparmak tarafından (öne) çıkar, keskin kenar aşağıda.
+  // Kılıç el kemiğine bağlıdır: kol nasıl dönerse yumrukla birlikte döner.
+  {
+    const bt = kutu(O.kilic), hk = bt.max.y - bt.min.y,
+      kb = kutu(O.kilic, v => v.y > bt.min.y + hk * .06 && v.y < bt.min.y + hk * .18),
+      pv = kb.getCenter(new T.Vector3()),
+      orta = yumruk(root, 'RightHand') || wp('RightHand'),
+      disa = sol.clone().negate(),
+      yon = ileri.clone().applyAxisAngle(disa, -KILIC.egim);
+    orta.addScaledVector(ileri, h0 * KILIC.ileri).addScaledVector(yuk, h0 * KILIC.yukari).addScaledVector(disa, h0 * KILIC.disa);
+    tak(kap(O.kilic, pv, hk, sk), bone('RightHand'), orta, yon, h0 * KILIC.boy, undefined, 0, yuk.clone().multiplyScalar(KILIC.kenar));
+  }
+  // kalkan: model yüzü +Z. Kayışla ön kolun dış yüzüne (elin sırtına) bağlanır: A duruşunda avuç aşağı bakar, el
+  // sırtı yukarı; kalkanın yüzü o yöne, ön kola dik. Kol hangi duruşta dönerse kalkan elin sırtıyla birlikte döner.
+  // Merkezi bileğin biraz gerisinde, kolun dışına itilmiş; eldiven arkada kalsın diye sol el biraz küçültülür
+  {
+    const bt = kutu(O.kalkan), cap = Math.max(bt.max.x - bt.min.x, bt.max.y - bt.min.y),
+      a = wp('LeftForeArm'), b = wp('LeftHand'), eks = b.clone().sub(a).normalize(),
+      n = new T.Vector3(0, 1, 0).applyQuaternion(gq).multiplyScalar(KALKAN_YON).addScaledVector(ileri, .25);
+    n.addScaledVector(eks, -n.dot(eks)).normalize();
+    const merkez = a.clone().lerp(b, .82).addScaledVector(n, h0 * KALKAN_ON);
+    tak(kap(O.kalkan, bt.getCenter(new T.Vector3()), cap, sk), bone('LeftForeArm'), merkez, n, h0 * .3, new T.Vector3(0, 0, 1));
+    bone('LeftHand').scale.setScalar(.7);
+  }
+}
+
+// asa ayarı (denetim aracından değiştirilebilir): boyu (kahraman boyunun oranı), tutma noktası (asanın altından oranı),
+// duruş klibinde asanın dik durduğu an (sn)
+export const ASA = { boy: 1.15, tut: .5, an: 2.5 };
+// denetim: test derlemesinde adresle denenir (?asaan=4&asaboy=1.1)
+if (__KOPRU__) {
+  const q = new URLSearchParams(location.search);
+  for (const k of ['an', 'boy', 'tut']) if (q.get('asa' + k)) ASA[k] = +q.get('asa' + k);
+}
+
+// ---- Kam: asa sağ yumrukta. Asanın yönü dinlenme duruşundan değil DURUŞ klibinden alınır: Kam beklerken ve yürürken asayı
+// göğüs hizasında tutar; o anda asa tam dik dursun diye iskelet bir an için duruşa getirilir, el kemiğinin o andaki dönüşüne göre
+// "yukarı" yönü elin kendi uzayına çevrilir ve asa o yönle takılır. Sonra el nasıl dönerse asa onunla döner.
+// Ucundaki kor taşına ışıma eklenir (oyunun ateşi zaten oyuncunun konumundan çıkar).
+function takKam({ O, root, bone, wp, yuk, h0, sk }) {
+  const el = bone('RightHand'), orta = yumruk(root, 'RightHand') || wp('RightHand');
+  // dinlenme duruşunda elin dönüşü ve yumruk ortasının elin uzayındaki yeri
+  el.updateWorldMatrix(true, false);
+  const q0 = el.getWorldQuaternion(new T.Quaternion());
+  // iskeleti duruşa getir, elin o andaki dönüşünü al, geri bırak
+  const mx = new T.AnimationMixer(root), a = mx.clipAction(O.C.combat);
+  a.play();
+  a.time = ASA.an;
+  mx.update(0);
+  root.updateMatrixWorld(true);
+  const qd = el.getWorldQuaternion(new T.Quaternion());
+  mx.stopAllAction();
+  mx.uncacheRoot(root);
+  root.updateMatrixWorld(true); // karıştırıcı durunca kemikler dinlenme duruşuna döner
+  // duruşta dünya yukarısı → elin uzayı → dinlenme duruşunda dünya yönü
+  const yon = yuk.clone().applyQuaternion(qd.clone().invert()).applyQuaternion(q0).normalize();
+  const bt = kutu(O.asa), hk = bt.max.y - bt.min.y,
+    kb = kutu(O.asa, v => v.y > bt.min.y + hk * (ASA.tut - .05) && v.y < bt.min.y + hk * (ASA.tut + .05)),
+    pv = kb.getCenter(new T.Vector3()),
+    nes = kap(O.asa, pv, hk, sk);
+  tak(nes, el, orta, yon, h0 * ASA.boy);
+  // kor taşı: asanın tepesinde toplamalı ışıma (asayla birlikte ölçeklenir)
+  const isik = new T.Sprite(new T.SpriteMaterial({ map: HALO, color: 0xff8a30, transparent: true, opacity: .8, blending: T.AdditiveBlending, depthWrite: false, fog: true }));
+  isik.position.set(0, (bt.max.y - hk * .09 - pv.y) / hk, 0);
+  isik.scale.setScalar(.34);
+  nes.add(isik);
+}
+
 // kılıç ayarı (denetim aracından değiştirilebilir): yumruk ortasından kayma (boy oranı; ileri, yukarı, dışa),
 // ağzın ileri yönden yukarı eğimi (radyan), keskin kenarın yönü (+1 aşağı)
 export const KILIC = { ileri: 0, yukari: 0, disa: 0, egim: 0, kenar: 1, boy: .62 };
@@ -252,11 +367,18 @@ export function glbHero(H, key) {
   if (!meshyOn() || !URLS[key] || !H) return;
   const hedef = H,
     sk = ($G.META && $G.META.skin && $G.META.skin['cur' + $G.CI]) || '';
-  // eski gövdenin boyu şimdi ölçülür, gövde hemen gizlenir: yüklenirken eski Alp görünüp sonra yenisine dönmesin
-  const b0 = new T.Box3().setFromObject(hedef.g), h0 = Math.max(1, b0.max.y - b0.min.y);
+  const ay = KAHRAMAN[key] || {};
+  // eski gövdenin boyu şimdi ölçülür. Dosyaları açılışta inen kahramanda (Alp) gövde hemen gizlenir: yüklenirken eski gövde
+  // görünüp sonra yenisine dönmesin. Diğerlerinde dosyalar seçilince iner; o sürede eski gövde görünür kalır.
+  hedef.g.updateMatrixWorld(true);
+  const b0 = new T.Box3().setFromObject(hedef.g);
+  let h0 = Math.max(1, b0.max.y - b0.min.y);
+  // baş ekleminin yerden yüksekliği (eski gövdede asa ya da boynuz kutuyu büyütüyorsa boy buna göre eşlenir)
+  const bas0 = hedef.b && hedef.b.hd ? hedef.b.hd.getWorldPosition(new T.Vector3()).y - b0.min.y : 0;
   // ölçüm anındaki gövde yüksekliği: model yüklenene kadar gövde yerine taşınmış olur, şapkanın yeri buna göre düzeltilir
   const gy0 = hedef.g.getWorldPosition(new T.Vector3()).y;
-  for (const c of hedef.g.children) c.visible = false;
+  const eskiler = hedef.g.children.slice(), gizle = () => { for (const c of eskiler) c.visible = false; };
+  if (ay.onYukle) gizle();
   // eski gövdenin gözleri ayrı çizilir (engine/eyes.js, eski kemikten): yeni yüzün önünde havada kalmasın
   const gozler = hedef.eyes;
   hedef.eyes = null;
@@ -264,9 +386,18 @@ export function glbHero(H, key) {
     if ($G.H !== hedef) return; // bu arada başka kahraman seçildi
     const C = O.C;
     const root = m.scene;
+    gizle();
     root.traverse(o => malzeme(o, sk));
     root.updateMatrixWorld(true);
-    const b1 = new T.Box3().setFromObject(root), h1 = Math.max(1e-4, b1.max.y - b1.min.y), s = h0 / h1;
+    const b1 = new T.Box3().setFromObject(root), h1 = Math.max(1e-4, b1.max.y - b1.min.y);
+    let s = h0 / h1;
+    if (ay.basOlcu && bas0 > 0) {
+      // baş eklemleri aynı yüksekliğe gelsin; h0 bundan sonra yeni gövdenin baş üstüne kadarki boyu (kılıç, asa ve ayak hızı ölçüsü)
+      const bk = root.getObjectByName('Head'), be = root.getObjectByName('head_end') || bk,
+        by1 = bk.getWorldPosition(new T.Vector3()).y - b1.min.y;
+      s = bas0 / Math.max(1e-4, by1);
+      h0 = (be.getWorldPosition(new T.Vector3()).y - b1.min.y) * s;
+    }
     root.scale.multiplyScalar(s);
     root.position.y -= b1.min.y * s;
     hedef.g.add(root);
@@ -277,35 +408,14 @@ export function glbHero(H, key) {
       ileri = new T.Vector3(0, 0, 1).applyQuaternion(gq),
       sol = new T.Vector3(1, 0, 0).applyQuaternion(gq),
       yuk = new T.Vector3(0, 1, 0);
-    // kılıç: model dik, ağız +Y. Yumruğun içindeki delik dinlenme duruşunda öne bakar (başparmak önde): kabza deliğin
-    // ekseni boyunca, kabzanın ortası yumruğun ortasında; ağız başparmak tarafından (öne) çıkar, keskin kenar aşağıda.
-    // Kılıç el kemiğine bağlıdır: kol nasıl dönerse yumrukla birlikte döner.
-    {
-      const bt = kutu(O.kilic), hk = bt.max.y - bt.min.y,
-        kb = kutu(O.kilic, v => v.y > bt.min.y + hk * .06 && v.y < bt.min.y + hk * .18),
-        pv = kb.getCenter(new T.Vector3()),
-        orta = yumruk(root, 'RightHand') || wp('RightHand'),
-        disa = sol.clone().negate(),
-        yon = ileri.clone().applyAxisAngle(disa, -KILIC.egim);
-      orta.addScaledVector(ileri, h0 * KILIC.ileri).addScaledVector(yuk, h0 * KILIC.yukari).addScaledVector(disa, h0 * KILIC.disa);
-      tak(kap(O.kilic, pv, hk, sk), bone('RightHand'), orta, yon, h0 * KILIC.boy, undefined, 0, yuk.clone().multiplyScalar(KILIC.kenar));
-    }
-    // kalkan: model yüzü +Z. Kayışla ön kolun dış yüzüne (elin sırtına) bağlanır: A duruşunda avuç aşağı bakar, el
-    // sırtı yukarı; kalkanın yüzü o yöne, ön kola dik. Kol hangi duruşta dönerse kalkan elin sırtıyla birlikte döner.
-    // Merkezi bileğin biraz gerisinde, kolun dışına itilmiş; eldiven arkada kalsın diye sol el biraz küçültülür
-    {
-      const bt = kutu(O.kalkan), cap = Math.max(bt.max.x - bt.min.x, bt.max.y - bt.min.y),
-        a = wp('LeftForeArm'), b = wp('LeftHand'), eks = b.clone().sub(a).normalize(),
-        n = new T.Vector3(0, 1, 0).applyQuaternion(gq).multiplyScalar(KALKAN_YON).addScaledVector(ileri, .25);
-      n.addScaledVector(eks, -n.dot(eks)).normalize();
-      const merkez = a.clone().lerp(b, .82).addScaledVector(n, h0 * KALKAN_ON);
-      tak(kap(O.kalkan, bt.getCenter(new T.Vector3()), cap, sk), bone('LeftForeArm'), merkez, n, h0 * .3, new T.Vector3(0, 0, 1));
-      bone('LeftHand').scale.setScalar(.7);
-    }
+    const ctx = { O, root, bone, wp, ileri, sol, yuk, gq, h0, sk };
+    if (key == 'alp') takAlp(ctx);
+    else if (key == 'kam') takKam(ctx);
     // şapka: eski gövdenin baş kemiğinden yenisinin başına, miğferin tepesine
     if (hedef.hat) {
       const taban = hedef.g.getWorldPosition(new T.Vector3()).y - gy0 + b0.min.y,
-        bas = tepeOrta(root, taban + h0 * .86) || wp('Head'), tepe = new T.Vector3(bas.x, taban + h0 * .93, bas.z);
+        ucK = ay.basOlcu && bone('head_end') ? wp('head_end') : null,
+        bas = ucK || tepeOrta(root, taban + h0 * .86) || wp('Head'), tepe = ucK || new T.Vector3(bas.x, taban + h0 * .93, bas.z);
       tak(hedef.hat, bone('Head'), tepe, yuk, hedef.hat.getWorldScale(new T.Vector3()).x);
       hedef.hat.visible = true;
     }
@@ -313,15 +423,19 @@ export function glbHero(H, key) {
       A = {};
     for (const k of ANA) {
       A[k] = mixer.clipAction(bol(C[k], false));
-      A[k + '_u'] = mixer.clipAction(bol(C[k], true));
+      // üst gövde: ustSabit kahramanda yürüyüş ve koşuda da duruş klibi (elde dik tutulan asa sallanmasın)
+      A[k + '_u'] = mixer.clipAction(bol(ay.ustSabit && (k == 'walk' || k == 'run') ? C.combat : C[k], true));
     }
-    for (const k of ['slashR', 'slashL', 'hit']) A[k] = mixer.clipAction(bol(C[k], true));
+    for (const k of ['atkR', 'atkL', 'hit']) A[k] = mixer.clipAction(bol(C[k], true));
+    // duruş klibi ileri geri oynar (baş ve son kare aynı değil; dikiş görünmesin)
+    for (const k of ay.pingpong || []) for (const n of [k, k + '_u']) A[n].setLoop(T.LoopPingPong, Infinity);
+    if (ay.ustSabit) for (const n of ['walk_u', 'run_u']) A[n].setLoop(T.LoopPingPong, Infinity);
     for (const a of Object.values(A)) a.play(), a.setEffectiveWeight(0);
-    for (const k of ['jump', 'flip', 'slide', 'dash', 'slashR', 'slashL', 'hit']) {
+    for (const k of ['jump', 'flip', 'slide', 'dash', 'atkR', 'atkL', 'hit']) {
       A[k].timeScale = 0;
       if (A[k + '_u']) A[k + '_u'].timeScale = 0;
     }
-    G = { H: hedef, root, mixer, A, h0, w: { idle: 1 }, wu: 0, slT: 0, ust: null };
+    G = { H: hedef, root, mixer, A, h0, w: { idle: 1 }, wu: 0, slT: 0, ust: null, ay, sal: ay.sal || KAHRAMAN.alp.sal };
     // denetim araçları için (tools/meshy-el.mjs): duruşu dondurup tek klip anı göstermek. Yayın derlemesinde pencereye açılmaz
     if (__KOPRU__) /** @type {any} */ (window).__glb = G;
     /** @type {any} */ (G).tick = glbTick;
@@ -329,7 +443,7 @@ export function glbHero(H, key) {
   }).catch(e => {
     // yüklenemezse eski gövde geri gelir
     console.warn('Meshy modeli yüklenemedi', e);
-    for (const c of hedef.g.children) c.visible = true;
+    for (const c of eskiler) c.visible = true;
     hedef.eyes = gozler;
   });
 }
@@ -338,13 +452,12 @@ export function glbHero(H, key) {
 // (ui/yukle.js); dönen dizi: [model dosyası, klipler ve silahlar]
 export function glbOnYukle() {
   if (!meshyOn()) return [];
+  // yalnız açılış kahramanı (Alp); diğerlerinin dosyaları seçilince iner (Kam ~3,4 MB: ilk açılışı ağırlaştırmasın)
   const a = [modelBuf('alp'), ortak('alp')];
   for (const p of a) p.catch(() => {});
   return a;
 }
 
-// saldırı klip aralıkları: oyunun saldırı ilerlemesi (0..1, 0.42 sn) savuruşun hazırlık, vuruş ve bitişine eşlenir
-const SAL = { slashR: [.12, .95], slashL: [.3, 1.2] };
 const ANA = ['idle', 'combat', 'walk', 'run', 'jump', 'flip', 'slide', 'dash'];
 const sm = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
@@ -366,8 +479,13 @@ export function glbTick(dt) {
     G.w[n] = w < .002 ? 0 : w;
   }
   // ayak hızı eşlemesi: klip, ayağı karakterin gerçek hızıyla geriye itecek hızda oynar
-  A.walk.timeScale = A.walk_u.timeScale = Math.min(2, Math.max(.5, vm / (AYAK.walk * h0)));
-  A.run.timeScale = A.run_u.timeScale = Math.min(KOS_UST, Math.max(.7, vm / (AYAK.run * h0)));
+  A.walk.timeScale = Math.min(2, Math.max(.5, vm / (AYAK.walk * h0)));
+  A.run.timeScale = Math.min(KOS_UST, Math.max(.7, vm / (AYAK.run * h0)));
+  if (G.ay.ustSabit) A.walk_u.time = A.run_u.time = A.combat_u.time; // üst gövde duruşla aynı karede: geçişte kol oynamasın
+  else {
+    A.walk_u.timeScale = A.walk.timeScale;
+    A.run_u.timeScale = A.run.timeScale;
+  }
   if (st == 'jump') {
     // yükselirken çömelmeden tepeye (0.45..0.8), düşerken tepeden inişe (0.8..1.15)
     const vy = P.vy || 0, t = vy > 0 ? .8 - Math.min(1, vy / 14) * .35 : .8 + Math.min(1, -vy / 14) * .35;
@@ -385,8 +503,8 @@ export function glbTick(dt) {
   const at = pl && P.at != null ? P.at : 1;
   let ust = null, ut = 0;
   if (at < 1) {
-    ust = (P.side | 0) ? 'slashL' : 'slashR';
-    const [a, b] = SAL[ust];
+    ust = (P.side | 0) ? 'atkL' : 'atkR';
+    const [a, b] = G.sal[ust];
     ut = a + (b - a) * at;
   } else if (pl && P.hit > 0) {
     ust = 'hit';
@@ -394,7 +512,7 @@ export function glbTick(dt) {
   }
   G.wu += ((ust ? 1 : 0) - G.wu) * Math.min(1, dt * (ust ? 30 : 8));
   if (ust) G.ust = ust;
-  for (const n of ['slashR', 'slashL', 'hit']) A[n].setEffectiveWeight(n == G.ust ? G.wu : 0);
+  for (const n of ['atkR', 'atkL', 'hit']) A[n].setEffectiveWeight(n == G.ust ? G.wu : 0);
   if (ust) A[ust].time = ut;
   for (const n of ANA) {
     A[n].setEffectiveWeight(G.w[n]);

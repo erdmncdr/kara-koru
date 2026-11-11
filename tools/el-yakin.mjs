@@ -15,7 +15,7 @@ await pg.addInitScript(() => {
 await pg.goto(url, { waitUntil: 'domcontentloaded', timeout: 90000 });
 await pg.waitForFunction(() => typeof S !== 'undefined' && S === 'menu', null, { timeout: 90000 });
 await pg.waitForFunction(() => window.__glb, null, { timeout: 60000 }); await sleep(1500);
-const DURUS = [['savas', 'combat', .6], ['bekle', 'idle', 1.2], ['kos', 'run', .15], ['sag_savurus', 'slashR', .55]];
+const DURUS = [['savas', 'combat', .6], ['bekle', 'idle', 1.2], ['kos', 'run', .15], ['sag_savurus', 'atkR', .55]];
 const resimler = await pg.evaluate(async ([DURUS, el, uzak]) => {
   const G = window.__glb, T = cam.constructor, V = cam.position.constructor;
   G.dondur = 1;
@@ -25,7 +25,7 @@ const resimler = await pg.evaluate(async ([DURUS, el, uzak]) => {
   const cv = document.querySelector('canvas'), W = cv.width, H2 = cv.height;
   for (const [ad, k, t] of DURUS) {
     for (const a of Object.values(G.A)) a.setEffectiveWeight(0);
-    const ust = ['slashR', 'slashL', 'hit'].includes(k);
+    const ust = ['atkR', 'atkL', 'hit'].includes(k);
     if (ust) { G.A.combat.setEffectiveWeight(1); G.A.combat.time = .6; }
     G.A[k].setEffectiveWeight(1); G.A[k].time = t; if (G.A[k + '_u']) { G.A[k + '_u'].setEffectiveWeight(1); G.A[k + '_u'].time = t; }
     G.mixer.update(0); H.g.updateMatrixWorld(true);
