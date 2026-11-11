@@ -7,7 +7,7 @@ const [url, out] = process.argv.slice(2);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const HERO = process.env.HERO || 'alp', GENIS = HERO != 'alp';
 const br = await chromium.launch({ executablePath: process.env.CHROME, headless: true, args: process.env.GPU ? ['--use-angle=metal', '--ignore-gpu-blocklist'] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
-const pg = await br.newPage({ viewport: { width: 1280, height: 720 } });
+const pg = await br.newPage({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: +process.env.OLCEK || 1 }); // OLCEK=2: yakın inceleme için iki kat çözünürlük
 const errs = []; pg.on('pageerror', e => errs.push(e.message));
 await pg.addInitScript(() => {
   Element.prototype.requestPointerLock = function () {};
@@ -33,8 +33,8 @@ for (const [ad, k, t] of ANLAR) for (const y of YON) {
     for (const a of Object.values(G.A)) a.paused = false;
     H.g.rotation.y = y; H.g.updateMatrixWorld(true);
     G.mixer.update(0);
-    // koşuda asayı dik tutan düzeltme (glbhero.js asaDik) dondurulmuş duruşta da uygulansın
-    if (G.asaDik) { G.w = { run: k == 'run' ? 1 : 0 }; G.wu = 0; G.asaDik(); }
+    // asayı tutan kol (glbhero.js asaTut) dondurulmuş duruşta da uygulansın
+    if (G.asaTut) { G.w = { [k]: 1 }; G.wu = tum ? 1 : 0; G.ust = tum ? k : null; G.asaTut(); }
   }, [k, t, y]);
   await sleep(450);
   const f = out.replace(/\.png$/, `_${ad}_${YON.indexOf(y)}.png`);

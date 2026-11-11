@@ -3,8 +3,9 @@
 // kodla kurulmuş eski gövdeyi geri getirir. Kahraman seçiliyken eski gövde gizlenir, aynı boya ölçeklenmiş GLB konur.
 // Meshy iskeletlerinde kemik adları ortak: yürüme, koşu, zıplama, kayma, atılma, takla ve darbe klipleri Alp'in dosyalarından
 // bütün kahramanlarda oynar (KLIP); kahramana özel olan yalnız model, elindekiler ve saldırı/duruş klipleri (KAHRAMAN).
-// Kam (11 Kasım 2026): 18.485 üçgen, 2K doku; sağ elde asa (duruşta dik), saldırıda asayı göğe kaldırma ve ileri itme,
-// beklerken ve yürürken asa göğüs hizasında tutulan duruş (üst gövde hep duruşta, bacaklar yürür).
+// Kam (11 Kasım 2026): 18.485 üçgen, 2K doku. Bekleme, yürüme ve koşu Alp'le aynı doğal klipler; asa sağ yumruğun deliğinden
+// geçer, yere basılı ve dik durur, sağ kol her karede asaya göre bükülür (asaTut: iki kemikli ters kinematik). Saldırıda kol
+// serbest kalır: asayı göğe kaldırma ve ileri itme klipleri oynar.
 // Hareketler (Meshy kütüphanesi): menüde rahat bekleme, oyunda kılıç-kalkan savaş duruşu; hıza göre yürüme ile hızlı
 // koşu karışımı (ayak hızı ölçülerek eşlenir); zıplama (dikey hıza göre kare), çift zıplamada takla büzülmesi (oyun
 // gövdeyi kendisi döndürür), kayma (en alçak duruş), atılma (dönen hızlı adım); saldırı ve darbe yalnız üst gövdede.
@@ -25,11 +26,11 @@ const URLS = {
   kam: { model: U('kam'), es: { asa: U('kam_asa') }, klip: U('kam_buyu') }
 };
 // kahraman ayarı. sal: saldırı kliplerinin oyunun 0.42 sn'lik saldırı ilerlemesine eşlenen aralığı (sn).
-// ustSabit: yürürken ve koşarken üst gövde yürüyüş klibi yerine duruşta kalır (elde dik tutulan asa sallanmasın).
+// ayak, kosUst: kahramanın kendi koşu klibi varsa onun ayak hızı ve hızlanma üst sınırı (yoksa ortak AYAK, KOS_UST).
 // basOlcu: boy eski gövdenin kutusuna göre değil baş eklemine göre eşlenir (eski gövdede baştan uzun asa ya da boynuz varsa).
 const KAHRAMAN = {
   alp: { sal: { atkR: [.12, .95], atkL: [.3, 1.2] } },
-  kam: { sal: { atkR: [.3, 1.3], atkL: [.75, 1.65] }, ustSabit: 1, basOlcu: 1, pingpong: ['idle', 'combat'] }
+  kam: { sal: { atkR: [.3, 1.3], atkL: [.75, 1.65] }, basOlcu: 1, ayak: { walk: .7, run: 1.65 }, kosUst: 1.65 }
 };
 // kliplerin kendi ayak hızı (boy/sn): oyunda sabit hızla ilerletilen modelde yerdeki ayağın kaymasını en aza indiren
 // değer tarandı (tools/meshy-oyun.mjs ölçümü). Kalan ~%35, bileğin topuktan parmağa yuvarlanması
@@ -93,10 +94,10 @@ function ortak(k) {
     cache[k] = Promise.all([ortakKlip(), u.klip ? LD.loadAsync(u.klip) : null, ...es.map(([, x]) => LD.loadAsync(x))]).then(([C0, kg, ...E]) => {
       let C = C0;
       if (k == 'kam') {
-        const by = n => kg.animations.find(a => a.name == n), durus = by('Durus');
-        // duruşta sağ kol tek karede dondurulur: klipte bilek sürekli döner (asa 0-56° yalpalıyordu); gövde, baş ve sol el oynamaya devam eder
-        sabitle(durus, /^Right(Shoulder|Arm|ForeArm|Hand)\./, ASA.an);
-        C = { ...C0, ...kok({ atkR: by('Asa_Kaldir'), atkL: by('Asa_It'), idle: durus }), combat: durus };
+        // bekleme ve oyundaki duruş aynı doğal bekleme klibi (kılıç-kalkan savaş duruşu asayla yakışmaz); saldırılar Kam'ın
+        // kendi klipleri. Koşu da kendi klibi: ortak hızlı koşu gövdeyi 50° öne yatırır, bu dik koşar (10°)
+        const by = n => kg.animations.find(a => a.name == n);
+        C = { ...C0, combat: C0.idle, ...kok({ atkR: by('Asa_Kaldir'), atkL: by('Asa_It'), run: by('Kos') }) };
       }
       const O = { C };
       es.forEach(([ad], i) => (O[ad] = E[i].scene));
@@ -107,16 +108,6 @@ function ortak(k) {
     });
   }
   return cache[k];
-}
-
-// klibin adı desene uyan izlerini verilen andaki değerinde dondurur
-function sabitle(c, desen, an) {
-  for (const tr of c.tracks) {
-    if (!desen.test(tr.name)) continue;
-    const v = Array.from(tr.createInterpolant().evaluate(an));
-    tr.times = new Float32Array([0, c.duration]);
-    tr.values = new Float32Array([...v, ...v]);
-  }
 }
 
 // kök hareketini sil: oyun karakterin yerini kendisi taşır. Kalçanın x/z kayması hep, y'si zıplama ve taklada silinir
@@ -308,43 +299,43 @@ function takAlp({ O, root, bone, wp, ileri, sol, yuk, gq, h0, sk }) {
   }
 }
 
-// asa ayarı (denetim aracından değiştirilebilir): boyu (kahraman boyunun oranı), tutma noktası (asanın altından oranı),
-// duruş klibinde asanın dik durduğu an (sn)
-export const ASA = { boy: 1.15, tut: .5, an: 2.5 };
-// denetim: test derlemesinde adresle denenir (?asaan=4&asaboy=1.1)
+// asa ayarı (kahraman boyunun oranları; denetim aracından değiştirilebilir): boy asanın uzunluğu, tut tutma noktasının asanın
+// altından oranı; yan / on / yuk tutma noktasının gövdeye göre yeri (sağa, öne, yerden)
+export const ASA = { boy: 1.15, tut: .47, yan: .3, on: .2, yuk: .55 };
+// denetim: test derlemesinde adresle denenir (?asayan=.34&asayuk=.6)
 if (__KOPRU__) {
   const q = new URLSearchParams(location.search);
-  for (const k of ['an', 'boy', 'tut']) if (q.get('asa' + k)) ASA[k] = +q.get('asa' + k);
+  for (const k of Object.keys(ASA)) if (q.get('asa' + k)) ASA[k] = +q.get('asa' + k);
 }
 
-// ---- Kam: asa sağ yumrukta. Asanın yönü dinlenme duruşundan değil DURUŞ klibinden alınır: Kam beklerken ve yürürken asayı
-// göğüs hizasında tutar; o anda asa tam dik dursun diye iskelet bir an için duruşa getirilir, el kemiğinin o andaki dönüşüne göre
-// "yukarı" yönü elin kendi uzayına çevrilir ve asa o yönle takılır. Sonra el nasıl dönerse asa onunla döner.
-// Ucundaki kor taşına ışıma eklenir (oyunun ateşi zaten oyuncunun konumundan çıkar).
-function takKam({ O, root, bone, wp, yuk, h0, sk }) {
+// ---- Kam: asa sağ yumrukta, yumruğun deliğinden geçer (delik dinlenme duruşunda öne bakar, başparmak önde: Alp'in kılıcı gibi).
+// Asa el kemiğine bağlıdır; beklerken ve yürürken eli asanın olması gereken yere asaTut götürür. Ucundaki kor taşına ışıma eklenir.
+function takKam({ O, root, bone, wp, ileri, h0, sk }) {
   const el = bone('RightHand'), orta = yumruk(root, 'RightHand') || wp('RightHand');
-  // dinlenme duruşunda elin dönüşü ve yumruk ortasının elin uzayındaki yeri
-  el.updateWorldMatrix(true, false);
-  const q0 = el.getWorldQuaternion(new T.Quaternion());
-  // iskeleti duruşa getir, elin o andaki dönüşünü al, geri bırak
-  const mx = new T.AnimationMixer(root), a = mx.clipAction(O.C.combat);
-  a.play();
-  a.time = ASA.an;
-  mx.update(0);
-  root.updateMatrixWorld(true);
-  const qd = el.getWorldQuaternion(new T.Quaternion());
-  mx.stopAllAction();
-  mx.uncacheRoot(root);
-  root.updateMatrixWorld(true); // karıştırıcı durunca kemikler dinlenme duruşuna döner
-  // duruşta dünya yukarısı → elin uzayı → dinlenme duruşunda dünya yönü
-  const yon = yuk.clone().applyQuaternion(qd.clone().invert()).applyQuaternion(q0).normalize();
   const bt = kutu(O.asa), hk = bt.max.y - bt.min.y,
     kb = kutu(O.asa, v => v.y > bt.min.y + hk * (ASA.tut - .05) && v.y < bt.min.y + hk * (ASA.tut + .05)),
     pv = kb.getCenter(new T.Vector3()),
     nes = kap(O.asa, pv, hk, sk);
-  tak(nes, el, orta, yon, h0 * ASA.boy);
-  // koşu düzeltmesi için (glbTick): asa nesnesi kemikte durur; ekseni elin uzayında nes.quaternion ile döndürülmüş +Y
-  el.userData.asaYon = new T.Vector3(0, 1, 0).applyQuaternion(nes.quaternion);
+  tak(nes, el, orta, ileri, h0 * ASA.boy);
+  // ters kinematik için elin kendi uzayında: asanın yönü (h), yumruk ortası (c), kolun ekseni (a: ön koldan ele; h'ye dikleştirilir)
+  el.updateWorldMatrix(true, false);
+  const qe = el.getWorldQuaternion(new T.Quaternion()).invert(),
+    h = new T.Vector3(0, 1, 0).applyQuaternion(nes.quaternion).normalize(),
+    a = wp('RightHand').sub(wp('RightForeArm')).normalize().applyQuaternion(qe);
+  a.addScaledVector(h, -a.dot(h)).normalize();
+  el.userData.asa = { el, kol: bone('RightArm'), on: bone('RightForeArm'), h, a, n: new T.Vector3().crossVectors(h, a), c: nes.position.clone(), w: 1 };
+  // sol kol (solKol): elin kendi uzayında kolun ekseni ve avucun baktığı yön. Dinlenme duruşunda avuç aşağı bakar
+  const sl = bone('LeftHand');
+  if (sl) {
+    sl.updateWorldMatrix(true, false);
+    const qs = sl.getWorldQuaternion(new T.Quaternion()).invert(),
+      as = wp('LeftHand').sub(wp('LeftForeArm')).normalize(),
+      ns = new T.Vector3(0, -1, 0);
+    ns.addScaledVector(as, -ns.dot(as)).normalize();
+    as.applyQuaternion(qs);
+    ns.applyQuaternion(qs);
+    el.userData.asa.sol = { el: sl, kol: bone('LeftArm'), on: bone('LeftForeArm'), a: as, n: ns, w: 0 };
+  }
   // kor taşı: asanın tepesinde toplamalı ışıma (asayla birlikte ölçeklenir)
   const isik = new T.Sprite(new T.SpriteMaterial({ map: HALO, color: 0xff8a30, transparent: true, opacity: .8, blending: T.AdditiveBlending, depthWrite: false, fog: true }));
   isik.position.set(0, (bt.max.y - hk * .09 - pv.y) / hk, 0);
@@ -425,26 +416,21 @@ export function glbHero(H, key) {
       A = {};
     for (const k of ANA) {
       A[k] = mixer.clipAction(bol(C[k], false));
-      // üst gövde: ustSabit kahramanda yürüyüş ve koşuda da duruş klibi (elde dik tutulan asa sallanmasın)
-      A[k + '_u'] = mixer.clipAction(bol(ay.ustSabit && (k == 'walk' || k == 'run') ? C.combat : C[k], true));
+      A[k + '_u'] = mixer.clipAction(bol(C[k], true));
     }
     for (const k of ['atkR', 'atkL', 'hit']) A[k] = mixer.clipAction(bol(C[k], true));
-    // duruş klibi ileri geri oynar (baş ve son kare aynı değil; dikiş görünmesin)
-    for (const k of ay.pingpong || []) for (const n of [k, k + '_u']) A[n].setLoop(T.LoopPingPong, Infinity);
-    if (ay.ustSabit) for (const n of ['walk_u', 'run_u']) A[n].setLoop(T.LoopPingPong, Infinity);
     for (const a of Object.values(A)) a.play(), a.setEffectiveWeight(0);
     for (const k of ['jump', 'flip', 'slide', 'dash', 'atkR', 'atkL', 'hit']) {
       A[k].timeScale = 0;
       if (A[k + '_u']) A[k + '_u'].timeScale = 0;
     }
-    G = { H: hedef, root, mixer, A, h0, w: { idle: 1 }, wu: 0, slT: 0, ust: null, ay, sal: ay.sal || KAHRAMAN.alp.sal };
-    // asa taşıyan kahraman: koşuda asayı dik tutmak için el kemiği (glbTick)
-    { const el = bone('RightHand'); if (el && el.userData.asaYon) /** @type {any} */ (G).asaEl = el; }
+    G = { H: hedef, root, mixer, A, h0, w: { idle: 1 }, wu: 0, slT: 0, ust: null, ay, sal: ay.sal || KAHRAMAN.alp.sal, ayak: ay.ayak || AYAK, kosUst: ay.kosUst || KOS_UST };
+    // asa taşıyan kahraman: sağ kol her karede asaya göre bükülür (asaTut)
+    { const el = bone('RightHand'); if (el && el.userData.asa) /** @type {any} */ (G).asa = el.userData.asa; }
     // denetim araçları için (tools/meshy-el.mjs): duruşu dondurup tek klip anı göstermek. Yayın derlemesinde pencereye açılmaz
     if (__KOPRU__) /** @type {any} */ (window).__glb = G;
     /** @type {any} */ (G).tick = glbTick;
-    /** @type {any} */ (G).asaDik = () => asaDik(G); // denetim aracı dondurulmuş duruşta da uygulayabilsin
-    /** @type {any} */ (G).ayak = AYAK;
+    /** @type {any} */ (G).asaTut = () => asaTut(G, 0, true); // denetim aracı dondurulmuş duruşta da uygulayabilsin
   }).catch(e => {
     // yüklenemezse eski gövde geri gelir
     console.warn('Meshy modeli yüklenemedi', e);
@@ -502,13 +488,8 @@ export function glbTick(dt) {
     G.w[n] = w < .002 ? 0 : w;
   }
   // ayak hızı eşlemesi: klip, ayağı karakterin gerçek hızıyla geriye itecek hızda oynar
-  A.walk.timeScale = Math.min(2, Math.max(.5, vm / (AYAK.walk * h0)));
-  A.run.timeScale = Math.min(KOS_UST, Math.max(.7, vm / (AYAK.run * h0)));
-  if (G.ay.ustSabit) A.walk_u.time = A.run_u.time = A.combat_u.time; // üst gövde duruşla aynı karede: geçişte kol oynamasın
-  else {
-    A.walk_u.timeScale = A.walk.timeScale;
-    A.run_u.timeScale = A.run.timeScale;
-  }
+  A.walk.timeScale = A.walk_u.timeScale = Math.min(2, Math.max(.5, vm / (G.ayak.walk * h0)));
+  A.run.timeScale = A.run_u.timeScale = Math.min(G.kosUst, Math.max(.7, vm / (G.ayak.run * h0)));
   if (st == 'jump') {
     // yükselirken çömelmeden tepeye (0.45..0.8), düşerken tepeden inişe (0.8..1.15)
     const vy = P.vy || 0, t = vy > 0 ? .8 - Math.min(1, vy / 14) * .35 : .8 + Math.min(1, -vy / 14) * .35;
@@ -542,25 +523,129 @@ export function glbTick(dt) {
     A[n + '_u'].setEffectiveWeight(G.w[n] * (1 - G.wu));
   }
   G.mixer.update(dt);
-  asaDik(G);
+  asaTut(G, dt);
 }
 
-// Koşuda gövde öne yatar (hızlı koşu klibi) ve gövdeye göre dik tutulan asa onunla birlikte yatıp ucu yere saplanır. Asa
-// koşarken hafif öne eğik, dike yakın taşınsın diye el kemiği her karede klipten sonra döndürülür: asanın o andaki yönü
-// hedef yöne (yukarı + biraz ileri) koşu ağırlığı kadar çevrilir. Saldırı ve darbe sırasında karışmaz.
-const _q = new T.Quaternion(), _qp = new T.Quaternion(), _qd = new T.Quaternion(), _qi = new T.Quaternion(), _c = new T.Vector3(), _d = new T.Vector3();
-function asaDik(G) {
-  const el = G.asaEl, k = (G.w.run || 0) * (1 - G.wu);
-  if (!el || k < .01) return;
-  el.parent.updateWorldMatrix(true, false);
-  el.parent.getWorldQuaternion(_qp);
-  _q.copy(_qp).multiply(el.quaternion); // elin dünya dönüşü
-  _c.copy(el.userData.asaYon).applyQuaternion(_q).normalize();
-  // hedef: yukarı, gövdenin baktığı yöne doğru biraz eğik
-  G.H.g.getWorldQuaternion(_qd);
-  _d.set(0, 0, 1).applyQuaternion(_qd).multiplyScalar(.3).add(_c.set(0, 1, 0)).normalize();
-  _c.copy(el.userData.asaYon).applyQuaternion(_q).normalize();
-  _qd.setFromUnitVectors(_c, _d);
-  _q.premultiply(_qd.slerp(_qi, 1 - k)); // k kadar çevir (_qi: dönüşsüz)
-  el.quaternion.copy(_qp.invert().multiply(_q));
+// ---- Kam'ın kolları. Klipler asayı bilmez (kol sarkar ya da sallanır, asa eliyle birlikte savrulur) ve boş elin
+// avucunu açık bırakır (modelde parmak kemiği yok; öne uzanmış açık avuç dilenir gibi durur). Her karede klipten sonra:
+//   sağ kol: asanın olması gereken yer ve yön gövdeye göre hesaplanır (beklerken ve yürürken sağ önde, yere basılı ve dik;
+//     koşuda, havada ve atılmada yerden kalkık ve öne eğik; kayarken alçak ve geriye yatık). Elin dünya dönüşü asayı o yöne
+//     getirecek ve ön kol asaya dik gelecek biçimde seçilir; üst kol ve ön kol iki kemikli ters kinematikle bileği oraya
+//     götürür (dirsek aşağı ve geride). Yalnız saldırıda bırakılır: kolu büyü klibi sürer.
+//   sol kol: beklerken ve büyü yaparken yanda sarkar, avuç bacağa bakar. Yürürken ve koşarken klibin kol salınımı kalır.
+const _p0 = new T.Vector3(), _il = new T.Vector3(), _sg = new T.Vector3(), _up = new T.Vector3(0, 1, 0), _G = new T.Vector3(), _s = new T.Vector3(),
+  _f = new T.Vector3(), _n = new T.Vector3(), _T = new T.Vector3(), _S = new T.Vector3(), _E = new T.Vector3(), _H = new T.Vector3(), _d = new T.Vector3(),
+  _pl = new T.Vector3(), _v1 = new T.Vector3(), _v2 = new T.Vector3(), _sc = new T.Vector3(),
+  _q0 = new T.Quaternion(), _qR = new T.Quaternion(), _qp = new T.Quaternion(), _qw = new T.Quaternion(), _qd = new T.Quaternion(),
+  _a1 = new T.Quaternion(), _a2 = new T.Quaternion(), _a3 = new T.Quaternion(), _m1 = new T.Matrix4(), _m2 = new T.Matrix4();
+// kemiği dünya uzayında `simdi` yönünden `hedef` yönüne çevirir
+function cevir(b, simdi, hedef) {
+  _qd.setFromUnitVectors(simdi.normalize(), hedef.normalize());
+  b.parent.getWorldQuaternion(_qp);
+  _qw.copy(_qp).multiply(b.quaternion).premultiply(_qd);
+  b.quaternion.copy(_qp.invert().multiply(_qw));
+  b.updateWorldMatrix(false, true);
+}
+// elin dünya dönüşü: elin uzayındaki (x, y) eksenleri dünyadaki (X, Y) yönlerine gelsin (ikisi de birbirine dik birim yön)
+function elDonus(x, y, X, Y) {
+  _m1.makeBasis(x, y, _n.crossVectors(x, y)).transpose();
+  _m2.makeBasis(X, Y, _n.crossVectors(X, Y)).multiply(_m1);
+  return _qR.setFromRotationMatrix(_m2);
+}
+function asaTut(G, dt, ani = false) {
+  const a = G.asa;
+  if (!a) return;
+  const g = G.H.g;
+  g.updateWorldMatrix(true, false);
+  g.getWorldPosition(_p0);
+  g.getWorldQuaternion(_q0);
+  _il.set(0, 0, 1).applyQuaternion(_q0);
+  _sg.set(-1, 0, 0).applyQuaternion(_q0);
+  _up.set(0, 1, 0).applyQuaternion(_q0);
+  sagKol(G, a, dt, ani);
+  if (a.sol) solKol(G, a.sol, dt, ani);
+}
+function sagKol(G, a, dt, ani) {
+  // darbede de asa elde kalır (darbe klibi kolu savurur, asa başın üstünde yatay döner); yalnız büyü klipleri kolu alır
+  const w = G.w, hedef = G.ust == 'hit' ? 1 : 1 - G.wu;
+  a.w = ani ? hedef : a.w + (hedef - a.w) * Math.min(1, dt * 14);
+  if (a.w < .005) return;
+  const h0 = G.h0, kos = w.run || 0, yur = w.walk || 0, hava = (w.jump || 0) + (w.flip || 0), atl = w.dash || 0, kay = w.slide || 0;
+  // yürüyüş adımı: asa adımla hafifçe kalkıp öne gider, sonra yere basar
+  const faz = yur > .01 ? Math.sin(G.A.walk.time / G.A.walk.getClip().duration * Math.PI * 2) : 0;
+  // tutma noktası ve asanın yönü
+  _G.copy(_p0).addScaledVector(_sg, h0 * ASA.yan).addScaledVector(_il, h0 * (ASA.on + kos * .06 + atl * .05 + faz * .03 * yur))
+    .addScaledVector(_up, h0 * (ASA.yuk + kos * .08 + hava * .14 + atl * .08 - kay * .22 + Math.max(0, faz) * .025 * yur));
+  _s.copy(_up).addScaledVector(_il, .04 + kos * .3 + hava * .12 + atl * .45 - kay * 1.1 + faz * .07 * yur).addScaledVector(_sg, .03).normalize();
+  // ön kolun yönü: ileri, biraz yukarı ve içe; asaya dik bileşeni alınır
+  _f.copy(_il).addScaledVector(_up, .15).addScaledVector(_sg, -.3);
+  _f.addScaledVector(_s, -_f.dot(_s)).normalize();
+  elDonus(a.h, a.a, _s, _f);
+  // bilek hedefi: yumruğun ortası tutma noktasına gelsin
+  a.kol.parent.updateWorldMatrix(true, false);
+  a.kol.updateWorldMatrix(false, true);
+  a.el.getWorldScale(_sc);
+  _T.copy(a.c).multiplyScalar(_sc.x).applyQuaternion(_qR);
+  _T.subVectors(_G, _T);
+  // iki kemikli ters kinematik: omuz S, dirsek E, bilek T
+  a.kol.getWorldPosition(_S);
+  a.on.getWorldPosition(_E);
+  a.el.getWorldPosition(_H);
+  const L1 = _E.distanceTo(_S), L2 = _H.distanceTo(_E);
+  _d.subVectors(_T, _S);
+  const uz = Math.min(L1 + L2 - 1e-3, Math.max(Math.abs(L1 - L2) + 1e-3, _d.length()));
+  _d.normalize();
+  const co = Math.min(1, Math.max(-1, (L1 * L1 + uz * uz - L2 * L2) / (2 * L1 * uz))), si = Math.sqrt(1 - co * co);
+  // dirsek aşağı, geride ve biraz dışta
+  _pl.copy(_up).multiplyScalar(-1).addScaledVector(_il, -.55).addScaledVector(_sg, .4);
+  _pl.addScaledVector(_d, -_pl.dot(_d)).normalize();
+  _a1.copy(a.kol.quaternion);
+  _a2.copy(a.on.quaternion);
+  _a3.copy(a.el.quaternion);
+  // üst kol: dirsek yeni yerine
+  _v2.copy(_S).addScaledVector(_d, L1 * co).addScaledVector(_pl, L1 * si).sub(_S);
+  cevir(a.kol, _v1.subVectors(_E, _S), _v2);
+  // ön kol: bilek hedefe
+  a.on.getWorldPosition(_E);
+  a.el.getWorldPosition(_H);
+  _v2.copy(_S).addScaledVector(_d, uz).sub(_E);
+  cevir(a.on, _v1.subVectors(_H, _E), _v2);
+  // el: dünya dönüşü doğrudan
+  a.el.parent.getWorldQuaternion(_qp);
+  a.el.quaternion.copy(_qp.invert().multiply(_qR));
+  karistir(a);
+}
+// yanda sarkan sol kol: üst kol aşağı, az dışta ve geride; ön kol dirsekten hafif öne; avuç bacağa bakar
+const SOL = { ky: .16, kg: .1, oi: .22, oy: .05 };
+function solKol(G, s, dt, ani) {
+  const w = G.w, hedef = Math.min(1, (w.idle || 0) + (w.combat || 0) + (G.ust == 'hit' ? 0 : G.wu));
+  s.w = ani ? hedef : s.w + (hedef - s.w) * Math.min(1, dt * 10);
+  if (s.w < .005) return;
+  s.kol.parent.updateWorldMatrix(true, false);
+  s.kol.updateWorldMatrix(false, true);
+  _a1.copy(s.kol.quaternion);
+  _a2.copy(s.on.quaternion);
+  _a3.copy(s.el.quaternion);
+  s.kol.getWorldPosition(_S);
+  s.on.getWorldPosition(_E);
+  _v2.copy(_up).multiplyScalar(-1).addScaledVector(_sg, -SOL.ky).addScaledVector(_il, -SOL.kg);
+  cevir(s.kol, _v1.subVectors(_E, _S), _v2);
+  s.on.getWorldPosition(_E);
+  s.el.getWorldPosition(_H);
+  _f.copy(_up).multiplyScalar(-1).addScaledVector(_il, SOL.oi).addScaledVector(_sg, -SOL.oy).normalize();
+  cevir(s.on, _v1.subVectors(_H, _E), _v2.copy(_f));
+  // el ön kolun devamı; avuç gövdeye (sağa) ve az geriye bakar
+  _s.copy(_sg).addScaledVector(_il, -.25);
+  _s.addScaledVector(_f, -_s.dot(_f)).normalize();
+  elDonus(s.a, s.n, _f, _s);
+  s.el.parent.getWorldQuaternion(_qp);
+  s.el.quaternion.copy(_qp.invert().multiply(_qR));
+  karistir(s);
+}
+// geçişte klip duruşuyla karıştır (_a1.._a3: klibin verdiği dönüşler)
+function karistir(a) {
+  if (a.w >= .995) return;
+  a.kol.quaternion.copy(_a1.slerp(a.kol.quaternion, a.w));
+  a.on.quaternion.copy(_a2.slerp(a.on.quaternion, a.w));
+  a.el.quaternion.copy(_a3.slerp(a.el.quaternion, a.w));
 }

@@ -4,6 +4,8 @@
 //
 //   GLTFT=<@gltf-transform paketlerinin bulunduğu node_modules> node tools/model-sik.mjs model <giriş.glb> <çıkış.glb>
 //   GLTFT=... node tools/model-sik.mjs klip <giriş.glb> <çıkış.glb> <ad[:yeniAd[:bas-son sn]]> ...
+//   kat kipi   : başka klip dosyalarındaki klipler, kemik adı eşleşerek giriş dosyasına eklenir (aynı iskelet)
+//   GLTFT=... node tools/model-sik.mjs kat <giriş.glb> <çıkış.glb> <ek.glb> ...
 //   (paketler proje bağımlılığı değil: npx @gltf-transform/cli bir kez çalıştırılınca ~/.npm/_npx altına iner)
 // Ardından: gltf-transform resize / webp / resample / prune / quantize (docs/YOL_HARITASI.md "Kam modeli").
 import { createRequire } from 'node:module';
@@ -52,7 +54,22 @@ if (kip == 'model') {
   for (const x of [...root.listMeshes(), ...root.listSkins(), ...root.listMaterials(), ...root.listTextures()]) x.dispose();
   const kalan = root.listAnimations().map(a => a.getName());
   for (const i of ist) if (!kalan.includes(i.yeni)) console.error('klip bulunamadı:', i.ad);
-} else { console.error('kip: model | klip'); process.exit(2); }
+} else if (kip == 'kat') {
+  const ad = new Map(root.listNodes().map(n => [n.getName(), n])), buf = root.listBuffers()[0];
+  for (const f of sec) {
+    const ek = (await io.read(f)).getRoot();
+    for (const a of ek.listAnimations()) {
+      const y = doc.createAnimation(a.getName());
+      for (const ch of a.listChannels()) {
+        const hedef = ad.get(ch.getTargetNode()?.getName()), s = ch.getSampler();
+        if (!hedef) continue; // bu dosyada olmayan kemik (uç kemikler budanmış olabilir)
+        const kop = x => doc.createAccessor().setType(x.getType()).setArray(x.getArray().slice()).setNormalized(x.getNormalized()).setBuffer(buf);
+        const ys = doc.createAnimationSampler().setInput(kop(s.getInput())).setOutput(kop(s.getOutput())).setInterpolation(s.getInterpolation());
+        y.addSampler(ys).addChannel(doc.createAnimationChannel().setTargetNode(hedef).setTargetPath(ch.getTargetPath()).setSampler(ys));
+      }
+    }
+  }
+} else { console.error('kip: model | klip | kat'); process.exit(2); }
 
 await io.write(cikis, doc);
 console.log(kip, '→', cikis, 'klipler:', root.listAnimations().map(a => a.getName()).join(', ') || 'yok');

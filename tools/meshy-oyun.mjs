@@ -1,21 +1,21 @@
 // Meshy Alp gerçek oyun denetimi: gerçek tuşlarla yürü, koş, dön, zıpla, çift zıpla (takla), kay, atıl, saldırı sırasında
 // koş; her anda kare çeker. Ayak kaymasını ölçer: yerdeki ayağın dünya konumu adım boyunca ne kadar kayıyor.
-// Telefon (dikey) görünümünde de bir kare. node tools/meshy-oyun.mjs <url> <klasör>
+// Telefon (dikey) görünümünde de bir kare. node tools/meshy-oyun.mjs <url> <klasör>   (KI=1: Kam; kahramanın kayıt sırası. GPU=1: gerçek ekran kartı)
 import { chromium } from 'playwright';
 import fs from 'node:fs';
 const [url, out] = process.argv.slice(2); fs.mkdirSync(out, { recursive: true });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-const br = await chromium.launch({ executablePath: process.env.CHROME, headless: true, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const br = await chromium.launch({ executablePath: process.env.CHROME, headless: true, args: process.env.GPU ? ['--use-angle=metal', '--ignore-gpu-blocklist'] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 const errs = [];
-const init = () => {
+const init = ci => {
   Element.prototype.requestPointerLock = function () {};
-  localStorage.setItem('kk_set', JSON.stringify({ q: 1, bl: 0 })); localStorage.setItem('kk_tut', '1'); localStorage.setItem('kk_ci', '0');
+  localStorage.setItem('kk_set', JSON.stringify({ q: 1, bl: 0 })); localStorage.setItem('kk_tut', '1'); localStorage.setItem('kk_ci', ci);
   let s = 4242; Math.random = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296 };
 };
 async function oyun(opts) {
   const pg = await br.newPage(opts);
   pg.on('pageerror', e => errs.push(e.message)); pg.on('console', m => { if (/Meshy/.test(m.text())) errs.push(m.text()); });
-  await pg.addInitScript(init);
+  await pg.addInitScript(init, process.env.KI || '0');
   await pg.goto(url, { waitUntil: 'domcontentloaded', timeout: 90000 });
   await pg.waitForFunction(() => typeof S !== 'undefined' && S === 'menu', null, { timeout: 90000 });
   await pg.addStyleTag({ content: '#tip{display:none!important}' });
