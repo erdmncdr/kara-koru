@@ -10,7 +10,9 @@
 // Hareketler (Meshy kütüphanesi): menüde rahat bekleme, oyunda kılıç-kalkan savaş duruşu; hıza göre yürüme ile hızlı
 // koşu karışımı (ayak hızı ölçülerek eşlenir); zıplama (dikey hıza göre kare), çift zıplamada takla büzülmesi (oyun
 // gövdeyi kendisi döndürür), kayma (en alçak duruş), atılma (dönen hızlı adım); saldırı ve darbe yalnız üst gövdede.
-// Kılıç ve kalkan da Meshy modeli; kılıç sağ ele kabzasından, kalkan sol ön kola yüzü kola dik takılır.
+// Kılıç ve kalkan da Meshy modeli; kılıç sağ ele kabzasından, kalkan sol ön kola yüzü kola dik takılır. Klipler eldekini
+// bilmez: her karede klipten sonra sağ kol kılıcı ya da asayı gövdeye göre tutacak biçimde kurulur, kalkan gövdeden dışarı çevrilir
+// (asaTut: sagKol, kalkanTut); gövdeye girip girmediği tools/giris-olc.mjs ile ölçülür.
 // Şapka baş kemiğine taşınır; kostüm dokunun piksellerine uygulanır.
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as T from 'three';
@@ -271,6 +273,9 @@ function tepeOrta(root, y) {
   return n ? t.divideScalar(n) : null;
 }
 
+// gövde çerçevesi için kemikler (cerceve): göğüs, kalça, boyun, iki omuz başı
+const govdeK = bone => ({ s: bone('Spine02'), h: bone('Hips'), n: bone('neck') || bone('Head'), l: bone('LeftArm'), r: bone('RightArm'), lu: bone('LeftUpLeg'), ru: bone('RightUpLeg') });
+
 // sorguç: miğferin tepesinden arkaya dökülen kızıl at kılı. Meshy ince kılı modele çıkarmıyor; kodla kurulur ve baş kemiğine
 // bağlanır. Ortada kalın bir tutam, çevresinde ince teller; her biri eğri boyunca kalınlaşıp incelen bir boru; köşe renkli.
 // Birim kahramanın boyu (tak ile h0'a ölçeklenir): +Y yukarı, -Z arkaya. İçteki grup (ic) koşuda ve havada savrulur (glbTick).
@@ -319,7 +324,7 @@ function sorguc(sk) {
 }
 
 // ---- Alp: kılıç sağ yumrukta, kalkan sol ön kolda
-function takAlp({ O, root, bone, wp, ileri, sol, yuk, gq, h0, sk, sapka }) {
+function takAlp({ O, root, bone, wp, ileri, sol, yuk, gq, h0, sk, sapka, gp }) {
   // kılıç: model dik, ağız +Y. Yumruğun içindeki delik dinlenme duruşunda öne bakar (başparmak önde): kabza deliğin
   // ekseni boyunca, kabzanın ortası yumruğun ortasında; ağız başparmak tarafından (öne) çıkar, keskin kenar aşağıda.
   // Kılıç el kemiğine bağlıdır: kol nasıl dönerse yumrukla birlikte döner.
@@ -331,7 +336,15 @@ function takAlp({ O, root, bone, wp, ileri, sol, yuk, gq, h0, sk, sapka }) {
       disa = sol.clone().negate(),
       yon = ileri.clone().applyAxisAngle(disa, -KILIC.egim);
     orta.addScaledVector(ileri, h0 * KILIC.ileri).addScaledVector(yuk, h0 * KILIC.yukari).addScaledVector(disa, h0 * KILIC.disa);
-    tak(kap(O.kilic, pv, hk, sk), bone('RightHand'), orta, yon, h0 * KILIC.boy, undefined, 0, yuk.clone().multiplyScalar(KILIC.kenar));
+    const kn = kap(O.kilic, pv, hk, sk), el = bone('RightHand');
+    tak(kn, el, orta, yon, h0 * KILIC.boy, undefined, 0, yuk.clone().multiplyScalar(KILIC.kenar));
+    // ters kinematik için elin kendi uzayında: ağzın yönü (h), yumruk ortası (c), kolun ekseni (a; h'ye dikleştirilir). Bkz. sagKol
+    el.updateWorldMatrix(true, false);
+    const qe = el.getWorldQuaternion(new T.Quaternion()).invert(),
+      h = new T.Vector3(0, 1, 0).applyQuaternion(kn.quaternion).normalize(),
+      a = wp('RightHand').sub(wp('RightForeArm')).normalize().applyQuaternion(qe);
+    a.addScaledVector(h, -a.dot(h)).normalize();
+    el.userData.asa = { tur: 'kilic', el, kol: bone('RightArm'), on: bone('RightForeArm'), h, a, c: kn.position.clone(), w: 1, gy: (wp('Spine02').y - gp.y) / h0, gv: govdeK(bone) };
   }
   // kalkan: model yüzü +Z. Kayışla ön kolun dış yüzüne (elin sırtına) bağlanır: A duruşunda avuç aşağı bakar, el
   // sırtı yukarı; kalkanın yüzü o yöne, ön kola dik. Kol hangi duruşta dönerse kalkan elin sırtıyla birlikte döner.
@@ -341,9 +354,13 @@ function takAlp({ O, root, bone, wp, ileri, sol, yuk, gq, h0, sk, sapka }) {
       a = wp('LeftForeArm'), b = wp('LeftHand'), eks = b.clone().sub(a).normalize(),
       n = new T.Vector3(0, 1, 0).applyQuaternion(gq).multiplyScalar(KALKAN_YON).addScaledVector(ileri, .25);
     n.addScaledVector(eks, -n.dot(eks)).normalize();
-    const merkez = a.clone().lerp(b, .82).addScaledVector(n, h0 * KALKAN_ON);
-    tak(kap(O.kalkan, bt.getCenter(new T.Vector3()), cap, sk), bone('LeftForeArm'), merkez, n, h0 * .3, new T.Vector3(0, 0, 1));
+    const merkez = a.clone().lerp(b, KALKAN.yer).addScaledVector(n, h0 * KALKAN.on);
+    const kk = kap(O.kalkan, bt.getCenter(new T.Vector3()), cap, sk), ok = bone('LeftForeArm');
+    tak(kk, ok, merkez, n, h0 * .3, new T.Vector3(0, 0, 1));
     bone('LeftHand').scale.setScalar(.7);
+    // kalkanın yüzü her karede gövdeden dışarı çevrilir (kalkanTut): ön kolun uzayında dinlenme yönü saklanır
+    ok.updateWorldMatrix(true, false);
+    bone('RightHand').userData.kalkan = { nes: kk, on: ok, el: bone('LeftHand'), n0: n.clone().applyQuaternion(ok.getWorldQuaternion(new T.Quaternion()).invert()), kal: bone('Hips'), bas: bone('Head'), aci: 0 };
   }
   // sorguç: miğferin sivri ucuna (dinlenme duruşunda modelin en üst noktası). Şapka takılıysa konmaz (şapka aynı yere oturur)
   if (!sapka) {
@@ -358,14 +375,10 @@ function takAlp({ O, root, bone, wp, ileri, sol, yuk, gq, h0, sk, sapka }) {
 // altından oranı; yan / on / yuk tutma noktasının gövdeye göre yeri (sağa, öne, yerden)
 export const ASA = { boy: 1.15, tut: .47, yan: .3, on: .2, yuk: .55 };
 // denetim: test derlemesinde adresle denenir (?asayan=.34&asayuk=.6)
-if (__KOPRU__) {
-  const q = new URLSearchParams(location.search);
-  for (const k of Object.keys(ASA)) if (q.get('asa' + k)) ASA[k] = +q.get('asa' + k);
-}
 
 // ---- Kam: asa sağ yumrukta, yumruğun deliğinden geçer (delik dinlenme duruşunda öne bakar, başparmak önde: Alp'in kılıcı gibi).
 // Asa el kemiğine bağlıdır; beklerken ve yürürken eli asanın olması gereken yere asaTut götürür. Ucundaki kor taşına ışıma eklenir.
-function takKam({ O, root, bone, wp, ileri, h0, sk }) {
+function takKam({ O, root, bone, wp, ileri, h0, sk, gp }) {
   const el = bone('RightHand'), orta = yumruk(root, 'RightHand') || wp('RightHand');
   const bt = kutu(O.asa), hk = bt.max.y - bt.min.y,
     kb = kutu(O.asa, v => v.y > bt.min.y + hk * (ASA.tut - .05) && v.y < bt.min.y + hk * (ASA.tut + .05)),
@@ -378,7 +391,7 @@ function takKam({ O, root, bone, wp, ileri, h0, sk }) {
     h = new T.Vector3(0, 1, 0).applyQuaternion(nes.quaternion).normalize(),
     a = wp('RightHand').sub(wp('RightForeArm')).normalize().applyQuaternion(qe);
   a.addScaledVector(h, -a.dot(h)).normalize();
-  el.userData.asa = { el, kol: bone('RightArm'), on: bone('RightForeArm'), h, a, n: new T.Vector3().crossVectors(h, a), c: nes.position.clone(), w: 1 };
+  el.userData.asa = { tur: 'asa', el, kol: bone('RightArm'), on: bone('RightForeArm'), h, a, n: new T.Vector3().crossVectors(h, a), c: nes.position.clone(), w: 1, gy: (wp('Spine02').y - gp.y) / h0, gv: govdeK(bone) };
   // sol kol (solKol): elin kendi uzayında kolun ekseni ve avucun baktığı yön. Dinlenme duruşunda avuç aşağı bakar
   const sl = bone('LeftHand');
   if (sl) {
@@ -403,7 +416,7 @@ function takKam({ O, root, bone, wp, ileri, h0, sk }) {
 export const KILIC = { ileri: 0, yukari: 0, disa: 0, egim: 0, kenar: 1, boy: .62 };
 
 // kalkanın ön kolun önüne itilme payı (boyun oranı)
-const KALKAN_ON = .06;
+export const KALKAN = { on: .09, ileri: .35, yer: 1 };
 // el sırtının A duruşundaki yönü (+1 yukarı, -1 aşağı)
 const KALKAN_YON = 1;
 
@@ -456,7 +469,7 @@ export function glbHero(H, key) {
       ileri = new T.Vector3(0, 0, 1).applyQuaternion(gq),
       sol = new T.Vector3(1, 0, 0).applyQuaternion(gq),
       yuk = new T.Vector3(0, 1, 0);
-    const ctx = { O, root, bone, wp, ileri, sol, yuk, gq, h0, sk, sapka: !!hedef.hat };
+    const ctx = { O, root, bone, wp, ileri, sol, yuk, gq, h0, sk, sapka: !!hedef.hat, gp: hedef.g.getWorldPosition(new T.Vector3()) };
     if (key == 'alp') takAlp(ctx);
     else if (key == 'kam') takKam(ctx);
     // şapka: eski gövdenin baş kemiğinden yenisinin başına, miğferin tepesine
@@ -483,10 +496,12 @@ export function glbHero(H, key) {
     // asa taşıyan kahraman: sağ kol her karede asaya göre bükülür (asaTut)
     { const el = bone('RightHand'); if (el && el.userData.asa) /** @type {any} */ (G).asa = el.userData.asa; }
     { const el = bone('RightHand'); if (el && el.userData.sorguc) /** @type {any} */ (G).sorguc = el.userData.sorguc; }
+    { const el = bone('RightHand'); if (el && el.userData.kalkan) /** @type {any} */ (G).kalkan = el.userData.kalkan; }
     // denetim araçları için (tools/meshy-el.mjs): duruşu dondurup tek klip anı göstermek. Yayın derlemesinde pencereye açılmaz
-    if (__KOPRU__) /** @type {any} */ (window).__glb = G;
+    if (__KOPRU__) /** @type {any} */ (window).__glb = G, /** @type {any} */ (window).__T = T; // __T: denetim araçları three sınıflarına erişsin (tools/giris-olc.mjs)
     /** @type {any} */ (G).tick = glbTick;
     /** @type {any} */ (G).asaTut = () => asaTut(G, 0, true); // denetim aracı dondurulmuş duruşta da uygulayabilsin
+    /** @type {any} */ (G).tut = () => asaTut(G, 0, true);
   }).catch(e => {
     // yüklenemezse eski gövde geri gelir
     console.warn('Meshy modeli yüklenemedi', e);
@@ -617,7 +632,7 @@ function elDonus(x, y, X, Y) {
 }
 function asaTut(G, dt, ani = false) {
   const a = G.asa;
-  if (!a) return;
+  if (!a && !G.kalkan) return;
   const g = G.H.g;
   g.updateWorldMatrix(true, false);
   g.getWorldPosition(_p0);
@@ -625,43 +640,123 @@ function asaTut(G, dt, ani = false) {
   _il.set(0, 0, 1).applyQuaternion(_q0);
   _sg.set(-1, 0, 0).applyQuaternion(_q0);
   _up.set(0, 1, 0).applyQuaternion(_q0);
-  sagKol(G, a, dt, ani);
-  if (a.sol) solKol(G, a.sol, dt, ani);
+  if (a) sagKol(G, a, dt, ani);
+  if (a && a.sol) solKol(G, a.sol, dt, ani);
+  if (G.kalkan) kalkanTut(G, G.kalkan, dt, ani);
 }
-function sagKol(G, a, dt, ani) {
-  // darbede de asa elde kalır (darbe klibi kolu savurur, asa başın üstünde yatay döner); yalnız büyü klipleri kolu alır
-  const w = G.w, hedef = G.ust == 'hit' ? 1 : 1 - G.wu;
-  a.w = ani ? hedef : a.w + (hedef - a.w) * Math.min(1, dt * 14);
-  if (a.w < .005) return;
-  const h0 = G.h0, kos = w.run || 0, yur = w.walk || 0, hava = (w.jump || 0) + (w.flip || 0), atl = w.dash || 0, kay = w.slide || 0;
+// tutuş çerçevesi: eldeki nesnenin yeri ve yönü gövdeye göre verilir. Klipler gövdeyi kahramanın yönünden bağımsız döndürür
+// (beklerken yan durur, atılırken döner, kayarken yatar): nesne kahramanın sabit çerçevesinde kalsaydı gövdenin içinden geçerdi.
+//   taban (wT = 0): gövdenin baktığı yön yatayda (omuz ve kalça çizgilerinin toplamı: yürürken ikisi ters döner, toplamı sabit
+//     kalır), yukarı dünya yukarısı (asa dik durur), çıpa göğüs ile kalçanın ortasının hizasında, kahramanın göğüs yüksekliğinde;
+//   tam (wT = 1): gövdenin o anki üç boyutlu çerçevesi (omuzlar ve omurga), çıpa göğüs kemiği. Atılma, kayma, takla.
+const _cA = new T.Vector3(), _ci = new T.Vector3(), _cs = new T.Vector3(), _cu = new T.Vector3(), _c1 = new T.Vector3(), _c2 = new T.Vector3();
+function cerceve(G, a, wT) {
+  const B = a.gv;
+  B.s.getWorldPosition(_c1);
+  B.h.getWorldPosition(_c2);
+  _cu.copy(_up);
+  _cA.copy(_c1).add(_c2).multiplyScalar(.5);
+  _cA.addScaledVector(_cu, _p0.dot(_cu) + G.h0 * a.gy - _cA.dot(_cu));
+  _cs.subVectors(B.r.getWorldPosition(_v1), B.l.getWorldPosition(_v2)).normalize();
+  _v1.subVectors(B.ru.getWorldPosition(_v1), B.lu.getWorldPosition(_v2)).normalize();
+  _cs.add(_v1);
+  _cs.addScaledVector(_cu, -_cs.dot(_cu));
+  if (_cs.lengthSq() < 1e-4) _cs.copy(_sg);
+  _cs.normalize();
+  _ci.crossVectors(_cu, _cs).normalize();
+  if (wT < .002) return;
+  _cA.lerp(_c1, wT);
+  _v1.subVectors(B.r.getWorldPosition(_v1), B.l.getWorldPosition(_v2)).normalize();
+  _v2.subVectors(B.n.getWorldPosition(_v2), _c2).normalize();
+  _d.crossVectors(_v2, _v1).normalize(); // ileri = yukarı × sağ
+  _ci.lerp(_d, wT).normalize();
+  _cs.lerp(_v1, wT);
+  _cs.addScaledVector(_ci, -_cs.dot(_ci)).normalize();
+  _cu.crossVectors(_cs, _ci).normalize();
+}
+// Kam'ın asası: tutma noktası (_G), asanın yönü (_s). Ayakta: sağ önde, yere basılı; tepesi boynuzlara değmesin diye dışa yatık
+export const AT = { egim: .17, kayOn: .16, kayYuk: -.06, kayIl: 1, kayUp: .5, havaYan: .14, atlYan: .06, atlIl: .9, atlUp: .5, atlYuk: .1, havaIl: .12 };
+function asaHedef(G, a) {
+  const w = G.w, kos = w.run || 0, yur = w.walk || 0, hava = (w.jump || 0) + (w.flip || 0), atl = w.dash || 0, kay = w.slide || 0, h0 = G.h0;
+  cerceve(G, a, Math.min(1, atl + kay + (w.flip || 0) + (w.jump || 0) * .5));
   // yürüyüş adımı: asa adımla hafifçe kalkıp öne gider, sonra yere basar
   const faz = yur > .01 ? Math.sin(G.A.walk.time / G.A.walk.getClip().duration * Math.PI * 2) : 0;
-  // tutma noktası ve asanın yönü
-  _G.copy(_p0).addScaledVector(_sg, h0 * ASA.yan).addScaledVector(_il, h0 * (ASA.on + kos * .06 + atl * .05 + faz * .03 * yur))
-    .addScaledVector(_up, h0 * (ASA.yuk + kos * .08 + hava * .14 + atl * .08 - kay * .22 + Math.max(0, faz) * .025 * yur));
-  _s.copy(_up).addScaledVector(_il, .04 + kos * .3 + hava * .12 + atl * .45 - kay * 1.1 + faz * .07 * yur).addScaledVector(_sg, .03).normalize();
-  // ön kolun yönü: ileri, biraz yukarı ve içe; asaya dik bileşeni alınır
-  _f.copy(_il).addScaledVector(_up, .15).addScaledVector(_sg, -.3);
-  _f.addScaledVector(_s, -_f.dot(_s)).normalize();
-  elDonus(a.h, a.a, _s, _f);
-  // bilek hedefi: yumruğun ortası tutma noktasına gelsin
+  _G.copy(_cA).addScaledVector(_cs, h0 * (ASA.yan + hava * AT.havaYan + atl * AT.atlYan))
+    .addScaledVector(_ci, h0 * (ASA.on + kos * .06 + atl * .05 + kay * AT.kayOn + faz * .03 * yur))
+    .addScaledVector(_cu, h0 * (ASA.yuk - a.gy + kos * .08 + hava * .14 + atl * AT.atlYuk + kay * AT.kayYuk + Math.max(0, faz) * .025 * yur));
+  // kayarken asa öne ve yukarı bakar (gövde geriye yatar: geriye yatık asa başın ve kolun içinden geçiyordu)
+  _s.copy(_cu).multiplyScalar(1 - kay * (1 - AT.kayUp) - atl * (1 - AT.atlUp)).addScaledVector(_ci, .04 + kos * .3 + hava * AT.havaIl + atl * AT.atlIl + kay * AT.kayIl + faz * .07 * yur)
+    .addScaledVector(_cs, AT.egim).normalize();
+  // ön kolun yönü: ileri, biraz yukarı ve içe
+  _f.copy(_ci).addScaledVector(_cu, .15).addScaledVector(_cs, -.3);
+}
+// Alp'in kılıcı: duruma göre tutuş (KT). Her satır: tutma noktası göğse göre [yana, ileri, yukarı] (boy oranı), ağzın yönü
+// [ileri, yukarı, yana]. Tutma noktası gövdenin sağında ve dışında, ağız hep ileri ve dışa bakar: bacaktan ve gövdeden geçmez.
+// Beklerken alçak ve rahat (uç yere yakın, önde), savaşta orta gard (uç ileri-yukarı), koşuda ileri uzanmış, atılmada ileri saplı.
+export const KT = {
+  idle: [.27, .1, -.2, .75, -.55, .35], combat: [.25, .22, -.1, .72, .66, .1], walk: [.28, .12, -.17, .8, -.35, .3], run: [.3, .1, -.12, .85, -.1, .4],
+  jump: [.3, .14, -.04, .5, .8, .25], flip: [.3, .12, -.06, .5, .6, .6], slide: [.3, .15, -.05, .8, .45, .3], dash: [.26, .3, -.08, 1, .05, .15]
+};
+const _kt = [0, 0, 0, 0, 0, 0];
+function kilicHedef(G, a) {
+  const w = G.w, h0 = G.h0;
+  let t = 0;
+  _kt.fill(0);
+  for (const k of ANA) {
+    const x = w[k] || 0;
+    if (!x) continue;
+    t += x;
+    for (let i = 0; i < 6; i++) _kt[i] += KT[k][i] * x;
+  }
+  if (t < 1e-4) { t = 1; for (let i = 0; i < 6; i++) _kt[i] = KT.idle[i]; }
+  cerceve(G, a, Math.min(1, (w.dash || 0) + (w.slide || 0) + (w.flip || 0) + (w.jump || 0) * .5));
+  // yürüyüşte ve koşuda kılıç adımla hafifçe salınır
+  const yur = w.walk || 0, kos = w.run || 0, kl = yur >= kos ? G.A.walk : G.A.run,
+    faz = yur + kos > .01 ? Math.sin(kl.time / kl.getClip().duration * Math.PI * 2) * (yur + kos) : 0;
+  _G.copy(_cA).addScaledVector(_cs, h0 * _kt[0] / t).addScaledVector(_ci, h0 * (_kt[1] / t + faz * .025)).addScaledVector(_cu, h0 * (_kt[2] / t + Math.abs(faz) * .015));
+  _s.set(0, 0, 0).addScaledVector(_ci, _kt[3] / t).addScaledVector(_cu, _kt[4] / t + faz * .06).addScaledVector(_cs, _kt[5] / t).normalize();
+  // ön kol: omzun altında, biraz geride ve dışta duran dirsekten tutma noktasına
+  a.kol.getWorldPosition(_S);
+  a.on.getWorldPosition(_E);
+  const L1 = _E.distanceTo(_S);
+  _f.copy(_G).sub(_S).addScaledVector(_cu, L1 * .85).addScaledVector(_ci, L1 * .25).addScaledVector(_cs, -L1 * .2);
+}
+function sagKol(G, a, dt, ani) {
+  // darbede de eldeki kalır (darbe klibi kolu savurur, asa başın üstünde yatay döner); yalnız saldırı klipleri kolu alır
+  const hedef = G.ust == 'hit' ? 1 : 1 - G.wu;
+  a.w = ani ? hedef : a.w + (hedef - a.w) * Math.min(1, dt * 14);
+  if (a.w < .005) return;
   a.kol.parent.updateWorldMatrix(true, false);
   a.kol.updateWorldMatrix(false, true);
-  a.el.getWorldScale(_sc);
-  _T.copy(a.c).multiplyScalar(_sc.x).applyQuaternion(_qR);
-  _T.subVectors(_G, _T);
-  // iki kemikli ters kinematik: omuz S, dirsek E, bilek T
+  if (a.tur == 'kilic') kilicHedef(G, a);
+  else asaHedef(G, a);
+  // iki kemikli ters kinematik: omuz S, dirsek E, bilek T. Dirsek aşağı, geride ve biraz dışta (asada atılırken ve kayarken
+  // dışta ve yukarıda: ön kol asaya dik gelsin, asa ön kolun içinden geçmesin)
   a.kol.getWorldPosition(_S);
   a.on.getWorldPosition(_E);
   a.el.getWorldPosition(_H);
-  const L1 = _E.distanceTo(_S), L2 = _H.distanceTo(_E);
-  _d.subVectors(_T, _S);
-  const uz = Math.min(L1 + L2 - 1e-3, Math.max(Math.abs(L1 - L2) + 1e-3, _d.length()));
-  _d.normalize();
-  const co = Math.min(1, Math.max(-1, (L1 * L1 + uz * uz - L2 * L2) / (2 * L1 * uz))), si = Math.sqrt(1 - co * co);
-  // dirsek aşağı, geride ve biraz dışta
-  _pl.copy(_up).multiplyScalar(-1).addScaledVector(_il, -.55).addScaledVector(_sg, .4);
-  _pl.addScaledVector(_d, -_pl.dot(_d)).normalize();
+  a.el.getWorldScale(_sc);
+  const L1 = _E.distanceTo(_S), L2 = _H.distanceTo(_E), dk = a.tur == 'asa' ? Math.min(1, (G.w.dash || 0) + (G.w.slide || 0)) : 0;
+  let uz = 0, co = 1, si = 0;
+  // iki geçiş: elin dönüşü ön kolun yönüne bağlı, bilek hedefi de elin dönüşüne. İlkinde tahmini ön kol yönüyle dirsek bulunur,
+  // ikincisinde elin kol ekseni gerçek ön kol yönüne (eldeki nesneye dik bileşenine) getirilir: bilek ters dönmez
+  for (let gec = 0; gec < 2; gec++) {
+    _f.addScaledVector(_s, -_f.dot(_s));
+    if (_f.lengthSq() < 1e-6) _f.copy(_ci).addScaledVector(_s, -_ci.dot(_s));
+    _f.normalize();
+    elDonus(a.h, a.a, _s, _f);
+    // bilek hedefi: yumruğun ortası tutma noktasına gelsin
+    _T.copy(a.c).multiplyScalar(_sc.x).applyQuaternion(_qR);
+    _T.subVectors(_G, _T);
+    _d.subVectors(_T, _S);
+    uz = Math.min(L1 + L2 - 1e-3, Math.max(Math.abs(L1 - L2) + 1e-3, _d.length()));
+    _d.normalize();
+    co = Math.min(1, Math.max(-1, (L1 * L1 + uz * uz - L2 * L2) / (2 * L1 * uz)));
+    si = Math.sqrt(1 - co * co);
+    _pl.copy(_cu).multiplyScalar(-1 + dk * 1.2).addScaledVector(_ci, -.55 * (1 - dk)).addScaledVector(_cs, .4 + dk * .6);
+    _pl.addScaledVector(_d, -_pl.dot(_d)).normalize();
+    if (!gec) _f.copy(_d).multiplyScalar(uz - L1 * co).addScaledVector(_pl, -L1 * si); // dirsekten bileğe
+  }
   _a1.copy(a.kol.quaternion);
   _a2.copy(a.on.quaternion);
   _a3.copy(a.el.quaternion);
@@ -677,6 +772,46 @@ function sagKol(G, a, dt, ani) {
   a.el.parent.getWorldQuaternion(_qp);
   a.el.quaternion.copy(_qp.invert().multiply(_qR));
   karistir(a);
+}
+// Alp'in kalkanı ön kola bağlıdır; kolu klip sürer. Klipler kalkanı bilmez: el nasıl dönerse kalkan da öyle döner, yüzü bacağa ya da
+// göğse bakınca kenarı gövdenin içinden geçer. Her karede kalkan ön kolun ekseni çevresinde döndürülür: yüzü gövdenin ekseninden
+// (kalça-baş doğrusu) dışarı, biraz da ileri bakar; merkezi ön kolun o yüzünde, koldan KALKAN.on kadar açıkta durur.
+const _kn = new T.Vector3(), _ke = new T.Vector3(), _kr = new T.Vector3(), _km = new T.Vector3(), _kc = new T.Vector3(), _ky = new T.Vector3(), _kq = new T.Quaternion();
+function kalkanTut(G, k, dt, ani) {
+  const h0 = G.h0;
+  k.on.updateWorldMatrix(true, false);
+  k.on.getWorldPosition(_v1);
+  k.el.getWorldPosition(_v2);
+  _ke.subVectors(_v2, _v1).normalize();
+  _km.copy(_v1).lerp(_v2, KALKAN.yer);
+  k.on.getWorldQuaternion(_kq);
+  _kr.copy(k.n0).applyQuaternion(_kq);
+  _kr.addScaledVector(_ke, -_kr.dot(_ke)).normalize();
+  // gövde ekseninde kalkana en yakın nokta
+  k.kal.getWorldPosition(_v1);
+  k.bas.getWorldPosition(_v2);
+  _d.subVectors(_v2, _v1);
+  const t = Math.min(1, Math.max(0, _kc.subVectors(_km, _v1).dot(_d) / Math.max(1e-6, _d.lengthSq())));
+  _kc.copy(_v1).addScaledVector(_d, t);
+  _kn.subVectors(_km, _kc);
+  _kn.addScaledVector(_il, _kn.length() * KALKAN.ileri);
+  _kn.addScaledVector(_ke, -_kn.dot(_ke));
+  // hedef açı: dinlenme yönünden (elin sırtı) hedef yöne, ön kolun ekseni çevresinde
+  let hedef = k.aci;
+  if (_kn.length() > h0 * .02) {
+    _kn.normalize();
+    hedef = Math.atan2(_ky.crossVectors(_kr, _kn).dot(_ke), _kr.dot(_kn));
+  }
+  let fark = hedef - k.aci;
+  fark -= Math.round(fark / (Math.PI * 2)) * Math.PI * 2;
+  k.aci += ani ? fark : fark * Math.min(1, dt * 10);
+  _kn.copy(_kr).applyAxisAngle(_ke, k.aci);
+  // kalkanın eksenleri: +Z yüz (dışarı), +X ön kol boyunca
+  _ky.crossVectors(_kn, _ke).normalize();
+  _m1.makeBasis(_ke, _ky, _kn);
+  _qR.setFromRotationMatrix(_m1);
+  k.nes.quaternion.copy(_kq.invert().multiply(_qR));
+  k.nes.position.copy(k.on.worldToLocal(_km.addScaledVector(_kn, h0 * KALKAN.on)));
 }
 // yanda sarkan sol kol: üst kol aşağı, az dışta ve geride; ön kol dirsekten hafif öne; avuç bacağa bakar
 const SOL = { ky: .16, kg: .1, oi: .22, oy: .05 };
@@ -711,4 +846,11 @@ function karistir(a) {
   a.kol.quaternion.copy(_a1.slerp(a.kol.quaternion, a.w));
   a.on.quaternion.copy(_a2.slerp(a.on.quaternion, a.w));
   a.el.quaternion.copy(_a3.slerp(a.el.quaternion, a.w));
+}
+
+// denetim: test derlemesinde tutuş ayarları adresle denenir (?asayan=.34&ategim=.25&kalkanon=.09)
+if (__KOPRU__) {
+  const q = new URLSearchParams(location.search);
+  for (const [on, o] of /** @type {[string, Record<string, number>][]} */ ([['asa', ASA], ['at', AT], ['kalkan', KALKAN]]))
+    for (const k of Object.keys(o)) if (q.get(on + k)) o[k] = +q.get(on + k);
 }
