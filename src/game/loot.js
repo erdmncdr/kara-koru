@@ -12,7 +12,7 @@ export const G_CAP = 320;
 const TYPES = ['xp', 'au', 'sv', 'hl'];
 // tür → temel ölçek ve parıltı (renk, boyut, saydamlık)
 const SPEC = {
-  xp: { s: 1, gc: 0x7fe8d6, gs: 1.5, go: .5 },
+  xp: { s: .75, gc: 0x7fe8d6, gs: 1.15, go: .5 },
   au: { s: 1, gc: 0xf0b040, gs: 1.3, go: .45 },
   sv: { s: .85, gc: 0xdfeaff, gs: 1.3, go: .4 },
   hl: { s: 1, gc: 0xff8a9c, gs: 1.8, go: .5 }
