@@ -73,6 +73,8 @@ export const $G = {
   SLS: undefined,
   VXS: undefined,
   DSRC: undefined,
+  CIZ: undefined, // donuk ekranda yeniden çizilecek kare sayısı (core/loop.js)
+  SONS: undefined, // döngünün gördüğü son durum
   T: undefined,
   kills: undefined,
   best: undefined,

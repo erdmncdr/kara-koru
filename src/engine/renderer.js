@@ -39,6 +39,7 @@ export function __init_9() {
 // piksel bütçesi: retina ve 4K ekranlarda çizilen piksel sayısı sınırlanır (ısı ve pil); yüksek ~4.2, orta ~2.1 milyon piksel
 const PXB = [0, 2.1e6, 4.2e6];
 export function rs() {
+  $G.CIZ = 3; // tuval yeniden boyutlanınca içeriği silinir: donuk ekranda da (core/loop.js) yeniden çizilsin
   const tav = SET.q == 0 ? 1 : Math.min(devicePixelRatio, SET.q == 1 ? 1.5 : 2, Math.max(1, Math.sqrt(PXB[SET.q] / Math.max(1, innerWidth * innerHeight))));
   R.setPixelRatio(tav * $G.DRK);
   R.setSize(innerWidth, innerHeight);

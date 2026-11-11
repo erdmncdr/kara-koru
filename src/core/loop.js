@@ -31,11 +31,18 @@ export function __init_78() {
   $G.last = 0;
 }
 
+// Donuk ekranlar (11 Kasım 2026): tam ekran kaplamalar açıkken sahne HİÇ çizilmez, son kare ekranda kalır. Eskiden bu
+// ekranlarda sahne saniyede 20 kare çiziliyordu: arkada takılarak akan bir dünya görünüyor, ekran kartı da menünün kendi
+// geçişleriyle paylaşılıyordu (telefonda belirgin). Dünya bellekte hazır durduğu için oyuna dönüş ya da "Oyna" anında olur.
+// Ayarlar (set) donuk değil: görüntü ayarı değişince sonucu hemen görünmeli. Bir karenin yeniden çizilmesi gerekirse
+// $G.CIZ = kare sayısı (durum değişince ve tuval yeniden boyutlanınca kendiliğinden kurulur).
+const DONUK = { otag: 1, lb: 1, help: 1, pause: 1, choice: 1, item: 1, shop: 1, kazan: 1, chalsh: 1 };
+
 export function loop(t) {
   requestAnimationFrame(loop);
-  // kare sınırı: oyunda ayar (varsayılan 60); menü ve hazır ekranında 30, diğer kaplamalarda (duraklatma, kartlar,
-  // Otağ, sıralama, ayarlar) 20 kare yeter: sahne arkada durur, tam hızda çizmek yalnız ısıtır
-  const cap = $G.S == 'play' ? SET.fps : Math.min(SET.fps || 1e3, $G.S == 'menu' || $G.S == 'ready' || $G.S == 'trans' ? 30 : 20);
+  // kare sınırı: oyunda ve ana menüde ayar (varsayılan 60; menüde kahraman döner, 30 kare takılarak görünüyordu);
+  // diğer ekranlarda 30 (ses, kumanda ve seyrek çizim için yeter)
+  const cap = $G.S == 'play' || $G.S == 'menu' ? SET.fps : Math.min(SET.fps || 1e3, 30);
   if (cap > 0 && t - $G.last < 1000 / cap - 1.5) return;
   const raw = (t - $G.last) / 1000 || 0,
     dt = Math.min(.05, raw);
@@ -83,6 +90,13 @@ export function loop(t) {
   musTick(dt, $G.S == 'play' && ($G.P.swarm || $G.P.akin > 0 || $G.E.some(e => e.t == 3)));
   ambTick(dt, $G.P ? Math.hypot($G.P.vx, $G.P.vz) : 0);
   ovUpd();
+  // donuk ekran: kamera, iskelet, sahne çizimi atlanır. Shader ısıtması sürerken (ilk saniyeler) atlanmaz: ısıtma çizime bağlı.
+  if ($G.S != $G.SONS) {
+    $G.SONS = $G.S;
+    $G.CIZ = 3; // durum değişti: son görüntü güncel kalsın diye birkaç kare daha
+  }
+  if (DONUK[$G.S] && !$G.WARMG && !($G.CIZ > 0)) return;
+  if ($G.CIZ > 0) $G.CIZ--;
   mapUpd($G.S == 'play' ? dt : dt * .5);
   {
     const lr = Math.min(1, dt * (6 + 34 * (1 - (SET.sm || 0))));
