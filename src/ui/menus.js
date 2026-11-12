@@ -19,7 +19,7 @@ import { swT } from '../game/stats.js';
 import { KZN } from '../data/denge.js';
 import { sc } from '../engine/renderer.js';
 import { qCheck, resetRun, start, achCheck } from '../game/flow.js';
-import { CR, HATS, SKINS, hatName, hero, heroIdx, rankOf, rankProg } from '../game/heroes.js';
+import { CR, HATS, SKINS, hatName, hero, heroIdx, rankOf, rankProg, skinOwn } from '../game/heroes.js';
 import { calc, newW } from '../game/stats.js';
 import { back, buildHTML, hudItems, hudSlots, STI } from './cards.js';
 import { goal } from './hud.js';
@@ -79,7 +79,7 @@ export function custHTML() {
     [cur, need] = rankProg(ci),
     skCur = $G.META.skin['cur' + ci] || '',
     sk = [`<button class="tb${skCur ? '' : ' on'}" ${A('selSkin', ci, '')}>Varsayılan</button>`].concat(SKINS.filter(s => !s.only || s.only == CR[ci].k).map(s => {
-      const own = $G.META.skin[ci + ':' + s.k],
+      const own = skinOwn(ci, s.k),
         ok = s.f(ci);
       return `<button class="tb${skCur == s.k ? ' on' : ''}" ${own || ok ? '' : 'disabled'} title="${s.d}${own ? '' : ok ? ` · ${s.cost} gümüş` : ''}" ${own ? A('selSkin', ci, s.k) : A('buySkin', ci, s.k)}>${s.n}${own ? '' : ok ? ` <small>${s.cost}</small>` : ''}</button>`;
     })).join(''),
@@ -92,7 +92,7 @@ export function custHTML() {
 }
 
 export function selSkin(ci, k) {
-  if (k && !$G.META.skin[ci + ':' + k]) return;
+  if (k && !skinOwn(ci, k)) return;
   $G.META.skin['cur' + ci] = k;
   saveMeta();
   sfx('ui');

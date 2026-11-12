@@ -129,6 +129,8 @@ export function heroOn(ci) {
   return !!CR[ci] && !CR[ci].off;
 }
 
+// kostüm oyuncunun mu: satın alınmış ya da herkese açık
+export const skinOwn = (ci, k) => !!($G.META.skin[ci + ':' + k] || (SKINS.find(s => s.k == k) || {}).free);
 export const SKINS = [
   { k: 'gold', n: 'Altın', d: 'Rütbe 100', cost: 4, f: ci => rankOf(ci) >= 100 },
   { k: 'dark', n: 'Kara', d: 'Bu karakterle 15.000 öldürme', cost: 1, f: ci => cnt('kc' + ci) >= 15000 },
@@ -138,11 +140,12 @@ export const SKINS = [
   // Kızıl ve Beyaz eskiden yalnız Şahmeran'ındı; Şahmeran kadrodan çıkınca Anka'ya geçti
   { k: 'red', n: 'Kızıl', d: 'Anka ile 50.000 öldürme', cost: 4, only: 'anka', f: ci => cnt('kc' + ci) >= 50000 },
   { k: 'white', n: 'Beyaz', d: 'Anka ile 100.000 öldürme', cost: 4, only: 'anka', f: ci => cnt('kc' + ci) >= 100000 },
-  // Kemik'in ayrı modelli kostümleri (engine/glbhero.js URLS.kemik.kostum): renk değişimi değil, başka gövde
-  { k: 'ayaz', n: 'Ayaz', d: 'Kemik ile 2.500 öldürme', cost: 6, only: 'kemik', f: ci => cnt('kc' + ci) >= 2500 },
-  { k: 'akinci', n: 'Ölü Akıncı', d: 'Kemik ile 7.500 öldürme', cost: 6, only: 'kemik', f: ci => cnt('kc' + ci) >= 7500 },
-  { k: 'saman', n: 'Kam İskelet', d: 'Kemik ile rütbe 10', cost: 6, only: 'kemik', f: ci => rankOf(ci) >= 10 },
-  { k: 'erlik', n: 'Erlik Elçisi', d: 'Kemik ile rütbe 25', cost: 6, only: 'kemik', f: ci => rankOf(ci) >= 25 }
+  // Kemik'in ayrı modelli kostümleri (engine/glbhero.js URLS.kemik.kostum): renk değişimi değil, başka gövde.
+  // free: herkese açık (koşul ve gümüş yok; Erdem 12 Kasım 2026'da böyle istedi): satın alınmış sayılır (skinOwn)
+  { k: 'ayaz', n: 'Ayaz', d: 'Herkese açık', cost: 0, only: 'kemik', free: 1, f: () => true },
+  { k: 'akinci', n: 'Ölü Akıncı', d: 'Herkese açık', cost: 0, only: 'kemik', free: 1, f: () => true },
+  { k: 'saman', n: 'Kam İskelet', d: 'Herkese açık', cost: 0, only: 'kemik', free: 1, f: () => true },
+  { k: 'erlik', n: 'Erlik Elçisi', d: 'Herkese açık', cost: 0, only: 'kemik', free: 1, f: () => true }
 ];
 
 // Mahzen kostümü saniye eşikleri (Megabonk crypt skins)
