@@ -1,6 +1,7 @@
 // game/creatures.js · Kara Koru
 // Bu dosya tek dosyalık sürümden (v22) otomatik ayrıldı. Ortak oyun durumu core/store.js içindeki $G nesnesinde.
 
+import { glbBossBirak } from '../engine/glbboss.js';
 import { $G } from '../core/store.js';
 import { SET } from '../core/settings.js';
 import { THREE } from '../engine/three.js';
@@ -84,6 +85,7 @@ export function mkE(t, fin, kd) {
 // Kullanılmış modeli sıfırlayıp havuza koyar. Havuz doluysa iskeleti bırakır.
 export function freeE(u) {
   if (!u) return;
+  if (u.glb) glbBossBirak(u); // boss modeli sökülür, eski gövde parçaları geri açılır
   if (!u.key) {
     skFree(u);
     return;

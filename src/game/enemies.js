@@ -1,6 +1,7 @@
 // game/enemies.js · Kara Koru
 // Bu dosya tek dosyalık sürümden (v22) otomatik ayrıldı. Ortak oyun durumu core/store.js içindeki $G nesnesinde.
 
+import { glbBoss } from '../engine/glbboss.js';
 import { $G } from '../core/store.js';
 import { SET } from '../core/settings.js';
 import { THREE } from '../engine/three.js';
@@ -164,6 +165,7 @@ export function spawn(t, o = {}) {
   };
   stInit(en);
   $G.E.push(en);
+  if (o.boss && o.bp) glbBoss(en); // Meshy modeli (engine/glbboss.js): inince eski gövdenin yerine geçer
 }
 
 export function __init_63() {

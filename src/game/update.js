@@ -1,6 +1,8 @@
 // game/update.js · Kara Koru
 // Bu dosya tek dosyalık sürümden (v22) otomatik ayrıldı. Ortak oyun durumu core/store.js içindeki $G nesnesinde.
 
+import { BOSSP } from '../data/enemies.js';
+import { glbBossHazirla, glbBossOl, glbBossTick } from '../engine/glbboss.js';
 import { $G } from '../core/store.js';
 import { sfx, sfxAt } from '../audio/engine.js';
 import { kill, rmE, toast, tip } from '../core/helpers.js';
@@ -978,6 +980,7 @@ export function upd(dt) {
         ANIM.cr(U, e.t, st, e.adt);
         e.adt = 0;
       }
+      if (U.glb) glbBossTick(e, dt, Math.hypot(mvx, mvz) * s);
     }
     if (e.t == 3 && act && !(e.kd && e.kd.fx && e.kd.fx.kefen)) {
       bossTick(e, dt, d, dx, dz);
@@ -1225,6 +1228,11 @@ export function upd(dt) {
   $G.P.qt -= dt;
   if ($G.P.qt <= 0) {
     $G.P.qt = 1;
+    // aşamanın boss modeli önceden iner (boss gelince eski gövde görünmesin)
+    if ($G.P.stT > 8 && $G.P.bhz !== $G.P.map + $G.P.stage) {
+      $G.P.bhz = $G.P.map + $G.P.stage;
+      glbBossHazirla(((BOSSP[$G.P.map] || BOSSP.koru)[0] || {}).k);
+    }
     qCheck();
   }
   if ($G.S == 'play' && $G.P.xp >= $G.P.need) {
@@ -1314,7 +1322,8 @@ export function fxUpd(dt) {
       st.dead = Math.min(1, k / .3);
       st.fly = 0;
       const fall = Math.min(1, k / .45);
-      d.m.rotation.x = fall * fall * 1.35;
+      // Meshy modelli boss kendi devrilme klibini oynar; eski gövde öne yatırılır
+      if (!glbBossOl(d.u, k, dt)) d.m.rotation.x = fall * fall * 1.35;
       if (!d.hit && fall >= 1) {
         d.hit = 1;
         $G.shk = Math.max($G.shk, 1.2);
