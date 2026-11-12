@@ -5,8 +5,8 @@
 //
 // Oyun boss'u hâlâ eski gövdeyle kurar (game/creatures.js mkE: çarpışma, ölçek, havuz ona bağlı). Model inince eski gövde
 // gizlenir (çoklu çizim yuvası bırakılır, kemiğe bağlı parçalar saklanır), GLB aynı boya ölçeklenip gövdenin altına takılır.
-// Hareketler oyunun boss durumundan sürülür: yürüme hıza göre, yere vurma ve yakın vuruş oyunun kendi sayaçlarına eşlenir
-// (vuruş anı klipteki vuruş karesine denk gelir), hücumda koşu, gelişte kükreme, ölümde devrilme.
+// Hareketler oyunun boss durumundan sürülür: yürüme hıza göre; yere vurma oyunun 0,9 sn'lik sayacına, savurma mermi halkasının
+// sayacına eşlenir (vuruş anı klipteki vuruş karesine denk gelir); hücumda koşu, gelişte kükreme, ölümde devrilme.
 // Gövde havuza dönerken (freeE) model sökülür ve eski parçalar geri açılır. Yüklenemezse eski gövde kalır.
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as T from 'three';
@@ -122,12 +122,12 @@ export function glbBoss(e) {
     for (const [ad, c] of Object.entries(K.C)) {
       if (!c) continue;
       const y = ad == 'bekle' ? uyar(c) : uyar(c);
-      A[ad] = mixer.clipAction(ad == 'kukre' ? new T.AnimationClip('kukre_ust', y.duration, y.tracks.filter(t => UST.test(t.name))) : y);
+      A[ad] = mixer.clipAction(ad == 'kukre' || ad == 'vurus' ? new T.AnimationClip(ad + '_ust', y.duration, y.tracks.filter(t => UST.test(t.name))) : y);
       A[ad].play();
       A[ad].setEffectiveWeight(0);
     }
     for (const ad of ['slam', 'vurus', 'kukre', 'ol']) if (A[ad]) A[ad].timeScale = 0;
-    u.glb = { root, mixer, A, gizli, gozler, w: { bekle: 1 }, t: 0, kukre: 0, slamT: 9, vurT: 9, mats: [], h: hY };
+    u.glb = { root, mixer, A, gizli, gozler, w: { bekle: 1 }, t: 0, kukre: 0, slamT: 9, vurT: 9.5, mats: [], h: hY };
     root.traverse(o => { if (o.isMesh) u.glb.mats.push(o.material); });
     if (__KOPRU__) /** @type {any} */ (window).__boss = u.glb;
   }).catch(err => {
@@ -156,7 +156,7 @@ export function glbBossBirak(u) {
 }
 
 const sm = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
-const ANA = ['bekle', 'yuru', 'kos', 'slam', 'vurus', 'ol'];
+const ANA = ['bekle', 'yuru', 'kos', 'slam', 'ol'];
 function karis(G, hedef, dt, hiz = 9) {
   const k = 1 - Math.exp(-hiz * dt);
   for (const ad of ANA) {
@@ -182,19 +182,20 @@ export function glbBossTick(e, dt, s) {
     A.slam.time = Math.min(AN.slam.son, AN.slam.vur + G.slamT);
   }
   const slamW = e.slam > 0 ? 1 : 1 - sm(.15, AN.slam.son - AN.slam.vur, G.slamT);
-  // yakın vuruş: st.atk 0 → 0,66 klibin [bas, vur] aralığı
-  const atk = e.ak > 0 ? Math.min(.99, e.ak * 1.12) : 0;
-  if (atk > 0) {
+  // savurma (üst gövdede, bacaklar yürümeye devam eder): boss'un mermi halkası sayacına eşlenir. Halka atılmadan VUR_ON sn önce kol
+  // kalkar, halka çıktığı anda iner; sonra klip kendi hızında biter. (Eski gövdede halka hareketsiz çıkıyordu.)
+  const VUR_ON = .7;
+  if (e.sh > 0 && e.sh < VUR_ON && e.slam <= 0) {
     G.vurT = 0;
-    A.vurus.time = atk < .66 ? AN.vurus.bas + atk / .66 * (AN.vurus.vur - AN.vurus.bas) : Math.min(AN.vurus.son, AN.vurus.vur + (atk - .66) * 1.6);
+    A.vurus.time = AN.vurus.bas + (1 - e.sh / VUR_ON) * (AN.vurus.vur - AN.vurus.bas);
   } else if (G.vurT < 9) {
     G.vurT += dt;
-    A.vurus.time = Math.min(AN.vurus.son, A.vurus.time + dt);
+    A.vurus.time = Math.min(AN.vurus.son, AN.vurus.vur + G.vurT);
   }
-  const vurW = atk > 0 ? 1 : 1 - sm(.1, .5, G.vurT);
+  const vurW = (G.vurT == 0 ? sm(VUR_ON, VUR_ON - .2, e.sh) : 1 - sm(.1, .45, G.vurT)) * (1 - slamW);
+  A.vurus.setEffectiveWeight(vurW);
   if (slamW > .01) hedef.slam = slamW;
-  else if (vurW > .01) hedef.vurus = vurW;
-  const kalan = 1 - Math.max(hedef.slam || 0, hedef.vurus || 0);
+  const kalan = 1 - (hedef.slam || 0);
   // yürüme ve hücum: hız boss'un ölçeğine bölünür (klibin ayak hızı boy başına)
   const boyHiz = s / Math.max(.1, G.h * e.ba), kosuyor = e.spm > 1.5 && s > 0;
   if (kosuyor) {
@@ -211,7 +212,7 @@ export function glbBossTick(e, dt, s) {
   if (A.kukre) {
     const kt = G.t, w = kt < AN.kukre.sure ? sm(0, .25, kt) * (1 - sm(AN.kukre.sure - .4, AN.kukre.sure, kt)) : 0;
     A.kukre.time = Math.min(A.kukre.getClip().duration - .01, AN.kukre.bas + kt);
-    A.kukre.setEffectiveWeight(w * (1 - Math.max(hedef.slam || 0, hedef.vurus || 0)));
+    A.kukre.setEffectiveWeight(w * (1 - Math.max(hedef.slam || 0, vurW)));
   }
   // darbe: kısa parlama (eski gövdedeki vuruş flaşının karşılığı)
   const hit = e.hr > 0 ? Math.min(1, e.hr / .2) : 0;
@@ -230,6 +231,7 @@ export function glbBossOl(u, k, dt) {
   if (!A.ol) return false;
   for (const ad of ANA) if (A[ad]) A[ad].setEffectiveWeight(ad == 'ol' ? 1 : 0);
   if (A.kukre) A.kukre.setEffectiveWeight(0);
+  if (A.vurus) A.vurus.setEffectiveWeight(0);
   A.ol.time = Math.min(A.ol.getClip().duration - .02, k / .6 * A.ol.getClip().duration);
   if (G.hit) { G.hit = 0; for (const m of G.mats) m.emissiveIntensity = .18; }
   G.mixer.update(dt);

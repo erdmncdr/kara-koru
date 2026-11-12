@@ -25,7 +25,7 @@ await sleep(900); await kare('1_kukre');
 await sleep(2600); await kare('2_yuru');
 await pg.evaluate(() => { window.__b.slam = .9; }); await sleep(450); await kare('3_slam_kalkis'); await sleep(520); await kare('4_slam_vurus');
 await sleep(1500);
-await pg.evaluate(() => { const b = window.__b; b.ak = 1e-4; b.akH = 0; b.akC = 9; }); await sleep(330); await kare('5_vurus_kalkis'); await sleep(300); await kare('6_vurus_inis');
+await pg.evaluate(() => { const b = window.__b, fx = -Math.sin(yaw), fz = -Math.cos(yaw); b.m.position.x = P.x + fx * 16; b.m.position.z = P.z + fz * 16; b.sh = .7; }); await sleep(480); await kare('5_vurus_kalkis'); await sleep(330); await kare('6_vurus_inis'); await pg.evaluate(() => { window.__b.sh = 99; });
 await sleep(1500);
 await pg.evaluate(() => { const b = window.__b, fx = -Math.sin(yaw), fz = -Math.cos(yaw); b.m.position.x = P.x + fx * 26; b.m.position.z = P.z + fz * 26; b.spm = 4; }); await sleep(500); await kare('7_hucum');
 await pg.evaluate(() => { const b = window.__b; b.spm = 1; hurtE(b, 1e12, 1); }); await sleep(700); await kare('8_olum_1'); await sleep(900); await kare('9_olum_2');
