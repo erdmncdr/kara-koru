@@ -12,6 +12,7 @@ import { gyInit } from './graveyard.js';
 import { chalFlag } from './challenge.js';
 import { clamp, rn } from '../core/util.js';
 import { PUD, SHC } from '../data/content.js';
+import { art } from '../ui/icons.js';
 import { spawn } from './enemies.js';
 import { chestBeam } from '../engine/gfx.js';
 import { BM, BMc, VMAT, envG, gCn, gSp, glow, mk, sc } from '../engine/renderer.js';
@@ -350,7 +351,9 @@ export function brkBuild() {
 // ---- yerdeki güçlerin ağları. Her gücün kendi şekli var; tek ağ, köşe renkli, ilk istendiğinde kurulur.
 // Güçler ışıksız çizilir (gece ve gölgede de okunsun); biçim, köşe rengine işlenen sabit bir üst ışıkla verilir (golgele).
 const GUC = {}, GISIK = new THREE.Vector3(.3, .85, .43).normalize();
-let mGuc = null, mLah = null;
+let mGuc = null, mLahS = null;
+// yerdeki lahmacunun dünya boyu (birim)
+export const LAH_BOY = 1.25;
 // parçayı boyar: hex gövde rengi; hexYuz verilirse ±z'ye bakan yüzler o renkte (yassı parçaların ön ve arka yüzü)
 function boya(g, hex, hexYuz) {
   if (g.index) g = g.toNonIndexed();
@@ -430,20 +433,6 @@ const GUCAG = {
     };
     dil(.34, 2.9, 0, 0, 0, -.36, 0xffd84a);
     [0xff8a2a, 0xf2562a, 0xff7028].forEach((c, i) => dil(.25, 2.4, .38, .5 + i * 2.0944, .27, -.44, c));
-  },
-  // Lahmacun (Lahmacun eşyasının bıraktığı yiyecek): ince hamur, kızarmış kenar, kıymalı üst, maydanoz ve domates, limon dilimi.
-  // Eğik durur: kendi çevresinde dönerken yüzü kameraya görünür. Güç değil yiyecek: ışıklı malzemeyle çizilir (mLah).
-  heal(ek) {
-    const P = [], e = (g, c) => P.push(boya(g, c));
-    e(new THREE.CylinderGeometry(.82, .78, .07, 22), 0xedca8e);
-    e(new THREE.TorusGeometry(.8, .06, 6, 22).rotateX(Math.PI / 2), 0xc98f4a);
-    e(sil(.69, .03, 20).translate(0, .045, 0), 0xb8432a);
-    for (let i = 0; i < 9; i++) {
-      const a = i * 2.4, r = .16 + i % 3 * .2;
-      e(kutu(.15, .035, .1).rotateY(a * 1.7).translate(Math.cos(a) * r, .07, Math.sin(a) * r), i % 3 == 2 ? 0xf06a3a : 0x55a83c);
-    }
-    e(new THREE.CylinderGeometry(.24, .24, .1, 8, 1, false, 0, Math.PI).rotateY(.6).translate(.4, .1, .22), 0xf6dc4e);
-    for (const g of P) ek(g.rotateX(.8));
   }
 };
 function gucAgi(t) {
@@ -453,16 +442,30 @@ function gucAgi(t) {
   const g = mergeGeometries(P, false);
   if (!mGuc) {
     mGuc = new THREE.MeshBasicMaterial({ vertexColors: true });
-    mLah = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .8, emissive: 0x2a1408 });
   }
-  return GUC[t] = t == 'heal' ? g : golgele(g);
+  return GUC[t] = golgele(g);
 }
 
 export function mkPU(x, z, t, fy) {
-  const yemek = t == 'heal',
-    m = mk(gucAgi(t), yemek ? mLah : mGuc, x, fy + 1.2, z);
-  // ışıma zayıf: ağın kendisi okunsun (yiyecekte sıcak renk)
-  glow(yemek ? 0xffb070 : PUD[t].c, yemek ? 2.6 : 3, m, .3);
+  let m;
+  if (t == 'heal') {
+    // Lahmacun (Lahmacun eşyasının bıraktığı yiyecek): eşyanın boyalı resmi, yüzü hep kameraya bakar. Eskiden kodla kurulmuş
+    // yassı bir diskti: dönerken çoğu zaman kenarı ya da altı görünüyor, kahverengi bir tabak gibi duruyordu.
+    if (!mLahS) {
+      const tx = new THREE.TextureLoader().load(art('i_lahmacun'));
+      tx.colorSpace = THREE.SRGBColorSpace;
+      mLahS = new THREE.SpriteMaterial({ map: tx, transparent: true, alphaTest: .3, fog: true });
+    }
+    m = new THREE.Sprite(mLahS);
+    m.position.set(x, fy + 1.2, z);
+    m.scale.setScalar(LAH_BOY);
+    sc.add(m);
+    glow(0xffb070, 1.5, m, .28);
+  } else {
+    m = mk(gucAgi(t), mGuc, x, fy + 1.2, z);
+    // ışıma zayıf: ağın kendisi okunsun
+    glow(PUD[t].c, 3, m, .3);
+  }
   $G.PU.push({
     m,
     t,

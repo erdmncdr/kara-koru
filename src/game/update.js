@@ -653,6 +653,7 @@ export function upd(dt) {
         continue;
       }
       u.m.visible = u.om > YER_SON || Math.sin(u.om * 14) > -.2;
+      u.m.material.rotation = Math.sin($G.T * 2.2) * .12; // resim hafifçe sallanır (dönmez: yüzü kameraya bakar)
     }
     u.m.rotation.y += dt * 2;
     q.y = u.by + 1.2 + Math.sin($G.T * 3) * .2;
