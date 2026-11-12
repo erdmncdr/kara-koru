@@ -6,7 +6,7 @@
 import './yonetim.css';
 import { CARPANLAR, GRUPLAR, SEMA, semaDeger } from '../data/ayar-sema.js';
 import { BOSSP, KINDS } from '../data/enemies.js';
-import { G1, G2, cizgi, cubuk, sayi, yatay } from './grafik.js';
+import { G1, G2, cizgi, cubuk, kivilcim, sayi, yatay } from './grafik.js';
 
 const BASE = String((import.meta.env && import.meta.env.VITE_SUPABASE_URL) || '').replace(/\/+$/, ''),
   KEY = (import.meta.env && import.meta.env.VITE_SUPABASE_ANON_KEY) || '';
@@ -14,6 +14,18 @@ const $ = id => document.getElementById(id);
 const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const KAHRAMAN = { 0: 'Alp', 1: 'Kam', 2: 'Gölge', 3: 'Bahadır', 8: 'Kemik', 16: 'Anka', 17: 'Çalı', 18: 'Tulpar' };
 const kahraman = c => KAHRAMAN[c] || 'Kahraman ' + c;
+// kahraman portreleri (oyunun kendi ikonları): tablolarda adın yanında
+const PORTRE = Object.fromEntries(Object.entries({ 0: 'alp', 1: 'kam', 2: 'golge', 3: 'bahadir', 8: 'kemik', 16: 'anka', 17: 'cali', 18: 'tulpar' }).map(([c, k]) => [c, new URL(`../assets/ikon/h_${k}.webp`, import.meta.url).href]));
+const kahHTML = c => `<span class="kah">${PORTRE[c] ? `<img src="${PORTRE[c]}" alt="" width="26" height="26" loading="lazy">` : '<i></i>'}${esc(kahraman(c))}</span>`;
+// bölüm ve nabız ikonları (24 birimlik çizgi ikon)
+const IK = {
+  genel: 'M3 12h4l2.5-7 4 14 2.5-7h5', denge: 'M4 7h9M17 7h3M4 17h3M11 17h9M15 4.5v5M9 14.5v5', etkinlik: 'M12 3c1 4 5.5 5.5 5.5 10.5a5.5 5.5 0 0 1-11 0c0-2 1-3.4 2.2-4.5.2 2 1 3 2 3.2-.3-3-.7-5.7 1.3-9.2z',
+  oyuncu: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4.5 20c.8-3.8 3.6-5.6 7.5-5.6s6.700 1.800 7.5 5.6', kosu: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7.500v5l3.200 2',
+  sezon: 'M4 8.500l4 4 4-7.500 4 7.500 4-4-1.800 9.500H5.800zM6 20.500h12', sistem: 'M12 3l7.500 3v5.500c0 4.300-3 7.600-7.500 9.500-4.500-1.900-7.500-5.200-7.500-9.500V6zM9 12l2.200 2.200L15.500 10',
+  hesap: 'M8.500 11a3.500 3.500 0 1 0 0-7 3.500 3.500 0 0 0 0 7zM2.500 19.500c.6-3.300 2.900-5 6-5s5.400 1.700 6 5M16 4.200a3.500 3.500 0 0 1 0 6.600M17.500 14.700c2.300.5 3.700 2.100 4.100 4.800',
+  sure: 'M12 21a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM12 9v4.500M9.500 2.500h5', ret: 'M12 3l9 16H3zM12 10v4.500M12 17.200v.3'
+};
+const ikon = k => `<svg class="ik" viewBox="0 0 24 24" aria-hidden="true"><path d="${IK[k]}" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const SAYFALAR = [['genel', 'Genel bakış'], ['denge', 'Denge'], ['etkinlik', 'Etkinlikler'], ['oyuncu', 'Oyuncular'], ['kosu', 'Koşular'], ['sezon', 'Sezon'], ['sistem', 'Sistem']];
 const ASAMA = ['Kara Koru', 'Kızıl Bozkır', 'Mühürlü Mahzen', 'Bitirdi'];
 
@@ -155,24 +167,33 @@ function genelHTML() {
   if (!o) return basHTML('Genel bakış', 'Oyunun nabzı.') + '<div class="bos">Yükleniyor…</div>';
   const gk = g => new Date(g + 'T12:00:00').toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
   const kosuTop = o.kahraman.reduce((a, k) => a + k.kosu, 0) || 1, enK = Math.max(1, ...o.kahraman.map(k => k.kosu));
+  const egilim = alan => {
+    const g = o.gunluk.map(x => x[alan]);
+    if (g.length < 14) return '';
+    const son = g.slice(-7).reduce((a, b) => a + b, 0), onc = g.slice(-14, -7).reduce((a, b) => a + b, 0);
+    if (!onc) return '';
+    const y = Math.round((son - onc) / onc * 100);
+    return `<span class="egl ${y > 0 ? 'art' : y < 0 ? 'az' : ''}" title="Son 7 gün ${sayi(son)}, önceki 7 gün ${sayi(onc)}">${y > 0 ? '▲' : y < 0 ? '▼' : '■'} %${Math.abs(y)} <small>önceki 7 güne göre</small></span>`;
+  };
   const asama = [0, 1, 2, 3].map(s => ({ e: ASAMA[s], d: (o.asama.find(a => a.s == s) || { n: 0 }).n, renk: s == 3 ? G2 : G1 }));
   return basHTML('Genel bakış', `Son ${o.gun} günün koşu kayıtlarından. Reddedilen koşular dağılımlara girmez.`, secHTML('gun', D.gun, [[7, '7 gün'], [14, '14 gün'], [30, '30 gün']]))
     + `<div class="izg">
 <div class="kutu nabiz">
-  <div><b>${sayi(o.kosu_24)}</b><span>koşu</span><small>son 24 saat</small></div>
-  <div><b>${sayi(o.oyuncu_24)}</b><span>oyuncu</span><small>son 24 saat</small></div>
-  <div><b>${sayi(o.oyuncu_7)}</b><span>oyuncu</span><small>son 7 gün</small></div>
-  <div><b>${sayi(o.hesap)}</b><span>hesap</span><small>${o.hesap_24 ? '+' + sayi(o.hesap_24) + ' son 24 saatte' : 'toplam'}</small></div>
-  <div><b>${sure(o.sure).replace(/ \d+ sn$/, '')}</b><span>ortanca koşu süresi</span><small>son ${o.gun} gün</small></div>
-  <div><b style="${o.ret ? 'color:var(--kor)' : ''}">${sayi(o.ret)}</b><span>reddedilen skor</span><small>${o.ret ? 'Koşular sayfasında incele' : 'şüpheli deneme yok'}</small></div>
+  ${[['genel', 'altin', sayi(o.kosu_24), o.kosu_24, 'koşu', 'son 24 saat', kivilcim(o.gunluk.map(g => g.kosu), '#ffb92e')],
+    ['oyuncu', 'ruh', sayi(o.oyuncu_24), o.oyuncu_24, 'oyuncu', 'son 24 saat', kivilcim(o.gunluk.map(g => g.oyuncu), '#25e2c2')],
+    ['oyuncu', 'gok', sayi(o.oyuncu_7), o.oyuncu_7, 'oyuncu', 'son 7 gün', ''],
+    ['hesap', 'erguvan', sayi(o.hesap), o.hesap, 'hesap', o.hesap_24 ? '+' + sayi(o.hesap_24) + ' son 24 saatte' : 'toplam', kivilcim(o.gunluk.map(g => g.yeni), '#b57bff')],
+    ['sure', 'yosun', sure(o.sure).replace(/ \d+ sn$/, ''), null, 'ortanca koşu süresi', 'son ' + o.gun + ' gün', ''],
+    ['ret', o.ret ? 'kor' : 'sus', sayi(o.ret), o.ret, 'reddedilen skor', o.ret ? 'Koşular sayfasında incele' : 'şüpheli deneme yok', '']
+  ].map(([ic, rk, yazi, say, ad, alt, kv]) => `<div class="nb r-${rk}"><span class="ni">${ikon(ic)}</span><b${say != null ? ` data-say="${say}"` : ''}>${yazi}</b><span>${ad}</span><small>${alt}</small>${kv}</div>`).join('')}
 </div>
 <div class="izg iki">
-  <div class="kutu"><h2>Günlük koşu</h2><p>Biten koşu sayısı (Türkiye saatiyle gün).</p>${cubuk(o.gunluk.map(g => ({ e: gk(g.gun), d: g.kosu, ip: gk(g.gun) + '\n' + sayi(g.kosu) + ' koşu' })), { ad: 'Günlük koşu sayısı' })}</div>
-  <div class="kutu"><h2>Günlük oyuncu</h2><p>O gün en az bir koşu bitiren hesap; yeni kayıtlar ipucunda.</p>${cubuk(o.gunluk.map(g => ({ e: gk(g.gun), d: g.oyuncu, ip: gk(g.gun) + '\n' + sayi(g.oyuncu) + ' oyuncu\n' + sayi(g.yeni) + ' yeni hesap' })), { renk: G2, ad: 'Günlük oyuncu sayısı' })}</div>
+  <div class="kutu"><h2>Günlük koşu ${egilim('kosu')}</h2><p>Biten koşu sayısı (Türkiye saatiyle gün).</p>${cubuk(o.gunluk.map(g => ({ e: gk(g.gun), d: g.kosu, ip: gk(g.gun) + '\n' + sayi(g.kosu) + ' koşu' })), { ad: 'Günlük koşu sayısı' })}</div>
+  <div class="kutu"><h2>Günlük oyuncu ${egilim('oyuncu')}</h2><p>O gün en az bir koşu bitiren hesap; yeni kayıtlar ipucunda.</p>${cubuk(o.gunluk.map(g => ({ e: gk(g.gun), d: g.oyuncu, ip: gk(g.gun) + '\n' + sayi(g.oyuncu) + ' oyuncu\n' + sayi(g.yeni) + ' yeni hesap' })), { renk: G2, ad: 'Günlük oyuncu sayısı' })}</div>
 </div>
 <div class="kutu"><h2>Kahramanlar</h2><p>Hangi kahraman ne kadar oynanıyor ve ne kadar ileri gidiyor. Ortanca: koşuların yarısı bunun altında.</p>
   <div class="tk"><table class="tb"><thead><tr><th>Kahraman</th><th>Koşu</th><th class="s">Pay</th><th class="s">Ort. seviye</th><th class="s">Ortanca öldürme</th><th class="s">Ortanca süre</th><th class="s">Bitirme</th><th class="s">En yüksek skor</th><th class="s">En yüksek seviye</th></tr></thead><tbody>
-  ${o.kahraman.map(k => `<tr><td><b>${esc(kahraman(k.c))}</b></td><td><i class="cb" style="width:${Math.max(3, k.kosu / enK * 120)}px"></i>${sayi(k.kosu)}</td><td class="s">%${Math.round(k.kosu / kosuTop * 100)}</td><td class="s">${sayi(k.lv)}</td><td class="s">${sayi(k.k)}</td><td class="s">${sure(k.t)}</td><td class="s">%${Math.round(k.zafer / Math.max(1, k.kosu) * 100)}</td><td class="s">${sayi(k.enk)}</td><td class="s">${sayi(k.enlv)}</td></tr>`).join('') || '<tr><td colspan="9" class="bos">Bu aralıkta koşu yok.</td></tr>'}
+  ${o.kahraman.map(k => `<tr><td><b>${kahHTML(k.c)}</b></td><td><i class="cb" style="--w:${Math.max(3, k.kosu / enK * 120)}px;--i:${o.kahraman.indexOf(k)}"></i>${sayi(k.kosu)}</td><td class="s">%${Math.round(k.kosu / kosuTop * 100)}</td><td class="s">${sayi(k.lv)}</td><td class="s">${sayi(k.k)}</td><td class="s">${sure(k.t)}</td><td class="s">%${Math.round(k.zafer / Math.max(1, k.kosu) * 100)}</td><td class="s">${sayi(k.enk)}</td><td class="s">${sayi(k.enlv)}</td></tr>`).join('') || '<tr><td colspan="9" class="bos">Bu aralıkta koşu yok.</td></tr>'}
   </tbody></table></div></div>
 <div class="izg uc">
   <div class="kutu"><h2>Koşu sonu seviyesi</h2><p>Koşular hangi seviyede bitiyor (onar seviyelik dilimler).</p>${cubuk(o.seviye.map(s => ({ e: String(s.b), d: s.n, ip: `Seviye ${s.b}–${s.b + 9}\n${sayi(s.n)} koşu` })), { yuk: 210, ad: 'Koşu sonu seviye dağılımı' })}</div>
@@ -198,7 +219,7 @@ function egriHTML() {
 const ayrHTML = s => {
   const v = D.taslak[s.id], deg = v !== D.yayin[s.id];
   return `<div class="ayr${deg ? ' deg' : ''}" id="ayr_${s.id}"><span class="ad">${esc(s.ad)}${deg ? '<i title="Yayınlanmamış değişiklik"></i>' : ''}</span>
-<input type="range" min="${s.min}" max="${s.max}" step="${s.adim}" value="${v}" data-ay="${s.id}" aria-label="${esc(s.ad)}">
+<input type="range" min="${s.min}" max="${s.max}" step="${s.adim}" value="${v}" data-ay="${s.id}" aria-label="${esc(s.ad)}" style="--d:${((v - s.min) / (s.max - s.min) * 100).toFixed(1)}%">
 <input type="number" class="girdi" min="${s.min}" max="${s.max}" step="${s.adim}" value="${v}" data-ay="${s.id}" aria-label="${esc(s.ad)} (${esc(s.birim)})">
 ${s.acik ? `<p>${esc(s.acik)}</p>` : '<p></p>'}<span class="kod">${v !== s.vars ? `koddaki değer ${ondalik(s.vars, s.adim)} · <button data-a="kod" data-d="${s.id}">geri al</button>` : 'koddaki değerde'}</span></div>`;
 };
@@ -228,7 +249,7 @@ function dengeDegis(id, ham_, kaynak) {
   D.taslak[id] = Math.round(v / s.adim) * s.adim;
   D.taslak[id] = +D.taslak[id].toFixed(4);
   const satir = $('ayr_' + id);
-  for (const i of satir.querySelectorAll('input')) if (i !== kaynak) i.value = String(D.taslak[id]);
+  for (const i of satir.querySelectorAll('input')) { if (i !== kaynak) i.value = String(D.taslak[id]); if (i.type == 'range') i.style.setProperty('--d', ((D.taslak[id] - s.min) / (s.max - s.min) * 100).toFixed(1) + '%'); }
   const deg = D.taslak[id] !== D.yayin[id];
   satir.classList.toggle('deg', deg);
   satir.querySelector('.ad').innerHTML = esc(s.ad) + (deg ? '<i title="Yayınlanmamış değişiklik"></i>' : '');
@@ -301,7 +322,7 @@ function oyuncuTabloHTML() {
   if (!l) return '<div class="bos">Yükleniyor…</div>';
   if (!l.length) return `<div class="bos">${D.ara ? '“' + esc(D.ara) + '” ile eşleşen oyuncu yok.' : 'Henüz hesap yok.'}</div>`;
   return `<div class="tk"><table class="tb"><thead><tr><th>Oyuncu</th><th class="s">En iyi skor</th><th class="s">Seviye</th><th>Kahraman</th><th class="s">Koşu</th><th class="s">Reddedilen</th><th>Son koşu</th><th>Kayıt</th></tr></thead><tbody>
-${l.map(o => `<tr class="tik${D.secili && D.secili.id == o.id ? ' secili' : ''}" tabindex="0" data-a="oyuncu" data-d="${o.id}"><td><b>${esc(o.ad)}</b> ${durumRozet(o)}</td><td class="s">${o.k != null ? sayi(o.k) : '<span class="sol">yok</span>'}</td><td class="s">${o.k != null ? sayi(o.lv) : ''}</td><td>${o.k != null ? esc(kahraman(o.c)) : ''}</td><td class="s">${sayi(o.kosu)}</td><td class="s">${o.ret ? `<span class="rozet kor">${o.ret}</span>` : '0'}</td><td>${o.son ? zaman(o.son) : '<span class="sol">hiç</span>'}</td><td>${zaman(o.olus)}</td></tr>`).join('')}</tbody></table></div>`;
+${l.map(o => `<tr class="tik${D.secili && D.secili.id == o.id ? ' secili' : ''}" tabindex="0" data-a="oyuncu" data-d="${o.id}"><td><b>${esc(o.ad)}</b> ${durumRozet(o)}</td><td class="s">${o.k != null ? sayi(o.k) : '<span class="sol">yok</span>'}</td><td class="s">${o.k != null ? sayi(o.lv) : ''}</td><td>${o.k != null ? kahHTML(o.c) : ''}</td><td class="s">${sayi(o.kosu)}</td><td class="s">${o.ret ? `<span class="rozet kor">${o.ret}</span>` : '0'}</td><td>${o.son ? zaman(o.son) : '<span class="sol">hiç</span>'}</td><td>${zaman(o.olus)}</td></tr>`).join('')}</tbody></table></div>`;
 }
 function oyuncuHTML() {
   return basHTML('Oyuncular', 'Hesapları ara, koşularına bak; sahte skoru sıralamadan kaldır.', '')
@@ -310,7 +331,7 @@ ${secHTML('sira', D.sira, [['son', 'Son oynayan'], ['skor', 'En yüksek skor'], 
 }
 const kosuSatir = (q, adli) => {
   const hiz = q.k / Math.max(1, q.t);
-  return `<tr class="tik" tabindex="0" data-a="kosuac" data-d="${q.id}"><td>${zaman(q.at)}</td>${adli ? `<td><b>${esc(q.ad)}</b></td>` : ''}<td>${esc(kahraman(q.c))}</td><td class="s">${q.kademe || ''}</td><td class="s">${sayi(q.k)}</td><td class="s">${sayi(q.lv)}</td><td class="s">${sure(q.t)}</td><td class="s">${hiz.toFixed(1)}</td><td>${q.ret ? '<span class="rozet kor">reddedildi</span>' : q.sonuc == 'olum' ? esc(nedenAd(q.neden)) : q.sonuc == 'zafer' || q.sonuc == 'cikis' ? '<span class="rozet iyi">bitirdi</span>' : '<span class="sol">bilinmiyor</span>'}</td><td>${q.plat == 'ios' ? 'iOS' : q.plat == 'web' ? 'Web' : ''}</td></tr>`
+  return `<tr class="tik" tabindex="0" data-a="kosuac" data-d="${q.id}"><td>${zaman(q.at)}</td>${adli ? `<td><b>${esc(q.ad)}</b></td>` : ''}<td>${kahHTML(q.c)}</td><td class="s">${q.kademe || ''}</td><td class="s">${sayi(q.k)}</td><td class="s">${sayi(q.lv)}</td><td class="s">${sure(q.t)}</td><td class="s">${hiz.toFixed(1)}</td><td>${q.ret ? '<span class="rozet kor">reddedildi</span>' : q.sonuc == 'olum' ? esc(nedenAd(q.neden)) : q.sonuc == 'zafer' || q.sonuc == 'cikis' ? '<span class="rozet iyi">bitirdi</span>' : '<span class="sol">bilinmiyor</span>'}</td><td>${q.plat == 'ios' ? 'iOS' : q.plat == 'web' ? 'Web' : ''}</td></tr>`
     + (D.acikKosu == q.id ? `<tr class="ac"><td colspan="${adli ? 10 : 9}">Sunucuda geçen gerçek süre <b>${sure(q.gercek)}</b>, bildirilen <b>${sure(q.t)}</b>${q.ret ? ' · bu sürede en çok ' + sayi(60 + 150 * Math.min(q.gercek, q.t + 30)) + ' öldürme kabul edilir' : ''}. Sürüm ${esc(q.surum || '?')}.
 ${(q.ozet.w || []).length ? '<br>Silahlar: ' + q.ozet.w.map(w => `${esc(w[0])} ${w[1]}. sv (${sayi(w[2])} hasar)`).join(', ') : ''}${(q.ozet.tm || []).length ? '<br>Tomlar: ' + q.ozet.tm.map(t => `${esc(t[0])} ${t[1]}`).join(', ') : ''}${q.ozet.es != null ? `<br>${sayi(q.ozet.es)} eşya, ${sayi(q.ozet.au || 0)} altın` : ''}</td></tr>` : '');
 };
@@ -397,6 +418,20 @@ function sistemHTML() {
 }
 
 // ---- çizim
+let sonIz = '';
+// sayaç: [data-say] sayıları sıfırdan değerine çıkar (bir kez; hareket azaltma açıksa hemen yazılır)
+function sayac() {
+  const els = /** @type {HTMLElement[]} */ ([...document.querySelectorAll('[data-say]')]);
+  if (!els.length || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const t0 = performance.now(), S = 900;
+  for (const e of els) e.textContent = '0';
+  const adim = t => {
+    const k = Math.min(1, (t - t0) / S), q = 1 - Math.pow(1 - k, 3);
+    for (const e of els) if (e.isConnected) e.textContent = sayi(+e.dataset.say * q);
+    if (k < 1) requestAnimationFrame(adim);
+  };
+  requestAnimationFrame(adim);
+}
 const SAYFA = { genel: genelHTML, denge: dengeHTML, etkinlik: etkinlikHTML, oyuncu: oyuncuHTML, kosu: kosuHTML, sezon: sezonHTML, sistem: sistemHTML };
 function girisHTML() {
   return `<main class="giris"><form id="girF"><h1>Kurultay</h1><div class="rn" aria-hidden="true">𐱅𐰭𐰼𐰃</div><p>Kara Koru yönetimi. Yönetici oyun hesabınla gir.</p>
@@ -409,10 +444,15 @@ function ciz() {
   const u = $('uyg');
   if (!OT || !D.yonetici) { u.innerHTML = girisHTML(); return; }
   const kirli = degisen().length;
-  u.innerHTML = `<div class="cer"><nav class="ray" aria-label="Bölümler"><div class="marka"><b>Kurultay</b><span aria-hidden="true">𐱅𐰭𐰼𐰃</span><small>Kara Koru yönetimi</small></div>
-<div class="gez">${SAYFALAR.map(([k, ad]) => `<button data-a="git" data-d="${k}"${D.sayfa == k ? ' aria-current="page"' : ''}>${ad}${k == 'denge' && kirli ? `<em title="Yayınlanmamış değişiklik">${kirli}</em>` : ''}</button>`).join('')}</div>
-<div class="kimlik"><span>Giriş yapan</span><b>${esc(OT.ad)}</b><button class="dgm kck" data-a="cikis">Çıkış</button></div></nav>
+  // giriş hareketi yalnız bölüm ya da verisi değiştiğinde oynar (her yeniden çizimde değil)
+  const veri = { genel: D.ozet, denge: D.gecmis, etkinlik: D.etkinlikler, oyuncu: D.oyuncular, kosu: D.kosular, sezon: D.sezon, sistem: D.gunluk }[D.sayfa],
+    iz = D.sayfa + ':' + (veri ? 1 : 0) + ':' + (D.sayfa == 'genel' ? D.gun : ''), gir = iz != sonIz;
+  sonIz = iz;
+  u.innerHTML = `<div class="cer${gir ? ' gir' : ''}" data-s="${D.sayfa}"><nav class="ray" aria-label="Bölümler"><div class="marka"><b>Kurultay</b><span aria-hidden="true">𐱅𐰭𐰼𐰃</span><small><i class="canli"></i>Kara Koru yönetimi</small></div>
+<div class="gez">${SAYFALAR.map(([k, ad]) => `<button data-a="git" data-d="${k}" data-s="${k}"${D.sayfa == k ? ' aria-current="page"' : ''}>${ikon(k)}<span>${ad}</span>${k == 'denge' && kirli ? `<em title="Yayınlanmamış değişiklik">${kirli}</em>` : ''}</button>`).join('')}</div>
+<div class="kimlik"><i class="avt" aria-hidden="true">${esc((OT.ad || '?').slice(0, 1).toLocaleUpperCase('tr-TR'))}</i><span>Giriş yapan</span><b>${esc(OT.ad)}</b><button class="dgm kck" data-a="cikis">Çıkış</button></div></nav>
 <main class="ic">${D.hata ? `<div class="hata" role="alert" style="margin-bottom:16px">${esc(D.hata)} <button class="dgm kck" data-a="yenile" style="margin-left:10px">Yeniden dene</button></div>` : ''}${SAYFA[D.sayfa]()}</main></div>`;
+  if (gir) sayac();
 }
 
 // ---- olaylar
