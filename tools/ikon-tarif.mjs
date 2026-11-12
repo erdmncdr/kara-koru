@@ -169,6 +169,54 @@ export const I = {
   kafesanahtar: 'a large rusty cage key on an iron ring',
 };
 
+// Otağ'ın kalıcı güçleri (data/content.js MU): m_<anahtar>
+export const M = {
+  dmg: 'a freshly sharpened steel sabre blade resting on a whetstone with bright sparks flying off the edge',
+  hp: 'a thick rolled-up piece of tough brown leather hide with a red stitched heart on it',
+  spd: 'a light leather steppe boot with a small white feathered wing on the ankle',
+  luck: 'a blue glass evil-eye bead amulet (nazar) hanging on a braided cord with a small gold tassel',
+  mag: 'a rough dark lodestone rock with small gems and coins being pulled toward it',
+  gold: 'an open drawstring leather pouch overflowing with gold coins',
+  xp: 'an ancient standing stone stele carved with glowing golden Old Turkic runes',
+  regen: 'a bundle of fresh green healing herbs tied with twine, with a soft green glow',
+  sv: 'a small embroidered pouch spilling shiny silver coins',
+  rr: 'a smooth river stone painted with a blue eye symbol next to two knucklebone dice',
+  sk: "a horse leaping over a low wooden hurdle, small and stylized like a chess knight in mid-jump",
+  bn: 'a black wax-sealed scroll with a red X mark and a skull seal',
+  ws: 'an empty wooden weapon rack with one glowing free hook and a sabre hanging on the other',
+  ts: 'an empty carved wooden book stand with a faint glowing outline of a book on it',
+  tg: 'a bronze lever switch mounted on a wooden board, half pulled, with two small lamps one lit and one dark',
+  bb: "a shaman's round frame drum with a painted sun symbol and a curved drumstick",
+  sg: "an old ornate inheritance chest with a wax-sealed will scroll leaning on it and a golden key"
+};
+// görev türü simgeleri (ui/menus.js gorevIkon): açtığı şeyin resmi olmayan görevler türünün resmini alır. q_<tür>
+export const Q = {
+  oldur: 'a small pile of three monster skulls with a notched sabre stuck in the top',
+  boss: 'a huge horned demon skull wearing a cracked golden crown',
+  zafer: 'a Turkic horsetail war standard (tug) with a golden crescent finial, planted upright',
+  kosu: 'a pair of worn leather steppe boots mid-stride with a small dust cloud behind them',
+  ruh: 'a weathered stone grave marker (balbal) with a pale blue ghost wisp rising from it',
+  sandik: 'an open wooden treasure chest with iron bands, golden light shining from inside',
+  seviye: 'a golden upward-pointing arrow emblem with three stacked chevrons and small sparkles',
+  sunak: 'a small stone altar with a bowl of blue sacred fire burning on top',
+  tuccar: "a travelling merchant's wooden backpack stall loaded with pots, rugs and a hanging lantern",
+  kazan: "a black iron witch's cauldron bubbling with purple brew over a small fire",
+  altin: 'a neat stack of large gold coins with one coin standing on its edge',
+  gumus: 'a neat stack of large silver coins with one coin standing on its edge',
+  efsane: 'a radiant faceted orange-gold legendary gem with light rays bursting from it',
+  dalga: 'a dark horde of small red-eyed shadow creatures rushing forward like a wave',
+  kos: 'a pair of big copper war kettle drums (kos) with crossed drumsticks',
+  pot: 'a clay pot shattering into shards with a few coins flying out',
+  vurus: 'a bright starburst impact flash with a small sabre tip piercing through the middle',
+  olum: 'a simple wooden grave post with a fur cap hanging on top and a wilted flower at its base',
+  meydan: 'two crossed sabres over a round red shield with a small flame above them',
+  gorev: 'an unrolled parchment scroll with a red wax seal and a feather quill',
+  sapka: 'a tall Turkic fur-trimmed hat (bork) with a red top and a golden brooch',
+  kostum: 'a folded embroidered red and gold kaftan robe on a wooden hanger',
+  kilit: 'an open ornate brass padlock with its key beside it',
+  kapi: 'a glowing swirling teal portal inside a rough stone gate arch'
+};
+
 // 8'li sayfalar: önce silahlar, sonra tomlar, sonra eşyalar (son sayfa eksik kalabilir)
 export function sayfalar() {
   const all = [...Object.entries(W).map(([k, d]) => ['w_' + k, d]), ...Object.entries(T).map(([k, d]) => ['t_' + k, d]), ...Object.entries(I).map(([k, d]) => ['i_' + k, d])];
@@ -177,10 +225,18 @@ export function sayfalar() {
   return out;
 }
 
+// güç ve görev türü simgeleri ayrı sayfalarda (sonradan eklendi; `node tools/ikon-tarif.mjs guc` yalnız bunları yazar)
+export function gucSayfalar() {
+  const all = [...Object.entries(M).map(([k, d]) => ['m_' + k, d]), ...Object.entries(Q).map(([k, d]) => ['q_' + k, d])];
+  const out = [];
+  for (let i = 0; i < all.length; i += 8) out.push(all.slice(i, i + 8));
+  return out;
+}
+
 if (process.argv[1] && process.argv[1].endsWith('ikon-tarif.mjs')) {
-  const s = sayfalar();
+  const guc = process.argv[2] == 'guc', s = guc ? gucSayfalar() : sayfalar();
   console.log(JSON.stringify(s.map((p, i) => ({
-    ad: 'sayfa' + String(i + 1).padStart(2, '0'),
+    ad: (guc ? 'guc' : 'sayfa') + String(i + 1).padStart(2, '0'),
     adlar: p.map(x => x[0]).join(','),
     istem: `${STYLE}\nLayout: a 4 columns x 2 rows grid of equal square-ish cells on a fully TRANSPARENT background (PNG alpha). Icons in order, row 1 left to right then row 2 left to right:\n` + p.map((x, j) => `${j + 1}) ${x[1]}.`).join('\n') + (p.length < 8 ? `\nCells ${p.length + 1} to 8 stay completely empty.` : ''),
   })), null, 1));

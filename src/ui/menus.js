@@ -23,7 +23,7 @@ import { CR, HATS, SKINS, hatName, hero, heroIdx, rankOf, rankProg } from '../ga
 import { calc, newW } from '../game/stats.js';
 import { back, buildHTML, hudItems, hudSlots, STI } from './cards.js';
 import { goal } from './hud.js';
-import { svg, iconCol, IC, ikon } from './icons.js';
+import { svg, iconCol, IC, ikon, art } from './icons.js';
 import { glSubmit, lbAdd, lbSonuc } from './leaderboard.js';
 import { CON_VAR } from './console.js';
 import { hesap } from './hesap.js';
@@ -311,8 +311,34 @@ export function selC(i, kb, keep) {
 }
 
 // Otağ simgeleri: stat yükseltmeleri STI'den, diğerleri bu tablodan
+// Görev simgesi: görev bir şey açıyorsa onun resmi (silah, tom, eşya, kahraman), yoksa türünün resmi (assets/ikon/q_<tür>.webp).
+// Başarım aynaları (m_<görev>) ve eski öneksiz görevler de aynı kuraldan geçer.
+/** @type {[RegExp, string | ((m: RegExpExecArray) => string)][]} */
+const QTUR = [
+  [/^(s|a_c)_(\w+)$/, m => 'h_' + m[2]], [/^shop_(\w+)$/, m => 'm_' + m[1]], [/^(ch_|g_ch\d|a_ch)/, 'q_meydan'], [/^(h_|a_h\d)/, 'q_sapka'], [/^a_s\d/, 'q_kostum'],
+  [/^(k\d|a_k\d|g_k\d)/, 'q_oldur'], [/^(boss|band|a_b\d|a_fast|a_pure)/, 'q_boss'], [/^(st\d|win|a_w\d+$|a_m_)/, 'q_zafer'], [/^a_r\d/, 'q_kosu'],
+  [/^(mezar|ghost|a_g\d|m_mezarlik|a_mz)/, 'q_ruh'], [/^(ch\d|g_chest|a_cb|g_present|a_present)/, 'q_sandik'], [/^(lv\d|a_lv|a_rank|a_w40|a_t99)/, 'q_seviye'],
+  [/^(sh\d|a_sh\d|g_balance|a_bal)/, 'q_sunak'], [/^(shop|g_buy|a_buy)/, 'q_tuccar'], [/^(kazan|a_kz)/, 'q_kazan'], [/^(g\d|thief|a_gold)/, 'q_altin'], [/^(silv|a_silver)/, 'q_gumus'],
+  [/^leg/, 'q_efsane'], [/^(sw\d|akin|a_ot)/, 'q_dalga'], [/^kos/, 'q_kos'], [/^(g_pots|a_p\d)/, 'q_pot'], [/^(g_exec|a_exec|a_crit|a_evade|g_echo)/, 'q_vurus'],
+  [/^(g_fall|g_deaths|a_d\d|a_fall|g_wallhug)/, 'q_olum'], [/^(g_ws|g_ts|a_q\d)/, 'q_gorev'], [/^a_x\d/, 'q_kapi'], [/^a_diff/, 't_curse'], [/^(a_all|a_i\d|a_mu|a_pu)/, 'q_kilit']
+];
+export function gorevIkon(q) {
+  const k = String(q.k).replace(/^m_(?=[a-z]+_|k500$|boss$|win$)/, ''), ul = q.ul || '';
+  let id = '';
+  if (ul.startsWith('hat_')) id = 'q_sapka';
+  else if (ul.startsWith('q_')) { const c = CR.find(x => x.lock == ul.slice(2)); id = c ? 'h_' + c.k : ''; }
+  else if (ul.startsWith('t_')) id = ul;
+  else if (ul) id = WD[ul] ? 'w_' + ul : ITD[ul] ? 'i_' + ul : '';
+  if (!id || !art(id)) {
+    id = '';
+    for (const [re, v] of QTUR) { const m = re.exec(k); if (m) { id = typeof v == 'function' ? v(m) : v; break; } }
+    // öneki türü söyleyen görevler: silah, tom, eşya, kahraman
+    if (!id || !art(id)) { const m = /^([wti])_(\w+)$/.exec(k); id = m && art(m[1] + '_' + m[2]) ? m[1] + '_' + m[2] : /^c_/.test(k) ? 'q_kilit' : id && art(id) ? id : 'q_gorev'; }
+  }
+  return id;
+}
 const MUI = { rr: 'dice', sk: 'run', bn: 'skull', ws: 'sword', ts: 'scroll', tg: 'wrench', bb: 'orb', sg: 'coin', sv: 'silver' },
-  muIcon = u => `<span class=ic style="--ik:${iconCol('s', u.k)}">${svg(MUI[u.k] || STI[u.st] || 'star', iconCol('s', u.k))}</span>`,
+  muIcon = u => `<span class=ic style="--ik:${iconCol('s', u.k)}">${ikon('m_' + u.k, MUI[u.k] || STI[u.st] || 'star', iconCol('s', u.k))}</span>`,
   mlIcon = u => `<span class=ic style="--ik:${iconCol('i', u.k)}">${WD[u.k] ? ikon("w_" + u.k, WD[u.k].ic, iconCol("w", u.k)) : svg(u.k == 'win' ? 'star' : u.k == 'boss' ? 'skull' : u.k == 'shop' ? 'coin' : u.k == 'kazan' ? 'pot' : u.k == 'leg' ? 'gem' : u.k == 'mezar' ? 'ghost2' : u.k == 'kos' ? 'orb' : 'key', iconCol('i', u.k))}</span>`;
 
 export function otag(tab = 'guc') {
@@ -340,7 +366,7 @@ export function otag(tab = 'guc') {
   const qrow = q => {
     const dn = $G.META.q[q.k],
       [c, m] = q.f();
-    return `<div class="mrow q${dn ? ' dn' : ''}"><span class="ic q${dn ? ' ok' : ''}">${svg(dn ? 'star' : 'scroll', dn ? '#f0c45a' : '#a0978a')}</span><div><b>${q.n}</b><span>${dn ? 'Tamamlandı' : Math.min(c, m).toLocaleString('tr') + ' / ' + m.toLocaleString('tr')}</span><i class=qb><em style="width:${Math.min(100, c / m * 100)}%"></em></i></div><span></span><span class=rw>+${q.r} gümüş</span></div>`;
+    return `<div class="mrow q${dn ? ' dn' : ''}"><span class="ic q${dn ? ' ok' : ''}">${ikon(gorevIkon(q), dn ? 'star' : 'scroll', dn ? '#f0c45a' : '#a0978a')}</span><div><b>${q.n}</b><span>${dn ? 'Tamamlandı' : Math.min(c, m).toLocaleString('tr') + ' / ' + m.toLocaleString('tr')}</span><i class=qb><em style="width:${Math.min(100, c / m * 100)}%"></em></i></div><span></span><span class=rw>+${q.r} gümüş</span></div>`;
   };
   const qOpen = QD.filter(q => !$G.META.q[q.k]).map(q => { const [c, m] = q.f(); return { q, p: m ? c / m : 0 }; }).sort((x, y) => y.p - x.p),
     qDone = QD.filter(q => $G.META.q[q.k]);
@@ -433,7 +459,7 @@ export function bestHTML() {
 export function achHTML() {
   achCheck();
   const mk = L => L.map(a => { const [c, m] = a.f(), t = $G.META.achv[a.k]; return { k: a.k, n: a.n, t, c: Math.min(c, m), m }; }),
-    row = a => `<div class="mrow q${a.t ? ' dn' : ''}"><div><b>${a.n}</b><span>${a.t ? new Date(a.t).toLocaleDateString('tr') : a.m > 1 ? `${a.c.toLocaleString('tr')} / ${a.m.toLocaleString('tr')}` : ''}</span></div><span></span><span class=rw></span></div>`,
+    row = a => `<div class="mrow q${a.t ? ' dn' : ''}"><span class="ic q${a.t ? ' ok' : ''}">${ikon(gorevIkon(a), a.t ? 'star' : 'scroll', a.t ? '#f0c45a' : '#a0978a')}</span><div><b>${a.n}</b><span>${a.t ? new Date(a.t).toLocaleDateString('tr') : a.m > 1 ? `${a.c.toLocaleString('tr')} / ${a.m.toLocaleString('tr')}` : ''}</span></div><span></span><span class=rw></span></div>`,
     srt = L => L.sort((a, b) => (b.t || 0) - (a.t || 0) || b.c / b.m - a.c / a.m),
     rowsM = mk(ACHM), rowsD = mk(ACHD),
     dnM = rowsM.filter(a => a.t).length, dn = rowsD.filter(a => a.t).length,
