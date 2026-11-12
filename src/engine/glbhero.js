@@ -1,5 +1,5 @@
 // engine/glbhero.js · Kara Koru
-// Meshy ile üretilmiş, iskeletli kahramanlar: Alp, Kam, Gölge ve Kemik; Tripo ile üretilmiş Bahadır. Varsayılan açık; adreste ?eski (ya da localStorage kk_meshy=0)
+// Meshy ile üretilmiş, iskeletli kahramanlar: Alp, Kam, Gölge ve Kemik; Tripo ile üretilmiş Bahadır ve Çalı. Varsayılan açık; adreste ?eski (ya da localStorage kk_meshy=0)
 // kodla kurulmuş eski gövdeyi geri getirir. Kahraman seçiliyken eski gövde gizlenir, aynı boya ölçeklenmiş GLB konur.
 // Meshy iskeletlerinde kemik adları ortak: yürüme, koşu, zıplama, kayma, atılma, takla ve darbe klipleri Alp'in dosyalarından
 // bütün kahramanlarda oynar (KLIP); kahramana özel olan yalnız model, elindekiler ve saldırı/duruş klipleri (KAHRAMAN).
@@ -32,6 +32,8 @@ const URLS = {
   // Bahadır Tripo modeli: iskeleti başka kurulu (dinlenme duruşu, ölçek, parmak kemikleri), Meshy klipleri doğrudan oynamaz.
   // tum: ortak kliplerin bu iskelete çevrilmiş kopyası (tools/tripo-ad.mjs + tools/klip-aktar.mjs); ortak dosyaların yerine yüklenir
   bahadir: { model: U('bahadir'), es: { balta: U('bahadir_balta') }, tum: U('bahadir_hareket') },
+  // Çalı (Tripo): yürüyen çalı; elinde bir şey yok
+  cali: { model: U('cali'), tum: U('cali_hareket') },
   kemik: { model: U('kemik'), klip: U('kemik_at'), kostum: { ayaz: U('kemik_ayaz'), erlik: U('kemik_erlik'), akinci: U('kemik_akinci'), saman: U('kemik_saman') } }
 };
 // modelin anahtarı ve adresi: kostümün kendi modeli varsa o
@@ -49,6 +51,8 @@ const KAHRAMAN = {
   // Gölge: saldırılar ileri saplama ve yukarı çekiş; koşusu öne eğik kendi klibi, yürüyüşü ortak klip
   golge: { sal: { atkR: [.45, 1.15], atkL: [.7, 1.4] }, sapkaUc: 1, ayak: { walk: .5, run: 2.1 }, kosUst: 2.1 },
   bahadir: { sal: { atkR: [.12, .95], atkL: [.3, 1.2] }, ayak: { walk: .5, run: 3.7 } },
+  // Çalı: bacakları kısa (kalça yüksekliği boyun 0,29'u; Bahadır'da 0,43): adımı da o oranda kısa
+  cali: { sal: { atkR: [.12, .95], atkL: [.3, 1.2] }, ayak: { walk: .34, run: 2.1 }, boy: 1.1 }, // boy: tepedeki dallar kutuya giriyor, gövde eski gövdeden kısa kalıyordu
   kemik: { sal: { atkR: [1.1, 1.9], atkL: [3.1, 3.85] }, sapkaUc: 1, ayak: { walk: .52, run: 3.7 }, boy: 1.2 }
 };
 // kliplerin kendi ayak hızı (boy/sn): oyunda sabit hızla ilerletilen modelde yerdeki ayağın kaymasını en aza indiren
@@ -140,8 +144,8 @@ function ortak(k) {
         const by = n => kg.animations.find(a => a.name == n);
         C = { ...C0, combat: C0.idle, ...kok({ atkR: by('Firlat'), atkL: by('Vur') }) };
       }
-      // Bahadır: oyundaki duruş doğal bekleme (kılıç-kalkan gardı tek baltayla yakışmaz)
-      if (k == 'bahadir') C = { ...C0, combat: C0.idle };
+      // Tripo kahramanları (Bahadır, Çalı): oyundaki duruş doğal bekleme (kılıç-kalkan gardı tek baltayla ya da boş elle yakışmaz)
+      if (u.tum) C = { ...C0, combat: C0.idle };
       const O = { C };
       es.forEach(([ad], i) => (O[ad] = E[i].scene));
       return O;
@@ -725,7 +729,7 @@ export function glbOnYukle() {
   return a;
 }
 // kayıttaki kahraman sırası (kk_ci) → anahtar; sıra kalıcıdır (game/heroes.js CR)
-const ACILIS = { 1: 'kam', 2: 'golge', 3: 'bahadir', 8: 'kemik' };
+const ACILIS = { 1: 'kam', 2: 'golge', 3: 'bahadir', 8: 'kemik', 17: 'cali' };
 // dosyaları inmiş kahramanlar
 const hazir = {};
 function indir(k, sk = '') {
