@@ -28,8 +28,10 @@ export const AN = {
   slam: { bas: .3, vur: 1.85, son: 3 }, // kol 0,4-1,4 sn havada, 1,85'te yerde
   vurus: { bas: .45, vur: 1.6, son: 1.83 }, // 1,2'de tepede, 1,6'da yerde
   kukre: { bas: 1.9, sure: 2.6 }, // klibin göğüs dövme bölümü (1,9-4,5 sn)
-  yuru: { hiz: 1 }, // yürüme klibinin kendi ayak hızı (boy/sn): kayma olmasın diye oyun hızına bölünür
-  kos: { hiz: 2.6 }
+  // kliplerin kendi ayak hızı (boy/sn; klipte yere basan ayağın geri kayma hızı ölçüldü): oynatma hızı = boss'un hızı / bu değer,
+  // böylece yerdeki ayak kaymaz. Koşu klipten: 4,84 m/sn ÷ 1,8 m. alt/ust: oynatma hızının sınırları
+  yuru: { hiz: .4, alt: .35, ust: 2.2 }, // klipte yerdeki ayak 0,64-0,70 m/sn (÷ 1,8 m ≈ 0,37); oyunda tarandı (tools/boss-olc.mjs): kayma oranı 0,22 → 0,78, 0,31 → 0,47, 0,40 → 0,26, 0,48 → 0,31, 0,74 → 0,54, eski değer 1 → 0,59
+  kos: { hiz: 2.69, alt: .6, ust: 1.8 }
 };
 
 const LD = new GLTFLoader(), buf = {};
@@ -129,7 +131,7 @@ export function glbBoss(e) {
     for (const ad of ['slam', 'vurus', 'kukre', 'ol']) if (A[ad]) A[ad].timeScale = 0;
     u.glb = { root, mixer, A, gizli, gozler, w: { bekle: 1 }, t: 0, kukre: 0, slamT: 9, vurT: 9.5, mats: [], h: hY };
     root.traverse(o => { if (o.isMesh) u.glb.mats.push(o.material); });
-    if (__KOPRU__) /** @type {any} */ (window).__boss = u.glb;
+    if (__KOPRU__) /** @type {any} */ (window).__boss = u.glb, /** @type {any} */ (window).__bossAN = AN, /** @type {any} */ (window).__T3 = T;
   }).catch(err => {
     console.warn('Boss modeli yüklenemedi', err);
     u.glb = null;
@@ -200,12 +202,12 @@ export function glbBossTick(e, dt, s) {
   const boyHiz = s / Math.max(.1, G.h * e.ba), kosuyor = e.spm > 1.5 && s > 0;
   if (kosuyor) {
     hedef.kos = kalan;
-    A.kos.timeScale = Math.max(.7, Math.min(1.8, boyHiz / AN.kos.hiz));
+    A.kos.timeScale = Math.max(AN.kos.alt, Math.min(AN.kos.ust, boyHiz / AN.kos.hiz));
   } else {
     const y = sm(.02, .25, boyHiz);
     hedef.yuru = kalan * y;
     hedef.bekle = kalan * (1 - y);
-    A.yuru.timeScale = Math.max(.5, Math.min(1.8, boyHiz / AN.yuru.hiz));
+    A.yuru.timeScale = Math.max(AN.yuru.alt, Math.min(AN.yuru.ust, boyHiz / AN.yuru.hiz));
   }
   karis(G, hedef, dt);
   // geliş kükremesi: ilk saniyelerde üst gövdede (bacaklar yürümeye devam eder)
