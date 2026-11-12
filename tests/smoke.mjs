@@ -396,7 +396,7 @@ const hr = await pg.evaluate(() => {
   out.cq = QD.filter(q => q.k.startsWith('c_')).length; out.hq = QD.filter(q => q.k.startsWith('h_')).length; out.hats = HATS.length; out.skins = SKINS.length;
   return out;
 });
-ok('8 karakter, kostüm, şapka, rütbe, pasif, satın alma', hr.cr === 21 && hr.n === 8 && hr.built === 8 && hr.skin && hr.hat && hr.r1 === 1 && hr.r5 === 5 && hr.r100 === 100 && hr.exec && hr.bull.marked === 1 && hr.bull.d1 && hr.bull.far === 0 && hr.bull.n1 === 1 && hr.bull.left === 0 && hr.bull.d2 === 0 && hr.bought && hr.cq === 18 && hr.hq === 28 && hr.hats === 28 && hr.skins === 7, hr);
+ok('8 karakter, kostüm, şapka, rütbe, pasif, satın alma', hr.cr === 21 && hr.n === 8 && hr.built === 8 && hr.skin && hr.hat && hr.r1 === 1 && hr.r5 === 5 && hr.r100 === 100 && hr.exec && hr.bull.marked === 1 && hr.bull.d1 && hr.bull.far === 0 && hr.bull.n1 === 1 && hr.bull.left === 0 && hr.bull.d2 === 0 && hr.bought && hr.cq === 18 && hr.hq === 28 && hr.hats === 28 && hr.skins === 11, hr);
 
 // Faz 5: düşman türleri, boss profilleri, güçler, Mezarlık akışı
 const f5 = await pg.evaluate(() => {
@@ -604,7 +604,7 @@ const f11b = await pg.evaluate(() => {
   return out;
 });
 ok('kalan açıklar: yanma formülü, Ocak 27 stat, duvar koşusu', f11b.sbd === 27 && f11b.burn.d === f11b.burn.want && f11b.obs && f11b.wr.rise > 1 && f11b.wr.wrT < 1 && f11b.wj.vz > 3 && f11b.wj.vy > 8, f11b);
-ok('Faz 10: dükkân, aşama süreleri, tomlar, kilitler, başarım aynası, kostüm/şapka, sunaklar, eşyalar, Zaman Mührü', f10.sv === 20 && f10.wsQn === '[25,45]' && f10.tsC === '[35,135]' && f10.bb === 5 && f10.len0 === 600 && f10.len2 === 480 && f10.mbt0 === '[180,480]' && f10.mbt2 === '[90,390]' && f10.swt0 === '[240,420]' && f10.tomes && f10.kumar && f10.locks && f10.q && f10.achm >= 120 && f10.skinCost === '4,1,4,4,4,4,4' && f10.crypt && f10.hats === 28 && f10.goldMoai && f10.banana && f10.items && f10.muhur.hp === 1 && f10.muhur.frz, f10);
+ok('Faz 10: dükkân, aşama süreleri, tomlar, kilitler, başarım aynası, kostüm/şapka, sunaklar, eşyalar, Zaman Mührü', f10.sv === 20 && f10.wsQn === '[25,45]' && f10.tsC === '[35,135]' && f10.bb === 5 && f10.len0 === 600 && f10.len2 === 480 && f10.mbt0 === '[180,480]' && f10.mbt2 === '[90,390]' && f10.swt0 === '[240,420]' && f10.tomes && f10.kumar && f10.locks && f10.q && f10.achm >= 120 && f10.skinCost === '4,1,4,4,4,4,4,6,6,6,6' && f10.crypt && f10.hats === 28 && f10.goldMoai && f10.banana && f10.items && f10.muhur.hp === 1 && f10.muhur.frz, f10);
 
 // Faz 11: doğrulanamayanların kararı
 const f11 = await pg.evaluate(() => {

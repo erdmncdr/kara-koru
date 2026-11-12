@@ -20,7 +20,7 @@ async function oyun(opts) {
   await pg.waitForFunction(() => typeof S !== 'undefined' && S === 'menu', null, { timeout: 90000 });
   await pg.addStyleTag({ content: '#tip{display:none!important}' });
   // kilitli kahraman: sınamada kilidi açıp seçer (yoksa oyun Alp'le açılır)
-  await pg.evaluate(ki => { const c = CR[ki]; if (c && c.lock && !META.l[c.lock]) { META.l[c.lock] = 1; selC(ki, 1, 1); } start(); P.inv = 1e9; }, +(process.env.KI || 0));
+  await pg.evaluate(([ki, sk]) => { const c = CR[ki]; if (sk) { META.skin[ki + ':' + sk] = 1; META.skin['cur' + ki] = sk; } if (sk || (c && c.lock && !META.l[c.lock])) { if (c && c.lock) META.l[c.lock] = 1; selC(ki, 1, 1); } start(); P.inv = 1e9; }, [+(process.env.KI || 0), process.env.SKIN || '']); // SKIN=ayaz: kostümle
   await sleep(6000); await pg.evaluate(() => { if (S === 'ready') goReady() });
   await pg.waitForFunction(() => window.__glb && __glb.H === H, null, { timeout: 30000 }); await sleep(1500);
   return pg;

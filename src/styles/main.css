@@ -1236,3 +1236,5 @@ body:not(.on) #joy,body:has(#ov:not(.h)) #joy,body:has(#ov:not(.h)) #bp{display:
 .mn2 .hc .cw:has(.ika),.otag .mrow .ic:has(.ika){background:none!important;box-shadow:none!important;border:0!important}
 /* küçük başlıklarda sabit 7 px dış hat harf aralarını doldurup kara blok yapıyordu: hat yazı boyutuyla orantılı */
 .mn2 .mph h2,.pmn h2,.sx h2,.pz>h2,.setp>h2{-webkit-text-stroke-width:.15em!important;text-shadow:0 .09em 0 var(--ink)!important}
+/* kostüm ve şapka satırı: etiket düğmelerin yanında kalır, düğmeler kendi içinde alt satıra geçer (çok kostümlü kahramanda etiket ayrı satıra düşüp sayfayı taşırıyordu) */
+.cust .crow{flex-wrap:nowrap;align-items:flex-start}.cust .crow>span:first-child{flex:none;padding-top:5px}.cust .crow .tiers{display:flex;flex-wrap:wrap;gap:4px;margin:0;min-width:0}

@@ -16,7 +16,7 @@ await pg.addInitScript(() => {
 await pg.goto(url, { waitUntil: 'domcontentloaded', timeout: 90000 });
 await pg.waitForFunction(() => typeof S !== 'undefined' && S === 'menu', null, { timeout: 90000 });
 await pg.addStyleTag({ content: '#ov,#tip{display:none!important}' });
-await pg.evaluate(h => { const i = CR.findIndex(c => c.k == h); menuPage('kahraman'); selC(i ? 0 : 1, 1); selC(i, 1); }, HERO);
+await pg.evaluate(([h, sk]) => { const i = CR.findIndex(c => c.k == h); if (sk) { META.skin[i + ':' + sk] = 1; META.skin['cur' + i] = sk; } menuPage('kahraman'); selC(i ? 0 : 1, 1); selC(i, 1); }, [HERO, process.env.SKIN || '']); // SKIN=ayaz: kostümle
 await pg.waitForFunction(h => window.__glb && window.__glb.H === H && CR[CI].k == h, HERO, { timeout: 60000 }); await sleep(1500);
 const ANLAR = [['bekle', 'idle', 1.2], ['savas', 'combat', .6], ['sag_savurus', 'atkR', .55], ['sol_savurus', 'atkL', .75], ['yuru', 'walk', .3], ['kos', 'run', .15], ['zipla', 'jump', .8], ['takla', 'flip', 1.6], ['atil', 'dash', .45], ['kay', 'slide', .3], ['darbe', 'hit', .5]];
 const YON = [0, Math.PI / 2, Math.PI, -Math.PI / 2];

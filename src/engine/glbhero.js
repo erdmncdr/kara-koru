@@ -17,7 +17,7 @@
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as T from 'three';
 import { $G } from '../core/store.js';
-import { SKINF } from '../game/heroes.js';
+import { CR, SKINF } from '../game/heroes.js';
 import { HALO, RIMU } from './renderer.js';
 
 const U = n => new URL(`../assets/model/${n}.glb`, import.meta.url).href;
@@ -27,8 +27,12 @@ const KLIP = { yuru: U('alp_yuru'), hareket: U('alp_hareket'), hareket2: U('alp_
 const URLS = {
   alp: { model: U('alp'), es: { kilic: U('alp_kilic'), kalkan: U('alp_kalkan') } },
   kam: { model: U('kam'), es: { asa: U('kam_asa') }, klip: U('kam_buyu') },
-  kemik: { model: U('kemik'), klip: U('kemik_at') }
+  // kostum: ayrı modelli kostümler (iskelet ortak; klipler ve kod kahramanınki). Seçilince iner
+  kemik: { model: U('kemik'), klip: U('kemik_at'), kostum: { ayaz: U('kemik_ayaz'), erlik: U('kemik_erlik'), akinci: U('kemik_akinci'), saman: U('kemik_saman') } }
 };
+// modelin anahtarı ve adresi: kostümün kendi modeli varsa o
+const mAd = (k, sk) => (sk && URLS[k].kostum && URLS[k].kostum[sk] ? k + ':' + sk : k);
+const mUrl = mk => { const [k, sk] = mk.split(':'); return sk ? URLS[k].kostum[sk] : URLS[k].model; };
 // kahraman ayarı. sal: saldırı kliplerinin oyunun 0.42 sn'lik saldırı ilerlemesine eşlenen aralığı (sn).
 // ayak, kosUst: kahramanın kendi koşu klibi varsa onun ayak hızı ve hızlanma üst sınırı (yoksa ortak AYAK, KOS_UST).
 // sapkaUc: şapka başın uç eklemine oturur (başlığın köşe ortalaması yana kayıyor).
@@ -63,7 +67,7 @@ const LD = new GLTFLoader(),
 const buf = {};
 function modelBuf(k) {
   if (!buf[k]) {
-    buf[k] = fetch(URLS[k].model)
+    buf[k] = fetch(mUrl(k))
       .then(r => {
         if (!r.ok) throw new Error('http ' + r.status);
         return r.arrayBuffer();
@@ -390,6 +394,15 @@ export const ASA = { boy: 1.15, tut: .47 };
 // dilleri her karede dünya uzayında yukarı yükselir (alevTick); arkadan başlığın üstünden, önden yüzün çevresinden görünür.
 export const ALEV = { n: 18, cap: .086, yuk: .1, boy: .17, en: .085, taban: -.045, hiz: 1.1, op: .95 };
 // alev dili dokusu: altı yuvarlak, ucu sivri damla; kenara doğru saydamlaşır (beyaz: rengi malzeme verir)
+// ayrı modelli kostümlerde alev ve kor rengi: [ışıma, alev gövdesi, alev ucu, öz]
+const ALEVR = {
+  ayaz: [[.35, .75, 1], [.45, .8, 1], [.1, .3, .9], [.85, .97, 1]],
+  erlik: [[.7, .3, 1], [.75, .4, 1], [.35, .05, .7], [.95, .8, 1]],
+  akinci: [[.5, 1, .3], [.55, .95, .3], [.1, .5, .1], [.9, 1, .6]],
+  saman: [[.2, .9, .8], [.25, .9, .8], [.05, .45, .55], [.8, 1, .95]]
+};
+// kostüme özel alev yerleşimi (ALEV'in üstüne): Ölü Akıncı'nın miğferi halkayı içine alıyor, alev miğferin sivri ucundan çıkar
+const ALEVK = { akinci: { cap: .03, taban: .1 } };
 let alevDoku = null;
 function alevD() {
   if (alevDoku) return alevDoku;
@@ -409,8 +422,8 @@ function alevD() {
   return alevDoku;
 }
 function takKemik({ bone, wp, ileri, h0, sk }) {
-  const f = SKINF[sk], renk = (r, g, b) => {
-    const x = f ? f(r, g, b) : [r, g, b];
+  const f = SKINF[sk], kr = ALEVR[sk], renk = (r, g, b, i = 0) => {
+    const x = kr ? kr[i] : f ? f(r, g, b) : [r, g, b];
     return new T.Color().setRGB(Math.min(1, x[0]), Math.min(1, x[1]), Math.min(1, x[2]), T.SRGBColorSpace);
   };
   const c = renk(1, .5, .14);
@@ -427,7 +440,7 @@ function takKemik({ bone, wp, ileri, h0, sk }) {
   // göğüs: kaburgaların önünde küçük parlak çekirdek, içinde geniş hale
   if (g && bone('Spine01')) {
     const orta = wp('Spine01').lerp(wp('Spine'), .55);
-    isik(g, orta.clone().addScaledVector(ileri, h0 * .085), h0 * .15, .9, renk(1, .62, .2));
+    isik(g, orta.clone().addScaledVector(ileri, h0 * .085), h0 * .15, .9, renk(1, .62, .2, 1));
     isik(g, orta.addScaledVector(ileri, h0 * .03), h0 * .36, .6);
   }
   if (!bas) return;
@@ -435,7 +448,7 @@ function takKemik({ bone, wp, ileri, h0, sk }) {
   isik(bas, merkez.clone().addScaledVector(ileri, h0 * .075), h0 * .17, .9);
   // alev dilleri: başlığın çevresinde halka; sırayla doğar, yükselirken içe kapanıp incelir. Dıştaki turuncu gövde düz karışım
   // (açık zeminde de turuncu kalır), içteki sarı öz toplamalı
-  const ks = bas.getWorldScale(new T.Vector3()).x, diller = [], c0 = renk(1, .62, .1), c1 = renk(.9, .14, .02), oz = renk(1, .85, .35);
+  const ks = bas.getWorldScale(new T.Vector3()).x, diller = [], c0 = renk(1, .62, .1, 1), c1 = renk(.9, .14, .02, 2), oz = renk(1, .85, .35, 3);
   for (let i = 0; i < ALEV.n; i++) {
     const ic = i % 4 == 3,
       o = new T.Sprite(new T.SpriteMaterial({ map: alevD(), color: (ic ? oz : c0).clone(), transparent: true, opacity: 0, blending: ic ? T.AdditiveBlending : T.NormalBlending, depthWrite: false, fog: true }));
@@ -443,7 +456,7 @@ function takKemik({ bone, wp, ileri, h0, sk }) {
     bas.add(o);
     diller.push({ o, ic, a: i / ALEV.n * Math.PI * 2 + (i % 2) * .5, f: (i * .618) % 1, r: ic ? .55 : .85 + ((i * 7) % 5) * .06 });
   }
-  bone('RightHand').userData.alev = { bas, diller, m: bas.worldToLocal(merkez.clone().addScaledVector(ileri, h0 * .02)), h: h0 / ks, c0, c1, t: 0 };
+  bone('RightHand').userData.alev = { bas, diller, m: bas.worldToLocal(merkez.clone().addScaledVector(ileri, h0 * .02)), h: h0 / ks, c0, c1, t: 0, ek: ALEVK[sk] || {} };
 }
 const _aq = new T.Quaternion(), _au = new T.Vector3(), _ax = new T.Vector3(), _az = new T.Vector3();
 function alevTick(A, dt) {
@@ -453,11 +466,11 @@ function alevTick(A, dt) {
   _au.set(0, 1, 0).applyQuaternion(_aq);
   _ax.set(1, 0, 0).applyQuaternion(_aq);
   _az.set(0, 0, 1).applyQuaternion(_aq);
-  const h = A.h;
+  const h = A.h, cap = A.ek.cap ?? ALEV.cap, taban = A.ek.taban ?? ALEV.taban;
   for (const d of A.diller) {
-    const u = (A.t * ALEV.hiz * (.8 + d.r * .3) + d.f) % 1, r = ALEV.cap * h * d.r * (1 - u * .5),
+    const u = (A.t * ALEV.hiz * (.8 + d.r * .3) + d.f) % 1, r = cap * h * d.r * (1 - u * .5),
       sal = Math.sin(A.t * 9 + d.a * 3) * .014 * h * u, k = Math.sin(Math.PI * Math.pow(u, .6)), b = d.ic ? .7 : 1;
-    d.o.position.copy(A.m).addScaledVector(_ax, Math.cos(d.a) * r + sal).addScaledVector(_az, Math.sin(d.a) * r).addScaledVector(_au, (ALEV.taban + u * ALEV.yuk) * h);
+    d.o.position.copy(A.m).addScaledVector(_ax, Math.cos(d.a) * r + sal).addScaledVector(_az, Math.sin(d.a) * r).addScaledVector(_au, (taban + u * ALEV.yuk) * h);
     d.o.scale.set(ALEV.en * h * b * (1 - u * .45), ALEV.boy * h * b * (.55 + k * .6), 1);
     d.o.material.opacity = ALEV.op * k;
     if (!d.ic) d.o.material.color.copy(A.c0).lerp(A.c1, u * u);
@@ -531,11 +544,12 @@ export function glbHero(H, key) {
   // ölçüm anındaki gövde yüksekliği: model yüklenene kadar gövde yerine taşınmış olur, şapkanın yeri buna göre düzeltilir
   const gy0 = hedef.g.getWorldPosition(new T.Vector3()).y;
   const eskiler = hedef.g.children.slice(), gizle = () => { for (const c of eskiler) c.visible = false; };
-  if (hazir[key]) gizle();
+  const mk = mAd(key, sk);
+  if (hazir[mk]) gizle();
   // eski gövdenin gözleri ayrı çizilir (engine/eyes.js, eski kemikten): yeni yüzün önünde havada kalmasın
   const gozler = hedef.eyes;
   hedef.eyes = null;
-  Promise.all([modelBuf(key).then(b => LD.parseAsync(b, '')), ortak(key)]).then(([m, O]) => {
+  Promise.all([modelBuf(mk).then(b => LD.parseAsync(b, '')), ortak(key)]).then(([m, O]) => {
     if ($G.H !== hedef) return; // bu arada başka kahraman seçildi
     const C = O.C;
     const root = m.scene;
@@ -613,7 +627,7 @@ export function glbOnYukle() {
   const a = [...indir('alp')];
   try {
     const k = ACILIS[localStorage.getItem('kk_ci') || ''];
-    if (k) a.push(...indir(k));
+    if (k) a.push(...indir(k, ($G.META && $G.META.skin && $G.META.skin['cur' + localStorage.getItem('kk_ci')]) || ''));
   } catch (e) {}
   return a;
 }
@@ -621,15 +635,18 @@ export function glbOnYukle() {
 const ACILIS = { 1: 'kam', 8: 'kemik' };
 // dosyaları inmiş kahramanlar
 const hazir = {};
-function indir(k) {
-  const a = [modelBuf(k), ortak(k)];
-  Promise.all(a).then(() => (hazir[k] = 1), () => {});
+function indir(k, sk = '') {
+  const mk = mAd(k, sk), a = [modelBuf(mk), ortak(k)];
+  Promise.all(a).then(() => (hazir[mk] = 1), () => {});
   return a;
 }
 // kahraman sayfası açılınca: açılışta inmeyen kahramanların dosyaları arkada iner, seçilince model hemen gelir
 export function glbHazirla() {
   if (!meshyOn()) return;
   for (const k of Object.keys(URLS)) if (!hazir[k]) indir(k);
+  // seçili kostümün modeli de
+  const k = CR[$G.CI] && CR[$G.CI].k, sk = ($G.META && $G.META.skin && $G.META.skin['cur' + $G.CI]) || '';
+  if (URLS[k] && !hazir[mAd(k, sk)]) indir(k, sk);
 }
 
 const ANA = ['idle', 'combat', 'walk', 'run', 'jump', 'flip', 'slide', 'dash'];

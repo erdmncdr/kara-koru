@@ -137,7 +137,12 @@ export const SKINS = [
   { k: 'crypt', n: 'Mahzen', d: 'Bu karakterle Mezarlık’ın ilk Mahzen’ini süre eşiğinden önce aç', cost: 4, f: ci => cnt('crypt' + ci) >= 1 },
   // Kızıl ve Beyaz eskiden yalnız Şahmeran'ındı; Şahmeran kadrodan çıkınca Anka'ya geçti
   { k: 'red', n: 'Kızıl', d: 'Anka ile 50.000 öldürme', cost: 4, only: 'anka', f: ci => cnt('kc' + ci) >= 50000 },
-  { k: 'white', n: 'Beyaz', d: 'Anka ile 100.000 öldürme', cost: 4, only: 'anka', f: ci => cnt('kc' + ci) >= 100000 }
+  { k: 'white', n: 'Beyaz', d: 'Anka ile 100.000 öldürme', cost: 4, only: 'anka', f: ci => cnt('kc' + ci) >= 100000 },
+  // Kemik'in ayrı modelli kostümleri (engine/glbhero.js URLS.kemik.kostum): renk değişimi değil, başka gövde
+  { k: 'ayaz', n: 'Ayaz', d: 'Kemik ile 2.500 öldürme', cost: 6, only: 'kemik', f: ci => cnt('kc' + ci) >= 2500 },
+  { k: 'akinci', n: 'Ölü Akıncı', d: 'Kemik ile 7.500 öldürme', cost: 6, only: 'kemik', f: ci => cnt('kc' + ci) >= 7500 },
+  { k: 'saman', n: 'Kam İskelet', d: 'Kemik ile rütbe 10', cost: 6, only: 'kemik', f: ci => rankOf(ci) >= 10 },
+  { k: 'erlik', n: 'Erlik Elçisi', d: 'Kemik ile rütbe 25', cost: 6, only: 'kemik', f: ci => rankOf(ci) >= 25 }
 ];
 
 // Mahzen kostümü saniye eşikleri (Megabonk crypt skins)
