@@ -31,7 +31,7 @@ export function mkCauldron() {
     const eski = [];
     g.traverse(m => { if (m.isMesh) eski.push(m); });
     g.userData.glbBekle = 1;
-    glbProp(g, eski, 'kazan');
+    glbProp(g, eski, 'kazan'); // kademe taşı sonradan eklenir (objects.js mkNPC), gizlenmez
   }
   return {
     g,

@@ -153,6 +153,13 @@ export function mkNPC(t) {
     const hc = [0x1a1a1a, 0, 0x2a66d8, 0x8a3ad8, 0xffd040][tier],
       hat = mk(gCn, BMc(hc), 0, 2.55, 0, g);
     hat.scale.set(.42, .5, .42);
+    {
+      // Meshy modeli (tezgâh): eski gövde ve şapka gizlenir
+      const eski = [];
+      g.traverse(m => { if (m.isMesh) eski.push(m); });
+      g.userData.glbBekle = 1;
+      glbProp(g, eski, 'tuccar');
+    }
   } else {
     const c = mkCauldron();
     g = c.g;
@@ -161,6 +168,13 @@ export function mkNPC(t) {
     const r = Math.random();
     tier = r < .55 ? 0 : r < .85 ? 2 : r < .96 ? 3 : 4;
     liq.material = BMc([0x8a5ad6, 0, 0x2a66d8, 0x8a3ad8, 0xffd040][tier]);
+  }
+  // kademe taşı: tüccarın şapka rengi ve kazanın sıvı rengi kademeyi gösteriyordu; Meshy modelinde ikisi de gizlendiği için
+  // seçkin, destansı ve efsanevi kademede nesnenin üstünde aynı renkte bir taş döner (sıradan kademede yok)
+  if (tier) {
+    const tas = mk(ownG(new THREE.OctahedronGeometry(.32)), BMc([0, 0, 0x2a66d8, 0x8a3ad8, 0xffd040][tier]), 0, t == 'shop' ? 4.6 : 3.3, 0, g);
+    tas.userData.kademe = 1;
+    glow([0, 0, 0x2a66d8, 0x8a3ad8, 0xffd040][tier], 2.2, tas, .5);
   }
   g.position.set(x, $G.HT(x, z), z);
   g.rotation.y = rn(0, 6.28);

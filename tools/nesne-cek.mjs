@@ -19,12 +19,13 @@ await pg.addStyleTag({ content: '#hud,#tip,#tt,.wl{display:none!important}' });
 const hedef = await pg.evaluate(() => {
   mkChest({ x: P.x + 30, z: P.z + 30, gold: 1 });
   const yer = o => o && { x: o.m ? o.m.position.x : o.x, z: o.m ? o.m.position.z : o.z, glb: !!(o.m || o.g || o).children && (o.m || o.g).children.some(c => c.userData.glbprop) };
-  return { sandik: yer(CH.find(c => !c.gold)), altinsandik: yer(CH.find(c => c.gold)), ocak: yer(SH.find(s => s.t == 0)), balbal: yer(SH.find(s => s.t == 1)), kapi: GATE && { x: GATE.x, z: GATE.z, ry: GATE.ry }, kazan: yer(NP.find(n => n.t != 'shop')) };
+  return { sandik: yer(CH.find(c => !c.gold)), altinsandik: yer(CH.find(c => c.gold)), ocak: yer(SH.find(s => s.t == 0)), balbal: yer(SH.find(s => s.t == 1)), kapi: GATE && { x: GATE.x, z: GATE.z, ry: GATE.ry }, kazan: yer(NP.find(n => n.t != 'shop')), tuccar: yer(NP.find(n => n.t == 'shop')) };
 });
 // oyuncunun nesnenin arkasındaki uzaklığı (kamera oyuncunun ~13 birim gerisinde: nesne kameraya 13 - d kadar yakın)
-const D = { sandik: 6, altinsandik: 6, ocak: 3, balbal: 2, kapi: -6, kazan: 4 };
+const D = { sandik: 6, altinsandik: 6, ocak: 3, balbal: 2, kapi: -6, kazan: 4, tuccar: 3 };
 for (const [ad, h] of Object.entries(hedef)) {
   if (!h) { console.log(ad, 'haritada yok'); continue; }
+  if (process.env.YALNIZ && process.env.YALNIZ != ad) continue;
   for (const [i, aci] of [[0, 0], [1, .9]]) {
     await pg.evaluate(([h, d, aci]) => { const a = (h.ry || 0) + aci; P.xp = 0; P.need = 1e12; for (const e of E) { e.m.position.x += 400; } P.x = h.x - Math.sin(a) * d; P.z = h.z - Math.cos(a) * d; P.y = HT(P.x, P.z) + 1; P.vx = P.vz = 0; yaw = a; pit = .25; }, [h, D[ad] * +uz, aci]);
     for (let k = 0; k < 4; k++) { await pg.evaluate(() => { if (S == 'choice') chPick(0); else if (S != 'play') closeOv(); }); await sleep(250); }

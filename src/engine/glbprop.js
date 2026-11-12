@@ -16,7 +16,8 @@ export const PROP = {
   ocak: { url: U('n_ocak'), boy: 2.3, don: 0, yer: 0 }, // eski ağ alçak bir taş kaideydi: aynı boyda model oyuncunun dizinde kalıyordu
   balbal: { url: U('n_balbal'), boy: 1, don: 0, yer: 0 },
   kapi: { url: U('n_kapi'), boy: 1, don: 0, yer: 0 },
-  kazan: { url: U('n_kazan'), boy: 1, don: 0, yer: 0 }
+  kazan: { url: U('n_kazan'), boy: 1, don: 0, yer: 0 },
+  tuccar: { url: U('n_tuccar'), boy: 1.45, don: 0, yer: 0 } // eski gövde ayakta duran bir adamdı; tezgâh ondan uzun
 };
 
 const LD = new GLTFLoader(), cache = {};
