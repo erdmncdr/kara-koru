@@ -520,7 +520,11 @@ export function glbHero(H, key) {
   // eski gövdenin boyu şimdi ölçülür. Dosyaları inmiş kahramanda (açılışta Alp ve seçili kahraman; kahraman sayfası açılınca
   // diğerleri) gövde hemen gizlenir: eski gövde görünüp sonra yenisine dönmesin. İnmemişse o sürede eski gövde görünür kalır.
   hedef.g.updateMatrixWorld(true);
+  // şapka ölçüye girmez: başından uzun bir şapka kutuyu büyütür, model de onunla birlikte büyürdü (Kemik'te %8)
+  const sp0 = hedef.hat, spA = sp0 && sp0.parent;
+  if (spA) spA.remove(sp0);
   const b0 = new T.Box3().setFromObject(hedef.g);
+  if (spA) spA.add(sp0);
   let h0 = Math.max(1, b0.max.y - b0.min.y);
   // baş ekleminin yerden yüksekliği (eski gövdede asa ya da boynuz kutuyu büyütüyorsa boy buna göre eşlenir)
   const bas0 = hedef.b && hedef.b.hd ? hedef.b.hd.getWorldPosition(new T.Vector3()).y - b0.min.y : 0;
