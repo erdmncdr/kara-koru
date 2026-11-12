@@ -1,5 +1,5 @@
 // engine/glbhero.js · Kara Koru
-// Meshy ile üretilmiş, iskeletli kahramanlar: Alp ve Kam. Varsayılan açık; adreste ?eski (ya da localStorage kk_meshy=0)
+// Meshy ile üretilmiş, iskeletli kahramanlar: Alp, Kam ve Kemik. Varsayılan açık; adreste ?eski (ya da localStorage kk_meshy=0)
 // kodla kurulmuş eski gövdeyi geri getirir. Kahraman seçiliyken eski gövde gizlenir, aynı boya ölçeklenmiş GLB konur.
 // Meshy iskeletlerinde kemik adları ortak: yürüme, koşu, zıplama, kayma, atılma, takla ve darbe klipleri Alp'in dosyalarından
 // bütün kahramanlarda oynar (KLIP); kahramana özel olan yalnız model, elindekiler ve saldırı/duruş klipleri (KAHRAMAN).
@@ -27,15 +27,16 @@ const KLIP = { yuru: U('alp_yuru'), hareket: U('alp_hareket'), hareket2: U('alp_
 const URLS = {
   alp: { model: U('alp'), es: { kilic: U('alp_kilic'), kalkan: U('alp_kalkan') } },
   kam: { model: U('kam'), es: { asa: U('kam_asa') }, klip: U('kam_buyu') },
-  kemik: { model: U('kemik') }
+  kemik: { model: U('kemik'), klip: U('kemik_at') }
 };
 // kahraman ayarı. sal: saldırı kliplerinin oyunun 0.42 sn'lik saldırı ilerlemesine eşlenen aralığı (sn).
 // ayak, kosUst: kahramanın kendi koşu klibi varsa onun ayak hızı ve hızlanma üst sınırı (yoksa ortak AYAK, KOS_UST).
+// sapkaUc: şapka başın uç eklemine oturur (başlığın köşe ortalaması yana kayıyor).
 // basOlcu: boy eski gövdenin kutusuna göre değil baş eklemine göre eşlenir (eski gövdede baştan uzun asa ya da boynuz varsa).
 const KAHRAMAN = {
   alp: { sal: { atkR: [.12, .95], atkL: [.3, 1.2] }, ayak: { walk: .5, run: 3.7 } },
   kam: { sal: { atkR: [.3, 1.3], atkL: [.75, 1.65] }, basOlcu: 1, ayak: { walk: .7, run: 1.65 }, kosUst: 1.65 },
-  kemik: { ayak: { walk: .52, run: 3.7 } }
+  kemik: { sal: { atkR: [1.1, 1.9], atkL: [3.1, 3.85] }, sapkaUc: 1, ayak: { walk: .52, run: 3.7 } }
 };
 // kliplerin kendi ayak hızı (boy/sn): oyunda sabit hızla ilerletilen modelde yerdeki ayağın kaymasını en aza indiren
 // değer tarandı (tools/meshy-oyun.mjs ölçümü). Kalan ~%35, bileğin topuktan parmağa yuvarlanması
@@ -103,6 +104,12 @@ function ortak(k) {
         // kendi klipleri. Koşu da kendi klibi: ortak hızlı koşu gövdeyi 50° öne yatırır, bu dik koşar (10°)
         const by = n => kg.animations.find(a => a.name == n);
         C = { ...C0, combat: C0.idle, ...kok({ atkR: by('Asa_Kaldir'), atkL: by('Asa_It'), run: by('Kos') }) };
+      }
+      if (k == 'kemik') {
+        // elinde bir şey yok: oyundaki duruş doğal bekleme (kılıç-kalkan gardı boş elle yumruk dövüşü gibi duruyordu); saldırılar
+        // Kemik'in kendi klipleri: omuz üstünden fırlatma ve yukarıdan aşağı savurma
+        const by = n => kg.animations.find(a => a.name == n);
+        C = { ...C0, combat: C0.idle, ...kok({ atkR: by('Firlat'), atkL: by('Vur') }) };
       }
       const O = { C };
       es.forEach(([ad], i) => (O[ad] = E[i].scene));
@@ -378,22 +385,83 @@ function takAlp({ O, root, bone, wp, ileri, sol, yuk, gq, h0, sk, sapka, gp }) {
 export const ASA = { boy: 1.15, tut: .47 };
 // denetim: test derlemesinde adresle denenir (?asayan=.34&asayuk=.6)
 
-// ---- Kemik: elinde bir şey yok (kemikleri fırlatır). Göğüs kafesinin içinde ve göz çukurlarında kor ışığı: toplamalı ışıma,
-// göğüs ve baş kemiklerine bağlı (dokudaki turuncu boya gölgede sönük kalıyor; ışık kaburgaların arasından görünür)
+// ---- Kemik: elinde bir şey yok (kemikleri fırlatır). Göğüs kafesinin içinde ve göz çukurlarında kor ışığı, başın çevresinde
+// yükselen alev dilleri: toplamalı ışıma, göğüs ve baş kemiklerine bağlı (dokudaki turuncu boya gölgede sönük kalıyor). Alev
+// dilleri her karede dünya uzayında yukarı yükselir (alevTick); arkadan başlığın üstünden, önden yüzün çevresinden görünür.
+export const ALEV = { n: 18, cap: .086, yuk: .1, boy: .17, en: .085, taban: -.045, hiz: 1.1, op: .95 };
+// alev dili dokusu: altı yuvarlak, ucu sivri damla; kenara doğru saydamlaşır (beyaz: rengi malzeme verir)
+let alevDoku = null;
+function alevD() {
+  if (alevDoku) return alevDoku;
+  const W = 48, H = 96, cv = document.createElement('canvas');
+  cv.width = W;
+  cv.height = H;
+  const cx = /** @type {CanvasRenderingContext2D} */ (cv.getContext('2d')), d = cx.createImageData(W, H);
+  for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+    const y = 1 - (j + .5) / H, x = Math.abs((i + .5) / W * 2 - 1),
+      w = Math.pow(1 - y, .75) * Math.min(1, Math.sqrt(y / .2)) * .92, q = w > 0 ? x / w : 9, a = q >= 1 ? 0 : Math.pow(1 - q * q, 1.4) * Math.min(1, (1 - y) * 3), k = (j * W + i) * 4;
+    d.data[k] = d.data[k + 1] = d.data[k + 2] = 255;
+    d.data[k + 3] = a * 255;
+  }
+  cx.putImageData(d, 0, 0);
+  alevDoku = new T.CanvasTexture(cv);
+  alevDoku.colorSpace = T.SRGBColorSpace;
+  return alevDoku;
+}
 function takKemik({ bone, wp, ileri, h0, sk }) {
-  const f = SKINF[sk], c = new T.Color(1, .5, .14);
-  if (f) { const r = f(c.r, c.g, c.b); c.setRGB(Math.min(1, r[0]), Math.min(1, r[1]), Math.min(1, r[2])); }
-  const isik = (kemik, yer, boy, op) => {
-    const o = new T.Sprite(new T.SpriteMaterial({ map: HALO, color: c, transparent: true, opacity: op, blending: T.AdditiveBlending, depthWrite: false, fog: true }));
+  const f = SKINF[sk], renk = (r, g, b) => {
+    const x = f ? f(r, g, b) : [r, g, b];
+    return new T.Color().setRGB(Math.min(1, x[0]), Math.min(1, x[1]), Math.min(1, x[2]), T.SRGBColorSpace);
+  };
+  const c = renk(1, .5, .14);
+  const isik = (kemik, yer, boy, op, renk = c) => {
+    const o = new T.Sprite(new T.SpriteMaterial({ map: HALO, color: renk, transparent: true, opacity: op, blending: T.AdditiveBlending, depthWrite: false, fog: true }));
     kemik.updateWorldMatrix(true, false);
-    o.position.copy(kemik.worldToLocal(yer));
+    o.position.copy(kemik.worldToLocal(yer.clone()));
     o.scale.setScalar(boy / kemik.getWorldScale(new T.Vector3()).x);
     kemik.add(o);
     return o;
   };
-  const g = bone('Spine02'), bas = bone('Head');
-  if (g) isik(g, wp('Spine02').addScaledVector(ileri, h0 * .07), h0 * .42, .9);
-  if (bas) isik(bas, wp('Head').addScaledVector(ileri, h0 * .1).add(new T.Vector3(0, h0 * .05, 0)), h0 * .2, .85);
+  // Meshy iskeletinde omurga aşağıdan yukarı Spine02, Spine01, Spine: göğüs kafesinin ortası son ikisinin arasında
+  const g = bone('Spine'), bas = bone('Head');
+  // göğüs: kaburgaların önünde küçük parlak çekirdek, içinde geniş hale
+  if (g && bone('Spine01')) {
+    const orta = wp('Spine01').lerp(wp('Spine'), .55);
+    isik(g, orta.clone().addScaledVector(ileri, h0 * .085), h0 * .15, .9, renk(1, .62, .2));
+    isik(g, orta.addScaledVector(ileri, h0 * .03), h0 * .36, .6);
+  }
+  if (!bas) return;
+  const merkez = wp('Head').add(new T.Vector3(0, h0 * .055, 0));
+  isik(bas, merkez.clone().addScaledVector(ileri, h0 * .075), h0 * .17, .9);
+  // alev dilleri: başlığın çevresinde halka; sırayla doğar, yükselirken içe kapanıp incelir. Dıştaki turuncu gövde düz karışım
+  // (açık zeminde de turuncu kalır), içteki sarı öz toplamalı
+  const ks = bas.getWorldScale(new T.Vector3()).x, diller = [], c0 = renk(1, .62, .1), c1 = renk(.9, .14, .02), oz = renk(1, .85, .35);
+  for (let i = 0; i < ALEV.n; i++) {
+    const ic = i % 4 == 3,
+      o = new T.Sprite(new T.SpriteMaterial({ map: alevD(), color: (ic ? oz : c0).clone(), transparent: true, opacity: 0, blending: ic ? T.AdditiveBlending : T.NormalBlending, depthWrite: false, fog: true }));
+    o.center.set(.5, .08);
+    bas.add(o);
+    diller.push({ o, ic, a: i / ALEV.n * Math.PI * 2 + (i % 2) * .5, f: (i * .618) % 1, r: ic ? .55 : .85 + ((i * 7) % 5) * .06 });
+  }
+  bone('RightHand').userData.alev = { bas, diller, m: bas.worldToLocal(merkez.clone().addScaledVector(ileri, h0 * .02)), h: h0 / ks, c0, c1, t: 0 };
+}
+const _aq = new T.Quaternion(), _au = new T.Vector3(), _ax = new T.Vector3(), _az = new T.Vector3();
+function alevTick(A, dt) {
+  A.t += dt;
+  // dünya yukarısı ve yatay eksenler başın kendi uzayında: baş eğilse de alev dik yükselir
+  A.bas.getWorldQuaternion(_aq).invert();
+  _au.set(0, 1, 0).applyQuaternion(_aq);
+  _ax.set(1, 0, 0).applyQuaternion(_aq);
+  _az.set(0, 0, 1).applyQuaternion(_aq);
+  const h = A.h;
+  for (const d of A.diller) {
+    const u = (A.t * ALEV.hiz * (.8 + d.r * .3) + d.f) % 1, r = ALEV.cap * h * d.r * (1 - u * .5),
+      sal = Math.sin(A.t * 9 + d.a * 3) * .014 * h * u, k = Math.sin(Math.PI * Math.pow(u, .6)), b = d.ic ? .7 : 1;
+    d.o.position.copy(A.m).addScaledVector(_ax, Math.cos(d.a) * r + sal).addScaledVector(_az, Math.sin(d.a) * r).addScaledVector(_au, (ALEV.taban + u * ALEV.yuk) * h);
+    d.o.scale.set(ALEV.en * h * b * (1 - u * .45), ALEV.boy * h * b * (.55 + k * .6), 1);
+    d.o.material.opacity = ALEV.op * k;
+    if (!d.ic) d.o.material.color.copy(A.c0).lerp(A.c1, u * u);
+  }
 }
 
 // ---- Kam: asa sağ yumrukta, yumruğun deliğinden geçer (delik dinlenme duruşunda öne bakar, başparmak önde: Alp'in kılıcı gibi).
@@ -496,7 +564,7 @@ export function glbHero(H, key) {
     // şapka: eski gövdenin baş kemiğinden yenisinin başına, miğferin tepesine
     if (hedef.hat) {
       const taban = hedef.g.getWorldPosition(new T.Vector3()).y - gy0 + b0.min.y,
-        ucK = ay.basOlcu && bone('head_end') ? wp('head_end') : null,
+        ucK = (ay.basOlcu || ay.sapkaUc) && bone('head_end') ? wp('head_end') : null,
         bas = ucK || tepeOrta(root, taban + h0 * .86) || wp('Head'), tepe = ucK || new T.Vector3(bas.x, taban + h0 * .93, bas.z);
       tak(hedef.hat, bone('Head'), tepe, yuk, hedef.hat.getWorldScale(new T.Vector3()).x);
       hedef.hat.visible = true;
@@ -518,6 +586,7 @@ export function glbHero(H, key) {
     { const el = bone('RightHand'); if (el && el.userData.asa) /** @type {any} */ (G).asa = el.userData.asa; }
     { const el = bone('RightHand'); if (el && el.userData.sorguc) /** @type {any} */ (G).sorguc = el.userData.sorguc; }
     { const el = bone('RightHand'); if (el && el.userData.kalkan) /** @type {any} */ (G).kalkan = el.userData.kalkan; }
+    { const el = bone('RightHand'); if (el && el.userData.alev) /** @type {any} */ (G).alev = el.userData.alev; }
     // denetim araçları için (tools/meshy-el.mjs): duruşu dondurup tek klip anı göstermek. Yayın derlemesinde pencereye açılmaz
     if (__KOPRU__) /** @type {any} */ (window).__glb = G, /** @type {any} */ (window).__T = T; // __T: denetim araçları three sınıflarına erişsin (tools/giris-olc.mjs)
     /** @type {any} */ (G).tick = glbTick;
@@ -563,8 +632,10 @@ const ANA = ['idle', 'combat', 'walk', 'run', 'jump', 'flip', 'slide', 'dash'];
 const sm = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
 export function glbTick(dt) {
-  if (!G || G.dondur) return;
+  if (!G) return;
   if ($G.H !== G.H) return void (G = null);
+  if (/** @type {any} */ (G).alev) alevTick(/** @type {any} */ (G).alev, dt);
+  if (G.dondur) return;
   const P = $G.P || {},
     pl = $G.S == 'play',
     vm = pl ? Math.hypot(P.vx || 0, P.vz || 0) : 0,
