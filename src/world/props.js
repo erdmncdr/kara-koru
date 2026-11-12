@@ -1,6 +1,7 @@
 // world/props.js · Kara Koru
 // Bu dosya tek dosyalık sürümden (v22) otomatik ayrıldı. Ortak oyun durumu core/store.js içindeki $G nesnesinde.
 
+import { glbProp } from '../engine/glbprop.js';
 import { $G } from '../core/store.js';
 import { THREE } from '../engine/three.js';
 import { BMc, VMAT, bx, cn, cy, envG, glow, mk, rigData, rigInst } from '../engine/renderer.js';
@@ -25,6 +26,13 @@ export function mkCauldron() {
   }
   glow(0xff8a3a, 2.4, g, .6).position.set(0, .45, 0);
   g.traverse(m => m.castShadow = m !== liq);
+  {
+    // Meshy modeli: eski gövde, kodla kurulan iksir yüzeyi ve alev konileri gizlenir (model iksiri ve odunu kendi taşır)
+    const eski = [];
+    g.traverse(m => { if (m.isMesh) eski.push(m); });
+    g.userData.glbBekle = 1;
+    glbProp(g, eski, 'kazan');
+  }
   return {
     g,
     liq
@@ -37,6 +45,8 @@ export function mkGate() {
     gm = new THREE.Mesh(envG('gate' + $G.BI, () => MAPM.gate($G.BI == 1), 1), VMAT);
   gm.receiveShadow = true;
   g.add(gm);
+  g.userData.glbBekle = 1; // kapı sahneye sonradan eklenir
+  glbProp(g, gm, 'kapi');
   const rn2 = bx(ru, 1.4, .5, .06, 0, 9.75, 1.18, g);
   const por = mk(new THREE.CircleGeometry(3.4, 32), new THREE.MeshBasicMaterial({
     color: 0x9fe8d8,

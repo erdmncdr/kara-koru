@@ -1,6 +1,7 @@
 // game/objects.js · Kara Koru
 // Bu dosya tek dosyalık sürümden (v22) otomatik ayrıldı. Ortak oyun durumu core/store.js içindeki $G nesnesinde.
 
+import { glbProp } from '../engine/glbprop.js';
 import { $G } from '../core/store.js';
 import { THREE } from '../engine/three.js';
 import { clr, freeG, kill, ownG } from '../core/helpers.js';
@@ -64,6 +65,7 @@ export function mkChest(o) {
     const cm = new THREE.Mesh(envG('chest' + (gold ? 2 : free ? 1 : 0), () => MAPM.chest(gold ? 2 : free ? 1 : 0), 1), VMAT);
     cm.receiveShadow = true;
     c.add(cm);
+    glbProp(c, cm, gold ? 'altinsandik' : 'sandik'); // Meshy modeli (engine/glbprop.js); inince eski ağ gizlenir
   }
   c.traverse(m => m.castShadow = true);
   chestBeam(gold ? 0xe2b85a : free ? 0x9aa3ad : 0xd9b26a, c);
@@ -92,6 +94,8 @@ export function mkSh(t) {
       bm = new THREE.Mesh(envG('shr' + mt + $G.BI, () => MAPM.shrine(mt, $G.BI == 1), 1), VMAT);
     bm.castShadow = bm.receiveShadow = true;
     g.add(bm);
+    if (t == 0 || t == 5) glbProp(g, bm, 'ocak');
+    else if (t == 1) glbProp(g, bm, 'balbal');
   }
   if (t == 0 || t == 5) {
     o = mk(ownG(new THREE.OctahedronGeometry(.7)), BM(c), 0, 1.95, 0, g);
