@@ -1,5 +1,5 @@
 // engine/glbhero.js · Kara Koru
-// Meshy ile üretilmiş, iskeletli kahramanlar: Alp, Kam ve Kemik. Varsayılan açık; adreste ?eski (ya da localStorage kk_meshy=0)
+// Meshy ile üretilmiş, iskeletli kahramanlar: Alp, Kam, Gölge ve Kemik; Tripo ile üretilmiş Bahadır. Varsayılan açık; adreste ?eski (ya da localStorage kk_meshy=0)
 // kodla kurulmuş eski gövdeyi geri getirir. Kahraman seçiliyken eski gövde gizlenir, aynı boya ölçeklenmiş GLB konur.
 // Meshy iskeletlerinde kemik adları ortak: yürüme, koşu, zıplama, kayma, atılma, takla ve darbe klipleri Alp'in dosyalarından
 // bütün kahramanlarda oynar (KLIP); kahramana özel olan yalnız model, elindekiler ve saldırı/duruş klipleri (KAHRAMAN).
@@ -29,6 +29,9 @@ const URLS = {
   kam: { model: U('kam'), es: { asa: U('kam_asa') }, klip: U('kam_buyu') },
   // kostum: ayrı modelli kostümler (iskelet ortak; klipler ve kod kahramanınki). Seçilince iner
   golge: { model: U('golge'), es: { yatagan: U('golge_yatagan') }, klip: U('golge_hareket') },
+  // Bahadır Tripo modeli: iskeleti başka kurulu (dinlenme duruşu, ölçek, parmak kemikleri), Meshy klipleri doğrudan oynamaz.
+  // tum: ortak kliplerin bu iskelete çevrilmiş kopyası (tools/tripo-ad.mjs + tools/klip-aktar.mjs); ortak dosyaların yerine yüklenir
+  bahadir: { model: U('bahadir'), tum: U('bahadir_hareket') },
   kemik: { model: U('kemik'), klip: U('kemik_at'), kostum: { ayaz: U('kemik_ayaz'), erlik: U('kemik_erlik'), akinci: U('kemik_akinci'), saman: U('kemik_saman') } }
 };
 // modelin anahtarı ve adresi: kostümün kendi modeli varsa o
@@ -45,6 +48,7 @@ const KAHRAMAN = {
   kam: { sal: { atkR: [.3, 1.3], atkL: [.75, 1.65] }, basOlcu: 1, ayak: { walk: .7, run: 1.65 }, kosUst: 1.65 },
   // Gölge: saldırılar ileri saplama ve yukarı çekiş; koşusu öne eğik kendi klibi, yürüyüşü ortak klip
   golge: { sal: { atkR: [.45, 1.15], atkL: [.7, 1.4] }, sapkaUc: 1, ayak: { walk: .5, run: 2.1 }, kosUst: 2.1 },
+  bahadir: { sal: { atkR: [.12, .95], atkL: [.3, 1.2] }, ayak: { walk: .5, run: 3.7 } },
   kemik: { sal: { atkR: [1.1, 1.9], atkL: [3.1, 3.85] }, sapkaUc: 1, ayak: { walk: .52, run: 3.7 }, boy: 1.2 }
 };
 // kliplerin kendi ayak hızı (boy/sn): oyunda sabit hızla ilerletilen modelde yerdeki ayağın kaymasını en aza indiren
@@ -102,11 +106,21 @@ function ortakKlip() {
   }
   return klipP;
 }
+// başka iskeletli kahramanın (Tripo) kendi tam klip kümesi: tek dosyada, ortak kliplerle aynı adlarda
+function tumKlip(url) {
+  return LD.loadAsync(url).then(g => {
+    const by = n => g.animations.find(a => a.name == n);
+    return kok({
+      walk: by('Yuru'), idle: by('Idle'), atkR: by('Right_Hand_Sword_Slash'), atkL: by('Left_Slash'), jump: by('Regular_Jump'), slide: by('slide_light'),
+      hit: by('Hit_Reaction'), combat: by('Combat_Stance'), run: by('RunFast'), flip: by('Backflip_Jump'), dash: by('Quick_Step_and_Spin_Dodge')
+    });
+  });
+}
 // kahramanın klip kümesi ve elindekiler bir kez yüklenir; model her kurulumda yeniden ayrıştırılır (sahne nesnesi paylaşılamaz)
 function ortak(k) {
   if (!cache[k]) {
     const u = URLS[k], es = Object.entries(u.es || {});
-    cache[k] = Promise.all([ortakKlip(), u.klip ? LD.loadAsync(u.klip) : null, ...es.map(([, x]) => LD.loadAsync(x))]).then(([C0, kg, ...E]) => {
+    cache[k] = Promise.all([u.tum ? tumKlip(u.tum) : ortakKlip(), u.klip ? LD.loadAsync(u.klip) : null, ...es.map(([, x]) => LD.loadAsync(x))]).then(([C0, kg, ...E]) => {
       let C = C0;
       if (k == 'kam') {
         // bekleme ve oyundaki duruş aynı doğal bekleme klibi (kılıç-kalkan savaş duruşu asayla yakışmaz); saldırılar Kam'ın
@@ -126,6 +140,8 @@ function ortak(k) {
         const by = n => kg.animations.find(a => a.name == n);
         C = { ...C0, combat: C0.idle, ...kok({ atkR: by('Firlat'), atkL: by('Vur') }) };
       }
+      // Bahadır: elinde bir şey yok (baltası daha modellenmedi): oyundaki duruş doğal bekleme
+      if (k == 'bahadir') C = { ...C0, combat: C0.idle };
       const O = { C };
       es.forEach(([ad], i) => (O[ad] = E[i].scene));
       return O;
@@ -683,7 +699,7 @@ export function glbOnYukle() {
   return a;
 }
 // kayıttaki kahraman sırası (kk_ci) → anahtar; sıra kalıcıdır (game/heroes.js CR)
-const ACILIS = { 1: 'kam', 2: 'golge', 8: 'kemik' };
+const ACILIS = { 1: 'kam', 2: 'golge', 3: 'bahadir', 8: 'kemik' };
 // dosyaları inmiş kahramanlar
 const hazir = {};
 function indir(k, sk = '') {
