@@ -34,6 +34,9 @@ import { choose, luOpts } from '../ui/cards.js';
 import { cell, groundAt, groundTop, los, pushOut, pushPlat, solidAt } from '../world/terrain.js';
 import { torUpd } from '../world/tornado.js';
 
+// yere düşen can kalbi ve lahmacunun ömrü (sn) ve yanıp sönmeye başladığı son süre
+export const YER_OMUR = 30, YER_SON = 5;
+
 // Düşmanları birbirinden iter. 6 birimlik hücre ızgarası: her çift yalnızca bir kez,
 // yalnızca komşu hücrelerde incelenir (400 düşmanda ~2k kontrol, n² yerine).
 const SEP = new Map();
@@ -641,6 +644,16 @@ export function upd(dt) {
   $G.POT = $G.POT.filter(p => !p.o);
   for (const u of $G.PU) {
     const q = u.m.position;
+    // yerdeki lahmacun bir süre sonra kaybolur; son saniyelerde yanıp söner. Güçler (mıknatıs, kalkan...) kalır
+    if (u.t == 'heal') {
+      u.om = (u.om == null ? YER_OMUR : u.om) - dt;
+      if (u.om <= 0) {
+        u.o = 1;
+        sc.remove(u.m);
+        continue;
+      }
+      u.m.visible = u.om > YER_SON || Math.sin(u.om * 14) > -.2;
+    }
     u.m.rotation.y += dt * 2;
     q.y = u.by + 1.2 + Math.sin($G.T * 3) * .2;
     if (Math.hypot(q.x - $G.P.x, q.z - $G.P.z) < 2 && Math.abs(q.y - $G.P.y) < 3) {
@@ -1111,6 +1124,14 @@ export function upd(dt) {
     bn = xpK(),
     bnA = auK();
   for (const o of $G.G) {
+    // yerdeki can kalbi bir süre sonra kaybolur (birikip yeri doldurmasın); son saniyelerde yanıp söner (loot.js gSync)
+    if (o.ty == 'hl' && !o.air && !o.pull) {
+      o.om = (o.om == null ? YER_OMUR : o.om) - dt;
+      if (o.om <= 0) {
+        o.c = 1;
+        continue;
+      }
+    }
     const q = o.m.position,
       dx = $G.P.x - q.x,
       dz = $G.P.z - q.z,

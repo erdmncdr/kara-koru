@@ -72,6 +72,7 @@ export function gSync() {
     const t = o.ty == 'ky' ? 'au' : SPEC[o.ty] ? o.ty : 'hl',
       i = n[t];
     if (i >= G_CAP) continue;
+    if (t == 'hl' && !o.air && o.om != null && o.om < 5 && Math.sin(o.om * 14) < -.2) continue; // ömrü bitmek üzere: yanıp söner (update.js YER_SON)
     n[t] = i + 1;
     const m = o.m,
       s = SPEC[t].s;

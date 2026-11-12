@@ -1074,10 +1074,11 @@ button:focus-visible,.cd:focus-visible,.tb:focus-visible,.hc:focus-visible,.chc:
 /* odak: klavye ve kumanda aynı kalın sarı çerçeve; beyaz düğmede de görünür */
 .pad button:focus,.pad summary:focus,.pad input:focus,.pad .cd:focus,.pad .hc:focus{outline:3px solid var(--gold)!important;outline-offset:2px}
 .cd:focus-visible,.pad .cd:focus{outline-offset:4px}
-/* ana menü: odak ya da fare başka satırdayken birincil satır beyazlığını bırakır, tek beyaz satır kalır */
-.mnav2:has(.mi:hover,.mi:focus-visible) .mi.pri:not(:hover):not(:focus-visible),.pad .mnav2:has(.mi:focus) .mi.pri:not(:focus){background:var(--box)!important}
-.mnav2:has(.mi:hover,.mi:focus-visible) .mi.pri:not(:hover):not(:focus-visible) b,.pad .mnav2:has(.mi:focus) .mi.pri:not(:focus) b{color:#fff!important;-webkit-text-stroke:4px var(--ink)}
-.mnav2:has(.mi:hover,.mi:focus-visible) .mi.pri:not(:hover):not(:focus-visible) small{color:var(--dim)!important}
+/* ana menü: odak ya da fare başka satırdayken birincil satır beyazlığını bırakır, tek beyaz satır kalır.
+   Fare menünün üstündeyken (satır aralarındaki boşluk dahil) birincil satır sönük kalır: aralardan geçerken yanıp sönmesin */
+.mnav2:hover .mi.pri:not(:hover),.mnav2:has(.mi:focus-visible) .mi.pri:not(:hover):not(:focus-visible),.pad .mnav2:has(.mi:focus) .mi.pri:not(:focus){background:var(--box)!important}
+.mnav2:hover .mi.pri:not(:hover) b,.mnav2:has(.mi:focus-visible) .mi.pri:not(:hover):not(:focus-visible) b,.pad .mnav2:has(.mi:focus) .mi.pri:not(:focus) b{color:#fff!important;-webkit-text-stroke:4px var(--ink)}
+.mnav2:hover .mi.pri:not(:hover) small,.mnav2:has(.mi:focus-visible) .mi.pri:not(:hover):not(:focus-visible) small{color:var(--dim)!important}
 /* geçiş başlığı: Alfa Slab geniş, telefonda taşmasın */
 .trn h2{font-size:clamp(40px,7.5vw,88px)!important;line-height:1}
 /* dokunmatik düğmeler: oyun dilinde koyu, kalın kenarlı */
