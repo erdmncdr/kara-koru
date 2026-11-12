@@ -36,11 +36,13 @@ const mUrl = mk => { const [k, sk] = mk.split(':'); return sk ? URLS[k].kostum[s
 // kahraman ayarı. sal: saldırı kliplerinin oyunun 0.42 sn'lik saldırı ilerlemesine eşlenen aralığı (sn).
 // ayak, kosUst: kahramanın kendi koşu klibi varsa onun ayak hızı ve hızlanma üst sınırı (yoksa ortak AYAK, KOS_UST).
 // sapkaUc: şapka başın uç eklemine oturur (başlığın köşe ortalaması yana kayıyor).
+// boy: eski gövdeye göre eşlenen boyun çarpanı (Kemik'in eski gövdesi kısa ve 0,95 ölçekliydi: yeni model Alp ve Kam'ın
+// yanında %80 boyda kalıyordu; baş eklemi 1,73'e karşı 2,14 ve 2,16. 1,2 ile 2,08)
 // basOlcu: boy eski gövdenin kutusuna göre değil baş eklemine göre eşlenir (eski gövdede baştan uzun asa ya da boynuz varsa).
 const KAHRAMAN = {
   alp: { sal: { atkR: [.12, .95], atkL: [.3, 1.2] }, ayak: { walk: .5, run: 3.7 } },
   kam: { sal: { atkR: [.3, 1.3], atkL: [.75, 1.65] }, basOlcu: 1, ayak: { walk: .7, run: 1.65 }, kosUst: 1.65 },
-  kemik: { sal: { atkR: [1.1, 1.9], atkL: [3.1, 3.85] }, sapkaUc: 1, ayak: { walk: .52, run: 3.7 } }
+  kemik: { sal: { atkR: [1.1, 1.9], atkL: [3.1, 3.85] }, sapkaUc: 1, ayak: { walk: .52, run: 3.7 }, boy: 1.2 }
 };
 // kliplerin kendi ayak hızı (boy/sn): oyunda sabit hızla ilerletilen modelde yerdeki ayağın kaymasını en aza indiren
 // değer tarandı (tools/meshy-oyun.mjs ölçümü). Kalan ~%35, bileğin topuktan parmağa yuvarlanması
@@ -565,6 +567,7 @@ export function glbHero(H, key) {
       s = bas0 / Math.max(1e-4, by1);
       h0 = (be.getWorldPosition(new T.Vector3()).y - b1.min.y) * s;
     }
+    if (ay.boy) s *= ay.boy, h0 *= ay.boy;
     root.scale.multiplyScalar(s);
     root.position.y -= b1.min.y * s;
     hedef.g.add(root);
