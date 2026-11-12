@@ -17,7 +17,8 @@ import { RIMU } from './renderer.js';
 
 const U = n => new URL(`../assets/model/${n}.glb`, import.meta.url).href;
 // boss türü (data/enemies.js BOSSP k) → model
-const URLS = { tepegoz: U('boss_tepegoz'), erlik: U('boss_erlik'), hortlakboss: U('boss_hortlak') };
+// ara boss'lar da aynı yoldan (data/enemies.js KINDS anahtarı): hareketleri boss'larınkini paylaşır
+const URLS = { tepegoz: U('boss_tepegoz'), erlik: U('boss_erlik'), hortlakboss: U('boss_hortlak'), karakoncolos_dev: U('ara_karakoncolos') };
 const KLIP = U('boss_hareket'), BEKLE = U('alp_hareket');
 // modelin boyu, boss'un çarpışma yarıçapının katı olarak (yarıçap 5 → 9,5 birim: oyuncunun ~3,3 katı; omuz genişliği yarıçapa
 // denk gelir). Eski gövdenin kutusuna eşlenince 17 birim çıkıyordu: baş ekrana sığmıyordu. yer: yerden pay
@@ -84,7 +85,10 @@ function malzeme(o) {
 }
 
 // bu aşamanın boss modeli önceden insin (boss gelince eski gövde görünmesin)
-export function glbBossHazirla(k) {
+export function glbBossHazirla(...ks) {
+  for (const k of ks) glbHazir1(k);
+}
+function glbHazir1(k) {
   if (!meshyOn() || !URLS[k]) return;
   modelBuf(k).catch(() => {});
   klipler().catch(() => {});
@@ -92,7 +96,7 @@ export function glbBossHazirla(k) {
 
 // boss doğunca (game/enemies.js): model iner, eski gövdenin yerine geçer
 export function glbBoss(e) {
-  const k = e.bp && e.bp.k, u = e.u;
+  const k = e.bp ? e.bp.k : e.kind, u = e.u;
   if (!meshyOn() || !URLS[k] || !u || u.glb) return;
   u.glb = { bekliyor: 1 };
   Promise.all([modelBuf(k).then(b => LD.parseAsync(b, '')), klipler()]).then(([m, K]) => {
@@ -109,7 +113,8 @@ export function glbBoss(e) {
     // eski gövde: çoklu çizim yuvası bırakılır, kemiğe bağlı parçalar (aksesuar, halka) ve ayrı çizilen gözler saklanır
     iskinRelease(u);
     const gizli = [];
-    u.g.traverse(o => { if (o !== u.g && o.visible && (o.isMesh || o.isSprite || o.isPoints)) { o.visible = false; gizli.push(o); } });
+    // seçkin halkası ve hücum çizgisi (oyun kendisi açıp kapatır) yerinde kalır
+    u.g.traverse(o => { if (o !== u.g && o !== u.tel && !o.userData.ring && o.visible && (o.isMesh || o.isSprite || o.isPoints)) { o.visible = false; gizli.push(o); } });
     const gozler = u.eyes;
     u.eyes = null;
     u.g.add(root);
@@ -199,7 +204,8 @@ export function glbBossTick(e, dt, s) {
   if (slamW > .01) hedef.slam = slamW;
   const kalan = 1 - (hedef.slam || 0);
   // yürüme ve hücum: hız boss'un ölçeğine bölünür (klibin ayak hızı boy başına)
-  const boyHiz = s / Math.max(.1, G.h * e.ba), kosuyor = e.spm > 1.5 && s > 0;
+  // hücumcu ara boss (tür 5): atılma evresinde (cs 2) koşar
+  const boyHiz = s / Math.max(.1, G.h * e.ba), kosuyor = (e.spm > 1.5 || e.cs == 2) && s > 0;
   if (kosuyor) {
     hedef.kos = kalan;
     A.kos.timeScale = Math.max(AN.kos.alt, Math.min(AN.kos.ust, boyHiz / AN.kos.hiz));
@@ -212,7 +218,10 @@ export function glbBossTick(e, dt, s) {
   karis(G, hedef, dt);
   // geliş kükremesi: ilk saniyelerde üst gövdede (bacaklar yürümeye devam eder)
   if (A.kukre) {
-    const kt = G.t, w = kt < AN.kukre.sure ? sm(0, .25, kt) * (1 - sm(AN.kukre.sure - .4, AN.kukre.sure, kt)) : 0;
+    // hücumcu ara boss atılmadan önce nişan alırken (cs 1, 0,8 sn) de göğsünü döver
+    if (e.cs == 1 && G.csOn != 1) G.t = .15;
+    G.csOn = e.cs;
+    const kt = G.t, w = e.cs == 1 ? 1 : kt < AN.kukre.sure ? sm(0, .25, kt) * (1 - sm(AN.kukre.sure - .4, AN.kukre.sure, kt)) : 0;
     A.kukre.time = Math.min(A.kukre.getClip().duration - .01, AN.kukre.bas + kt);
     A.kukre.setEffectiveWeight(w * (1 - Math.max(hedef.slam || 0, vurW)));
   }

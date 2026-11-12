@@ -1,0 +1,30 @@
+// Ara boss'u oyunda çeker: oyuncunun önüne doğurur; geliş, yürüyüş, hücum nişanı, atılma ve ölüm anlarında kare alır.
+// node tools/araboss-cek.mjs <url> <klasör> [tür=karakoncolos_dev]   (CHROME; test derlemesi VITE_KOPRU=1)
+import { chromium } from 'playwright';
+import fs from 'node:fs';
+const [url, out, tur = 'karakoncolos_dev'] = process.argv.slice(2);
+fs.mkdirSync(out, { recursive: true });
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const br = await chromium.launch({ executablePath: process.env.CHROME, headless: true, args: ['--use-angle=metal', '--ignore-gpu-blocklist'] });
+const pg = await br.newPage({ viewport: { width: 1280, height: 720 } });
+const errs = []; pg.on('pageerror', e => errs.push(e.message)); pg.on('console', m => { if (/Boss modeli/.test(m.text())) errs.push(m.text()); });
+await pg.addInitScript(() => { Element.prototype.requestPointerLock = function () {}; localStorage.setItem('kk_tut', '1'); localStorage.setItem('kk_set', JSON.stringify({ q: 2, bl: 1 })); });
+await pg.goto(url, { waitUntil: 'domcontentloaded' });
+await pg.waitForFunction(() => typeof S !== 'undefined' && S === 'menu' && !!window.MSEL, null, { timeout: 90000 });
+await pg.evaluate(() => { start(); P.inv = 1e9; P.need = 1e12; });
+await sleep(2500);
+await pg.addStyleTag({ content: '#hud,#tip,#tt,.wl,#bossbar{display:none!important}' });
+await pg.evaluate(k => { for (const e of E) { e.m.position.x += 500; e.hp = 0; } const d = KINDS[k], fx = -Math.sin(yaw), fz = -Math.cos(yaw); spawn(d.t, { el: 1, mini: 1, kind: k, x: P.x + fx * 13, z: P.z + fz * 13 }); window.__b = E[E.length - 1]; window.__b.cc = 99; }, tur);
+await pg.waitForFunction(() => window.__b.u.glb && !window.__b.u.glb.bekliyor, null, { timeout: 60000 }).catch(() => errs.push('model 60 sn içinde gelmedi'));
+const kare = ad => pg.screenshot({ path: `${out}/${ad}.png` });
+console.log('ölçü', JSON.stringify(await pg.evaluate(() => { const b = window.__b, G = b.u.glb; return G && !G.bekliyor ? { ad: b.nm, yaricap: +b.r.toFixed(2), boy: +(G.h * b.ba).toFixed(2), halka: !!b.m.children.find(c => c.userData.ring && c.visible) } : null; })));
+const geri = () => pg.evaluate(() => { const b = window.__b, fx = -Math.sin(yaw), fz = -Math.cos(yaw); b.m.position.x = P.x + fx * 13; b.m.position.z = P.z + fz * 13; });
+await sleep(900); await kare('1_gelis');
+await sleep(2200); await geri(); await sleep(700); await kare('2_yuru');
+await geri(); await pg.evaluate(() => { window.__b.cc = 0; }); await pg.waitForFunction(() => window.__b.cs == 1, null, { timeout: 8000 }).catch(() => errs.push('nişan başlamadı')); await sleep(450); await kare('3_nisan');
+await pg.waitForFunction(() => window.__b.cs == 2, null, { timeout: 4000 }).catch(() => {}); await sleep(250); await kare('4_atilma');
+await sleep(1800); await pg.evaluate(() => { window.__b.cc = 99; }); await geri(); await sleep(400);
+await pg.evaluate(() => { hurtE(window.__b, 1e12, 1); }); await sleep(450); await kare('5_olum_1'); await sleep(450); await kare('6_olum_2');
+await sleep(2000);
+console.log('ölümden sonra', JSON.stringify(await pg.evaluate(() => ({ S, glb: !!window.__b.u.glb, sahnede: !!window.__b.m.parent }))), 'hata:', errs.length ? [...new Set(errs)].join(' ; ').slice(0, 300) : 'yok');
+await br.close();

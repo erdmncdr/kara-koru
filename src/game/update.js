@@ -1231,7 +1231,7 @@ export function upd(dt) {
     // aşamanın boss modeli önceden iner (boss gelince eski gövde görünmesin)
     if ($G.P.stT > 8 && $G.P.bhz !== $G.P.map + $G.P.stage) {
       $G.P.bhz = $G.P.map + $G.P.stage;
-      glbBossHazirla(((BOSSP[$G.P.map] || BOSSP.koru)[0] || {}).k);
+      glbBossHazirla(((BOSSP[$G.P.map] || BOSSP.koru)[0] || {}).k, ...(MINIS[$G.P.map] || []));
     }
     qCheck();
   }

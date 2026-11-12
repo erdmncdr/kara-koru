@@ -165,7 +165,7 @@ export function spawn(t, o = {}) {
   };
   stInit(en);
   $G.E.push(en);
-  if (o.boss && o.bp) glbBoss(en); // Meshy modeli (engine/glbboss.js): inince eski gövdenin yerine geçer
+  if (o.boss && o.bp || o.mini && !o.bandit && kd) glbBoss(en); // Meshy modeli (engine/glbboss.js): inince eski gövdenin yerine geçer; modeli olmayan türde hiçbir şey yapmaz
 }
 
 export function __init_63() {
