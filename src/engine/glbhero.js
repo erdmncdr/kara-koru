@@ -31,7 +31,7 @@ const URLS = {
   golge: { model: U('golge'), es: { yatagan: U('golge_yatagan') }, klip: U('golge_hareket') },
   // Bahadır Tripo modeli: iskeleti başka kurulu (dinlenme duruşu, ölçek, parmak kemikleri), Meshy klipleri doğrudan oynamaz.
   // tum: ortak kliplerin bu iskelete çevrilmiş kopyası (tools/tripo-ad.mjs + tools/klip-aktar.mjs); ortak dosyaların yerine yüklenir
-  bahadir: { model: U('bahadir'), tum: U('bahadir_hareket') },
+  bahadir: { model: U('bahadir'), es: { balta: U('bahadir_balta') }, tum: U('bahadir_hareket') },
   kemik: { model: U('kemik'), klip: U('kemik_at'), kostum: { ayaz: U('kemik_ayaz'), erlik: U('kemik_erlik'), akinci: U('kemik_akinci'), saman: U('kemik_saman') } }
 };
 // modelin anahtarı ve adresi: kostümün kendi modeli varsa o
@@ -140,7 +140,7 @@ function ortak(k) {
         const by = n => kg.animations.find(a => a.name == n);
         C = { ...C0, combat: C0.idle, ...kok({ atkR: by('Firlat'), atkL: by('Vur') }) };
       }
-      // Bahadır: elinde bir şey yok (baltası daha modellenmedi): oyundaki duruş doğal bekleme
+      // Bahadır: oyundaki duruş doğal bekleme (kılıç-kalkan gardı tek baltayla yakışmaz)
       if (k == 'bahadir') C = { ...C0, combat: C0.idle };
       const O = { C };
       es.forEach(([ad], i) => (O[ad] = E[i].scene));
@@ -539,6 +539,31 @@ function takGolge({ O, root, bone, wp, ileri, sol, yuk, h0, sk, gp }) {
     }
   }
 }
+// ---- Bahadır: balta sağ yumrukta (Tripo modeli; ağız modelin +X'i, sap +Y). Sap yumruktan geçer, baş öne bakar, ağız aşağıda.
+// Kol kılıç tutuşuyla kurulur (sagKol), saldırılar Alp'in savurmaları. Tripo elinde parmak kemikleri var: yumruğun ortası avuç ve parmakların ortası
+export const BALTA = { boy: .58, egim: .25, kenar: -1, tut: .3, ileri: 0, yukari: 0, disa: 0 };
+function takBahadir({ O, root, bone, wp, ileri, sol, yuk, h0, sk, gp }) {
+  if (!O.balta) return;
+  const bt = kutu(O.balta), hk = bt.max.y - bt.min.y,
+    kb = kutu(O.balta, v => v.y > bt.min.y + hk * (BALTA.tut - .06) && v.y < bt.min.y + hk * (BALTA.tut + .06)),
+    pv = kb.getCenter(new T.Vector3()),
+    el = bone('RightHand'), disa = sol.clone().negate(),
+    yon = ileri.clone().applyAxisAngle(disa, -BALTA.egim);
+  // yumruğun ortası: el ve parmak kemiklerinin ortası (yumruk() yalnız avucu sayardı: parmakların ağırlığı kendi kemiklerinde)
+  const orta = new T.Vector3(); let n = 0;
+  el.traverse(b => { if (b.isBone) { orta.add(b.getWorldPosition(new T.Vector3())); n++; } });
+  orta.divideScalar(n || 1);
+  if (!n) orta.copy(wp('RightHand'));
+  orta.addScaledVector(ileri, h0 * BALTA.ileri).addScaledVector(yuk, h0 * BALTA.yukari).addScaledVector(disa, h0 * BALTA.disa);
+  const kn = kap(O.balta, pv, hk, sk);
+  tak(kn, el, orta, yon, h0 * BALTA.boy, undefined, 0, yuk.clone().multiplyScalar(BALTA.kenar));
+  el.updateWorldMatrix(true, false);
+  const qe = el.getWorldQuaternion(new T.Quaternion()).invert(),
+    h = new T.Vector3(0, 1, 0).applyQuaternion(kn.quaternion).normalize(),
+    a = wp('RightHand').sub(wp('RightForeArm')).normalize().applyQuaternion(qe);
+  a.addScaledVector(h, -a.dot(h)).normalize();
+  el.userData.asa = { tur: 'kilic', el, kol: bone('RightArm'), on: bone('RightForeArm'), h, a, c: kn.position.clone(), w: 1, gy: (wp('Spine02').y - gp.y) / h0, gv: govdeK(bone) };
+}
 // Gölge'nin göz ışıkları: baş ekleminden yukarı, ileri, iki göz arası ve ışığın boyu (boy oranı)
 export const GOZ = { yuk: .06, ileri: .085, ara: .03, boy: .07 };
 
@@ -644,6 +669,7 @@ export function glbHero(H, key) {
     const ctx = { O, root, bone, wp, ileri, sol, yuk, gq, h0, sk, sapka: !!hedef.hat, gp: hedef.g.getWorldPosition(new T.Vector3()) };
     if (key == 'alp') takAlp(ctx);
     else if (key == 'golge') takGolge(ctx);
+    else if (key == 'bahadir') takBahadir(ctx);
     else if (key == 'kam') takKam(ctx);
     else if (key == 'kemik') takKemik(ctx);
     // şapka: eski gövdenin baş kemiğinden yenisinin başına, miğferin tepesine
