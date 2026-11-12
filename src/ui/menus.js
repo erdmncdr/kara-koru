@@ -154,7 +154,19 @@ export function chalHTML() {
   const cur = $G.MSEL.chal || '',
     m = $G.MSEL.map, t = $G.MSEL.tier,
     done = CHAL.filter(c => chalDone(c, m, t)).length;
-  return `<details class=chd2 ${cur ? 'open' : ''}><summary>Meydan okuma (isteğe bağlı): <b>${cur ? chalOf(cur).n + ' ×' + chalOf(cur).m : 'Yok'}</b> <small>${done}/${CHAL.length} tamam · toplam ${chalCount()}, kalıcı gümüş +%${chalCount()}</small></summary><p class=chdesc>Koşuyu zorlaştırır, gümüş çarpanı verir. Her harita ve kademede ayrı sayılır.</p><div class=chl>${CHAL.map(c => `<button class="tb${cur == c.k ? ' on' : ''}${chalDone(c, m, t) ? ' dn' : ''}" title="${c.d}" ${A('pickChal', c.k)}>${chalDone(c, m, t) ? '✓ ' : ''}${c.n} <small>×${c.m}</small></button>`).join('')}</div>${cur ? `<p class=chdesc>${chalOf(cur).d} Gümüş ×${chalOf(cur).m}. Sıralamaya yüklenmez.</p>` : ''}</details>`;
+  // harita sayfasında tek satır: seçim ayrı sayfada (açılır liste sayfayı taşırıyordu)
+  return `<button class="tb chb" ${A('menuPage', 'meydan')}><span>Meydan okuma (isteğe bağlı): <b>${cur ? chalOf(cur).n + ' ×' + chalOf(cur).m : 'Yok'}</b></span><small>${done}/${CHAL.length} tamam · kalıcı gümüş +%${chalCount()} ›</small></button>${cur ? `<p class=chdesc>${chalOf(cur).d} Gümüş ×${chalOf(cur).m}. Sıralamaya yüklenmez.</p>` : ''}`;
+}
+
+// meydan okuma seçimi: sayfalı liste (harita sayfasından açılır)
+function chalPage() {
+  const cur = $G.MSEL.chal || '',
+    m = $G.MSEL.map, t = $G.MSEL.tier,
+    done = CHAL.filter(c => chalDone(c, m, t)).length;
+  ov(`<div class="mn2 pg syh"><header class=mph><span class=stp aria-label="Adım 2 / 2"><i class=on></i><i class=on></i></span><h2>Meydan okuma</h2><span class=cur>${done}/${CHAL.length} tamam</span></header>
+ <p class=hint>Koşuyu zorlaştırır, gümüş çarpanı verir. Her harita ve kademede ayrı sayılır; tamamlanan her biri kalıcı +%1 gümüş. Meydan okumalı koşu sıralamaya yüklenmez.</p>
+ <div class=chl2 data-sy="meydan"><button class="chk2${cur ? '' : ' on'}" ${A('pickChal', '')}><b>Yok</b><span>Meydan okumasız koşu.</span></button>${CHAL.map(c => `<button class="chk2${cur == c.k ? ' on' : ''}${chalDone(c, m, t) ? ' dn' : ''}" ${A('pickChal', c.k)}><b>${chalDone(c, m, t) ? '✓ ' : ''}${c.n} <small>×${c.m}</small></b><span>${c.d}</span></button>`).join('')}</div>
+ <footer class=row><button class=act ${A('menuPage', 'harita')}>Tamam <kbd>Esc</kbd></button><span data-syn="meydan"></span></footer></div>`, sideCls('meydan'));
 }
 
 // düğme eylemleri (ui/actions.js data-act): bileşik tıklamalar ve ayar denetimleri
@@ -209,6 +221,7 @@ export function renderMenu(kb) {
   const pg = $G.menuPg || 'ana';
   if (pg == 'kahraman') return heroPage(kb);
   if (pg == 'harita') return mapPage();
+  if (pg == 'meydan') return chalPage();
   ov(`<div class="mn2 home"><p class=ins aria-hidden=true>𐱅𐰭𐰼𐰃⁚𐰴𐰺𐰀⁚𐱅𐰇𐰼𐰜</p><h1>Kara Koru</h1><p class=lead>Türk mitolojisinden bir hayatta kalma oyunu.</p>
  <nav class=mnav2>
   <button class="mi pri" ${A('menuPage', 'kahraman')} autofocus><b>Oyna</b><small>${selSum()}</small></button>
@@ -330,21 +343,29 @@ export function otag(tab = 'guc') {
     return `<div class="mrow q${dn ? ' dn' : ''}"><span class="ic q${dn ? ' ok' : ''}">${svg(dn ? 'star' : 'scroll', dn ? '#f0c45a' : '#a0978a')}</span><div><b>${q.n}</b><span>${dn ? 'Tamamlandı' : Math.min(c, m).toLocaleString('tr') + ' / ' + m.toLocaleString('tr')}</span><i class=qb><em style="width:${Math.min(100, c / m * 100)}%"></em></i></div><span></span><span class=rw>+${q.r} gümüş</span></div>`;
   };
   const qOpen = QD.filter(q => !$G.META.q[q.k]).map(q => { const [c, m] = q.f(); return { q, p: m ? c / m : 0 }; }).sort((x, y) => y.p - x.p),
-    qDone = QD.filter(q => $G.META.q[q.k]),
-    QN = 40;
-  const qr = `<p class=osub>${qOpen.length} görev sürüyor, ${qDone.length} tamamlandı. Bitmeye en yakın olanlar üstte.</p>
- ${qOpen.slice(0, QN).map(x => qrow(x.q)).join('')}${qOpen.length > QN ? `<details class=omore><summary>Kalan ${qOpen.length - QN} görev</summary>${qOpen.slice(QN).map(x => qrow(x.q)).join('')}</details>` : ''}
- ${qDone.length ? `<details class=omore><summary>Tamamlananlar ${qDone.length}</summary>${qDone.map(qrow).join('')}</details>` : ''}
- <details class=omore><summary>Başarımlar ${ACHM.concat(ACHD).filter(a => $G.META.achv[a.k]).length} / ${ACHM.length + ACHD.length}</summary>${achHTML()}</details>`;
+    qDone = QD.filter(q => $G.META.q[q.k]);
+  // görevler üç alt sekmede (kaydırma yok; her liste sayfalanır): süren, tamamlanan, başarımlar
+  const alt = ['sur', 'bit', 'bas'].includes($G.otagAlt) ? $G.otagAlt : 'sur',
+    nBas = ACHM.concat(ACHD).filter(a => $G.META.achv[a.k]).length,
+    altT = `<div class="tabs alt">${[['sur', `Süren <small>${qOpen.length}</small>`], ['bit', `Tamamlanan <small>${qDone.length}</small>`], ['bas', `Başarımlar <small>${nBas}/${ACHM.length + ACHD.length}</small>`]].map(([k, n]) => `<button class="tb${alt == k ? ' on' : ''}" ${A('otagAltSec', k)}>${n}</button>`).join('')}</div>`,
+    qr = alt == 'sur' ? qOpen.map(x => qrow(x.q)).join('') : alt == 'bit' ? qDone.map(qrow).join('') || '<p class=osub>Henüz tamamlanan görev yok.</p>' : achHTML();
   if (tab == 'basarim') tab = 'gorev';
   if (tab == 'bestiyer') tab = 'koleksiyon';
   if (tab == 'havuz' && !mu('tg')) tab = 'guc';
   $G.otagTab = tab;
   const tabs = [['guc', 'Güçler'], ['kilit', 'Kilitler'], ['gorev', `Görevler <small>${qDone.length}/${QD.length}</small>`], ['koleksiyon', 'Koleksiyon']].concat(mu('tg') ? [['havuz', 'Havuz']] : []),
     body = tab == 'guc' ? ur : tab == 'kilit' ? lr : tab == 'gorev' ? qr : tab == 'havuz' ? poolHTML() : collHTML() + bestHTML();
-  ov(`<div class="sx otag"><header class=sxh><div><p class=kk>Kalıcı güçler, kilitler, görevler</p><h2>Otağ</h2></div><div class=mt><span class="chip sv">${SILV}${$G.META.s} gümüş</span></div></header>
+  const sk = 'otag-' + tab + (tab == 'gorev' ? '-' + alt : '');
+  ov(`<div class="sx otag syh"><header class=sxh><div><p class=kk>Kalıcı güçler, kilitler, görevler</p><h2>Otağ</h2></div><div class=mt><span class="chip sv">${SILV}${$G.META.s} gümüş</span></div></header>
  <div class=tabs>${tabs.map(([k, n]) => `<button class="tb${tab == k ? ' on' : ''}" ${A('otag', k)}>${n}</button>`).join('')}</div>
- <div class=mone>${body}</div><footer class=sxf><button class=act ${A('menu')}>Geri dön <kbd>Esc</kbd></button></footer></div>`, again && OV.querySelector('.otag') ? 'mid noan' : 'mid');
+ ${tab == 'gorev' ? altT : ''}<div class="mone sy${tab}" data-sy="${sk}">${body}</div><footer class=sxf><span data-syn="${sk}"></span><button class=act ${A('menu')}>Geri dön <kbd>Esc</kbd></button></footer></div>`, again && OV.querySelector('.otag') ? 'mid noan' : 'mid');
+}
+
+// Görevler sekmesinin alt sekmesi
+export function otagAltSec(k) {
+  $G.otagAlt = k;
+  sfx('ui');
+  otag('gorev');
 }
 
 export function muCost(u, l) {
@@ -515,14 +536,11 @@ ${CON_VAR ? `\n ${ck('Komut konsolu (oyunda ters tırnak ya da F10)', 'con', SET
  <div class=keys><kbd>W A S D</kbd><span>Koş</span><kbd>Fare</kbd><span>Kamera</span><kbd>Boşluk</kbd><span>Zıpla, havada bir daha; duvarda sıçra</span><kbd>Shift</kbd><span>Atıl (sağ tık da olur)</span><kbd>Ctrl</kbd><span>Kay, yokuşta hızlanır</span><kbd>E</kbd><span>Sandık, sunak, kapı</span><kbd>Tab</kbd><span>Basılı tut: büyük harita</span><kbd>Esc</kbd><span>Duraklat, build</span><kbd>M</kbd><span>Sesi kapat</span><kbd>F1</kbd><span>Yardım</span></div>
  <div class=row><button class="act alt sm" ${A('showHelp')}>Tüm kısayollar <kbd>F1</kbd></button></div>`
     }[tab];
-  // pencere sabit boyutlu: sekme ya da seçenek değişince büyüyüp küçülmez, giriş animasyonu yeniden oynamaz, kaydırma yeri korunur
-  const sg0 = re && OV.querySelector('.setg'), top = sg0 && $G.setPgLast == tab ? sg0.scrollTop : 0;
-  $G.setPgLast = tab;
-  ov(`<div class="pz narrow setp"><h2>Ayarlar</h2>
+  // pencere sabit boyutlu: sekme ya da seçenek değişince büyüyüp küçülmez, giriş animasyonu yeniden oynamaz; uzun sekme sayfalanır
+  ov(`<div class="pz narrow setp syh"><h2>Ayarlar</h2>
  <div class=tabs>${tabs.map(([k, n]) => `<button class="tb${tab == k ? ' on' : ''}" ${A('setTab', k)}>${n}</button>`).join('')}</div>
- <div class=setg>${body}</div>
- <div class="row setf"><button class=act ${A('closeSet')}>Kaydet ve dön</button></div></div>`, re ? 'mid noan' : 'mid');
-  if (top) OV.querySelector('.setg').scrollTop = top;
+ <div class=setg data-sy="ayar-${tab}">${body}</div>
+ <div class="row setf"><span data-syn="ayar-${tab}"></span><button class=act ${A('closeSet')}>Kaydet ve dön</button></div></div>`, re ? 'mid noan' : 'mid');
 }
 
 // arayüz ayarlarını uygula: mini harita boyutu, can rengi, vinyet
@@ -639,14 +657,14 @@ export function over(w) {
     qd = $G.P.qDone,
     head = $G.P.exited ? 'Korudan çıktın' : 'Öldün';
   if ($('tip')) $('tip').classList.remove('on'); // koşu sonunda ipucu kutusu ekranı kapatmasın
-  ov(`<div class="mn2 ovr"><p class=kk>${mp.n} · K${$G.P.tier} · ${$G.P.stage + 1}/${ASAMA}. aşama${$G.P.won ? ' · kademe tamamlandı' : ''} · ${CR[$G.CI].n} rütbe ${sv.rk}</p>
+  ov(`<div class="mn2 ovr syh"><p class=kk>${mp.n} · K${$G.P.tier} · ${$G.P.stage + 1}/${ASAMA}. aşama${$G.P.won ? ' · kademe tamamlandı' : ''} · ${CR[$G.CI].n} rütbe ${sv.rk}</p>
  <h1>${head}</h1>
  <p class=orec>${n ? '<b>Yeni öldürme rekoru.</b>' : 'Rekorun ' + $G.bestK + ' öldürme.'}${$G.P.con ? ' <i class=lbno>Konsol kullanıldı: sıralamaya girmedi.</i>' : $G.P.chal ? ' <i class=lbno>Meydan okumalı koşu sıralamaya girmez.</i>' : $G.META.con ? ' <i class=lbno>Bu profilde konsolla gümüş ya da kilit alındı: ortak sıralamaya yüklenmez.</i>' : ''}</p>${lbs}
  <div class=ost><div><span>Öldürülen</span><b>${$G.kills}</b></div><div><span>Süre</span><b>${fmt($G.P.tt)}</b></div><div><span>Seviye</span><b>${$G.P.lv}</b></div><div><span>Dakikada</span><b>${kpm}</b></div></div>
  <div class=svb><b class=sv>${SILV}+${sv.all} gümüş</b><div class=svr>${svr}</div></div>
- ${unlocked.length ? `<div class=oul><h3>Yeni açılanlar</h3><div>${unlocked.map(u => `<span class="chip au">${u}</span>`).join('')}</div></div>` : ''}
+ <div class=ovs data-sy="bitti">${unlocked.length ? `<div class=oul><h3>Yeni açılanlar</h3><div>${unlocked.map(u => `<span class="chip au">${u}</span>`).join('')}</div></div>` : ''}
  ${qd.length ? `<div class=oq><h3>Tamamlanan görevler <small>${qd.length}</small></h3><ul>${qd.slice(0, 4).map(q => `<li><span>${q.n}</span><b>+${q.r}</b></li>`).join('')}</ul>${qd.length > 4 ? `<p>ve ${qd.length - 4} görev daha, toplam +${qd.slice(4).reduce((a, q) => a + q.r, 0)} gümüş. Hepsi Otağ’daki görev listesinde.</p>` : ''}</div>` : ''}
- ${chart ? `<div class=owd><h3>Silah hasarı</h3>${chart}</div>` : ''}
+ ${chart ? `<div class=owd><h3>Silah hasarı</h3>${chart}</div>` : ''}</div>
  <footer class=ofb><button class=act ${A('start')}>Tekrar dene <kbd>R</kbd></button><button class="act alt" ${A('menu')}>Karakter seç</button><button class="act alt" ${A('otag')}>Otağ <small>${$G.META.s}</small></button><button class="act alt" ${A('lbOpen')}>Sıralama</button></footer></div>`, 'side');
   // odak bilerek verilmez: ölürken zıplama tuşuna basmaya devam eden oyuncu sonucu görmeden yeniden başlamasın (R kısayolu var)
 }
@@ -693,7 +711,7 @@ export function pause() {
     rows = Object.keys(STATS).filter(k => STATS[k].show || Math.abs(C[k] - STATS[k].b) > 1e-9).map(k => `<div class=sr><span>${STATS[k].n}</span><b>${fmtC(k, C[k])}</b></div>`).join('');
   const wd = $G.P.W.map((w, i) => `<div class="wdt${w.off ? ' off' : ''}"><div class=hd><span class="ic w">${ikon("w_" + w.k, WD[w.k].ic, iconCol("w", w.k))}</span><div><div class=n>${WD[w.k].n}</div><div class=lv>Seviye ${w.lv} · <button class="tb sm" ${A('toggleW', i)}>${w.off ? 'Kapalı, aç' : 'Açık, kapat'}</button></div></div></div>${Object.keys(w.s).map(k => `<div class=sr><span>${stl(w.k, k)}</span><b>${fmtS(k, w.s[k])}</b></div>`).join('')}</div>`).join('');
   const g = goal();
-  ov(`<div class="sx pzx">
+  ov(`<div class="sx pzx syh">
  <aside class=pmn><p class=kk>Duraklatıldı</p><h2>${BIO[$G.BI].n}</h2>
   <div class=pmt><span class=chip title="Aşama süresi">${CLK}${fmt($G.P.stT)}</span><span class=chip>SV ${$G.P.lv}</span><span class="chip au">${COIN}${$G.P.gold}</span><span class=chip>${$G.P.stage + 1}/${ASAMA}. aşama</span></div>
   ${g ? `<p class=pgo>${g}</p>` : ''}
@@ -703,12 +721,12 @@ export function pause() {
    <button class=mi ${A('showHelp')}><b>Kısayollar</b><small>F1</small></button>
    <button class="mi dz" ${A('menu')}><b>Koşuyu bırak</b></button>
   </nav></aside>
- <section class=pbd>
+ <section class=pbdk><div class=pbd data-sy="duraklat">
   <div class=pbs><div><h3>Silah ve tomlar</h3>${hudSlots()}</div>${Object.keys($G.P.I).length ? `<div><h3>Eşyalar</h3><div class=pbi>${hudItems()}</div></div>` : ''}</div>
   <h3>${CR[$G.CI].n}</h3><p class=psv>${CR[$G.CI].ps}</p>
   <h3>Silahlar</h3><div class=wgrid>${wd}</div>
   <h3>İstatistikler</h3><div class=sgrid>${rows}</div>
- </section></div>`, 'mid');
+ </div></section></div>`, 'mid');
   const f = OV.querySelector('.mi.pri');
   f && f.focus({ preventScroll: true });
 }

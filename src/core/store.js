@@ -166,6 +166,7 @@ export const $G = {
   warmDone: 0,
   warmMs: null,
   otagTab: undefined,
+  otagAlt: undefined,
   ZN2: undefined,
   ARENA: undefined,
   ARW: undefined,

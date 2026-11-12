@@ -64,7 +64,7 @@ const vis = await pg.evaluate(() => {
   return o;
 });
 ok('menü sayfaları: Oyna, kahraman, harita, kadro gezinmesi', vis.ana && vis.pg0 === 'ana' && vis.hero && vis.nav === 'kemik/tulpar' && vis.map, vis);
-// kumanda menüde: kapalı meydan okuma listesi, ayarlardaki kaydırıcı ve onay kutuları (eskiden yalnız düğme ve kartlara odaklanılıyordu)
+// kumanda menüde: meydan okuma sayfası (sayfalı liste, RB / LB), ayarlardaki kaydırıcı ve onay kutuları (eskiden yalnız düğme ve kartlara odaklanılıyordu)
 const gp = await pg.evaluate(() => {
   window.__pad = { connected: true, axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false })) };
   const tick = n => { for (let i = 0; i < n; i++) padTick(1 / 60) },
@@ -73,10 +73,12 @@ const gp = await pg.evaluate(() => {
     seek = sel => { for (let n = 0; n < 150; n++) { if (act().matches(sel)) return n; press(13) } return -1 };
   tick(1);
   const o = { hid: padItems().some(e => e.closest('.chl')) };
-  o.sum = seek('summary'); press(0); o.open = act().parentNode.open;
-  press(13); o.inL = !!act().closest('.chl'); const ak = e => e && e.dataset && e.dataset.act ? e.dataset.act + '|' + (e.dataset.a || '') : null; const key = ak(act());
+  o.sum = seek('.chb'); press(0); o.open = menuPg === 'meydan'; // meydan okuma ayrı sayfalı ekranda (açılır liste kaldırıldı)
+  press(13); press(13); o.inL = !!act().closest('.chl2'); const ak = e => e && e.dataset && e.dataset.act ? e.dataset.act + '|' + (e.dataset.a || '') : null; const key = ak(act());
   press(0); o.chal = MSEL.chal; o.kept = act().isConnected && ak(act()) === key;
   press(0); o.chal2 = MSEL.chal; o.back = act().tagName;
+  o.syf = (() => { const k = OV.querySelector('[data-sy="meydan"]'), n = k && k._sy ? k._sy.n : 0; if (n < 2) return n; press(5); const a = OV.querySelector('[data-syn="meydan"] span').textContent.trim(); press(4); return a + '|' + OV.querySelector('[data-syn="meydan"] span').textContent.trim(); })(); // RB / LB sayfa çevirir
+  press(1); o.geri = menuPg;
   settings(); o.rng = seek('input[type=range]');
   const r = act(), k0 = SET.rtw, lab = r.parentNode.querySelector('b').textContent;
   press(15); o.step = +(SET.rtw - k0).toFixed(2); o.lab = r.parentNode.querySelector('b').textContent !== lab; o.same = act() === r;
@@ -96,7 +98,7 @@ const gp = await pg.evaluate(() => {
   window.__pad = null; tick(1);
   return o;
 });
-ok('kumanda: açılır liste, kaydırıcı, onay kutusu, B ile geri', gp.both === true && gp.bPg === 'kahraman' && gp.bPg2 === 'ana' && gp.bPg3 === 'ana' && !gp.hid && gp.sum >= 0 && gp.open && gp.inL && gp.chal && gp.kept && gp.chal2 === '' && gp.back === 'SUMMARY' && gp.rng >= 0 && gp.step === .1 && gp.lab && gp.same && gp.hold >= 4 && gp.stick === gp.hold - 1 && gp.left && gp.chk >= 0 && gp.tog && gp.tog2 && gp.tab >= 0 && gp.tabKept && gp.pad && gp.S === 'menu' && gp.pg === 'harita', gp);
+ok('kumanda: açılır liste, kaydırıcı, onay kutusu, B ile geri', gp.both === true && gp.bPg === 'kahraman' && gp.bPg2 === 'ana' && gp.bPg3 === 'ana' && !gp.hid && gp.sum >= 0 && gp.open && gp.inL && gp.chal && gp.kept && gp.chal2 === '' && gp.back === 'BUTTON' && gp.geri === 'harita' && /^2 \/ \d+\|1 \/ \d+$/.test(String(gp.syf)) && gp.rng >= 0 && gp.step === .1 && gp.lab && gp.same && gp.hold >= 4 && gp.stick === gp.hold - 1 && gp.left && gp.chk >= 0 && gp.tog && gp.tog2 && gp.tab >= 0 && gp.tabKept && gp.pad && gp.S === 'menu' && gp.pg === 'harita', gp);
 // kullanıcı geri bildirimi turu: ayarlar penceresi sabit boyutlu, makam herkese açık, müzik sıfırda yankı da susar, yeni menü
 const fb = await pg.evaluate(() => {
   const o = {}; settings(); const hs = [];

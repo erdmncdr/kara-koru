@@ -10,6 +10,7 @@ import { interact } from '../game/interact.js';
 import { bigMap } from '../ui/bigmap.js';
 import { closeOv } from '../ui/cards.js';
 import { closeHelp, closeSet, menu, menuPage, pause, resume } from '../ui/menus.js';
+import { syCevir } from '../ui/sayfa.js';
 
 
 // düğmenin eylem kimliği (ui/actions.js): yeniden çizimden sonra aynı düğmeyi bulmak için
@@ -134,11 +135,15 @@ export function padTick(dt) {
         }
       }
     }
+    // LB / RB: sayfalı listede önceki / sonraki sayfa (ui/sayfa.js); odak görünmez olan satırda kaldıysa ilk denetime geçer
+    if (pr(4) || pr(5)) {
+      if (syCevir(pr(5) ? 1 : -1) && document.activeElement && !/** @type {HTMLElement} */ (document.activeElement).offsetParent) { const it = padItems(); it[0] && padFocus(it[0]); }
+    }
     if (pr(9) && $G.S == 'pause') resume();
     // B geri götürür (klavyedeki Esc ile aynı yerler)
     if (pr(1)) {
       const pg = $G.menuPg || 'ana';
-      if ($G.S == 'shop' || $G.S == 'kazan' || $G.S == 'chalsh') closeOv();else if ($G.S == 'set') closeSet();else if ($G.S == 'help') closeHelp();else if ($G.S == 'lb' || $G.S == 'otag') menu();else if ($G.S == 'menu' && pg != 'ana') menuPage(pg == 'harita' ? 'kahraman' : 'ana');
+      if ($G.S == 'shop' || $G.S == 'kazan' || $G.S == 'chalsh') closeOv();else if ($G.S == 'set') closeSet();else if ($G.S == 'help') closeHelp();else if ($G.S == 'lb' || $G.S == 'otag') menu();else if ($G.S == 'menu' && pg != 'ana') menuPage(pg == 'meydan' ? 'harita' : pg == 'harita' ? 'kahraman' : 'ana');
     }
   }
   GP.b = g.buttons.map(b => b.pressed);

@@ -68,8 +68,9 @@ import * as m106 from './ui/actions.js';
 import * as m107 from './ui/hesap.js';
 import * as m108 from './ui/yukle.js';
 import * as m109 from './core/ayar.js';
+import * as m110 from './ui/sayfa.js';
 
-const MODS = { 'core/util': m0, 'geo/geo': m1, 'geo/models': m2, 'geo/anim': m3, 'world/mapgen': m4, 'world/mapm': m5, 'core/settings': m6, 'engine/color': m7, 'engine/renderer': m8, 'world/terrain': m9, 'world/build': m10, 'world/ambient': m11, 'game/heroes': m12, 'game/creatures': m13, 'world/props': m56, 'engine/postfx': m14, 'engine/gfx': m15, 'data/content': m16, 'ui/icons': m17, 'core/state': m18, 'audio/synth': m19, 'audio/engine': m20, 'audio/ambience': m21, 'audio/music': m22, 'core/helpers': m23, 'engine/vfx': m24, 'game/stats': m25, 'ui/cards': m69, 'game/objects': m26, 'game/features': m71, 'game/flow': m72, 'ui/menus': m27, 'ui/leaderboard': m28, 'game/enemies': m29, 'game/interact': m30, 'game/weapons': m31, 'world/tornado': m32, 'ui/screenfx': m33, 'game/weapon-fx': m34, 'game/update': m81, 'ui/hud': m35, 'ui/bigmap': m36, 'input/gamepad': m37, 'input/input': m38, 'game/hero-anim': m39, 'core/loop': m40, 'core/boot': m41, 'data/stats': m90, 'game/status': m91, 'game/items': m92, 'game/loot': m93, 'engine/eyes': m94, 'game/run': m95, 'game/weapons2': m96, 'data/enemies': m97, 'game/bosses': m98, 'game/graveyard': m99, 'data/challenges': m100, 'game/challenge': m101, 'ui/console': m102, 'geo/accessories': m103, 'engine/warm': m104, 'engine/iskin': m105, 'ui/actions': m106, 'ui/hesap': m107 };
+const MODS = { 'ui/sayfa': m110, 'core/util': m0, 'geo/geo': m1, 'geo/models': m2, 'geo/anim': m3, 'world/mapgen': m4, 'world/mapm': m5, 'core/settings': m6, 'engine/color': m7, 'engine/renderer': m8, 'world/terrain': m9, 'world/build': m10, 'world/ambient': m11, 'game/heroes': m12, 'game/creatures': m13, 'world/props': m56, 'engine/postfx': m14, 'engine/gfx': m15, 'data/content': m16, 'ui/icons': m17, 'core/state': m18, 'audio/synth': m19, 'audio/engine': m20, 'audio/ambience': m21, 'audio/music': m22, 'core/helpers': m23, 'engine/vfx': m24, 'game/stats': m25, 'ui/cards': m69, 'game/objects': m26, 'game/features': m71, 'game/flow': m72, 'ui/menus': m27, 'ui/leaderboard': m28, 'game/enemies': m29, 'game/interact': m30, 'game/weapons': m31, 'world/tornado': m32, 'ui/screenfx': m33, 'game/weapon-fx': m34, 'game/update': m81, 'ui/hud': m35, 'ui/bigmap': m36, 'input/gamepad': m37, 'input/input': m38, 'game/hero-anim': m39, 'core/loop': m40, 'core/boot': m41, 'data/stats': m90, 'game/status': m91, 'game/items': m92, 'game/loot': m93, 'engine/eyes': m94, 'game/run': m95, 'game/weapons2': m96, 'data/enemies': m97, 'game/bosses': m98, 'game/graveyard': m99, 'data/challenges': m100, 'game/challenge': m101, 'ui/console': m102, 'geo/accessories': m103, 'engine/warm': m104, 'engine/iskin': m105, 'ui/actions': m106, 'ui/hesap': m107 };
 const BOOT = [
   ['core/util', '__init_1'],
   ['geo/geo', '__init_2'],
@@ -134,6 +135,7 @@ const BOOT = [
   ['game/loot', '__init_59b'],
   ['game/run', '__init_59c'],
   ['ui/menus', '__init_59'],
+  ['ui/sayfa', '__init_sayfa'],
   ['ui/leaderboard', '__init_60'],
   ['ui/leaderboard', '__init_61'],
   ['ui/leaderboard', '__init_62'],

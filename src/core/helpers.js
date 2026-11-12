@@ -5,6 +5,7 @@ import { $G } from './store.js';
 import { SET } from './settings.js';
 import { freeE } from '../game/creatures.js';
 import { OV } from './state.js';
+import { sayfala } from '../ui/sayfa.js';
 import { $ } from './util.js';
 import { TOUCH } from '../data/content.js';
 import { R, sc } from '../engine/renderer.js';
@@ -52,6 +53,7 @@ export function ov(h, c) {
   OV.className = c || 'mid';
   OV.innerHTML = h;
   OV.scrollTop = 0;
+  sayfala(); // kaydırma yok: uzun listeler sayfalanır, panel ekrana sığdırılır (ui/sayfa.js)
   clearTimeout($G.tto);
   $('tt').textContent = '';
   if (document.pointerLockElement) {

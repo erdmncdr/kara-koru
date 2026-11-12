@@ -91,8 +91,8 @@ export function __init_79() {
         if (k == 'ArrowDown' || k == 'ArrowRight') selC($G.CI + 1, 1);
         if (k == 'ArrowUp' || k == 'ArrowLeft') selC($G.CI - 1, 1);
       }
-      if (k == 'Enter' && (e.target == document.body || /** @type {HTMLElement} */ (e.target).classList.contains('hc'))) pg == 'ana' ? menuPage('kahraman') : pg == 'kahraman' ? menuPage('harita') : start();
-      if (k == 'Escape' && pg != 'ana') menuPage(pg == 'harita' ? 'kahraman' : 'ana');
+      if (k == 'Enter' && (e.target == document.body || /** @type {HTMLElement} */ (e.target).classList.contains('hc'))) pg == 'meydan' ? menuPage('harita') : pg == 'ana' ? menuPage('kahraman') : pg == 'kahraman' ? menuPage('harita') : start();
+      if (k == 'Escape' && pg != 'ana') menuPage(pg == 'meydan' ? 'harita' : pg == 'harita' ? 'kahraman' : 'ana');
     } else if ($G.S == 'choice') {
       if ('123'.includes(k) && SET.nk !== 0) chPick(+k - 1);
       if (k == 'r') reroll();
