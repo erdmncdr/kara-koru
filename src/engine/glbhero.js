@@ -403,8 +403,8 @@ const ALEVR = {
   akinci: [[.5, 1, .3], [.55, .95, .3], [.1, .5, .1], [.9, 1, .6]],
   saman: [[.2, .9, .8], [.25, .9, .8], [.05, .45, .55], [.8, 1, .95]]
 };
-// kostüme özel alev yerleşimi (ALEV'in üstüne): Ölü Akıncı'nın miğferi halkayı içine alıyor, alev miğferin sivri ucundan çıkar
-const ALEVK = { akinci: { cap: .03, taban: .1 } };
+// kostüme özel alev yerleşimi (ALEV'in üstüne): Ölü Akıncı'da alev miğferin sivri ucundan çıkar (başlık yok, halka çıplak kafatasını sarardı)
+const ALEVK = { akinci: { cap: .03, taban: .035 } };
 let alevDoku = null;
 function alevD() {
   if (alevDoku) return alevDoku;
