@@ -28,6 +28,7 @@ const URLS = {
   alp: { model: U('alp'), es: { kilic: U('alp_kilic'), kalkan: U('alp_kalkan') } },
   kam: { model: U('kam'), es: { asa: U('kam_asa') }, klip: U('kam_buyu') },
   // kostum: ayrı modelli kostümler (iskelet ortak; klipler ve kod kahramanınki). Seçilince iner
+  golge: { model: U('golge'), es: { yatagan: U('golge_yatagan') }, klip: U('golge_hareket') },
   kemik: { model: U('kemik'), klip: U('kemik_at'), kostum: { ayaz: U('kemik_ayaz'), erlik: U('kemik_erlik'), akinci: U('kemik_akinci'), saman: U('kemik_saman') } }
 };
 // modelin anahtarı ve adresi: kostümün kendi modeli varsa o
@@ -42,6 +43,8 @@ const mUrl = mk => { const [k, sk] = mk.split(':'); return sk ? URLS[k].kostum[s
 const KAHRAMAN = {
   alp: { sal: { atkR: [.12, .95], atkL: [.3, 1.2] }, ayak: { walk: .5, run: 3.7 } },
   kam: { sal: { atkR: [.3, 1.3], atkL: [.75, 1.65] }, basOlcu: 1, ayak: { walk: .7, run: 1.65 }, kosUst: 1.65 },
+  // Gölge: saldırılar ileri saplama ve yukarı çekiş; koşusu öne eğik kendi klibi, yürüyüşü ortak klip
+  golge: { sal: { atkR: [.45, 1.15], atkL: [.7, 1.4] }, sapkaUc: 1, ayak: { walk: .5, run: 2.1 }, kosUst: 2.1 },
   kemik: { sal: { atkR: [1.1, 1.9], atkL: [3.1, 3.85] }, sapkaUc: 1, ayak: { walk: .52, run: 3.7 }, boy: 1.2 }
 };
 // kliplerin kendi ayak hızı (boy/sn): oyunda sabit hızla ilerletilen modelde yerdeki ayağın kaymasını en aza indiren
@@ -110,6 +113,12 @@ function ortak(k) {
         // kendi klipleri. Koşu da kendi klibi: ortak hızlı koşu gövdeyi 50° öne yatırır, bu dik koşar (10°)
         const by = n => kg.animations.find(a => a.name == n);
         C = { ...C0, combat: C0.idle, ...kok({ atkR: by('Asa_Kaldir'), atkL: by('Asa_It'), run: by('Kos') }) };
+      }
+      if (k == 'golge') {
+        // suikastçı: oyundaki duruş doğal bekleme; saldırılar, öne eğik koşu ve sinsi yürüyüş kendi klipleri (olmayan ortak kalır)
+        const by = n => kg.animations.find(a => a.name == n), ek = {};
+        for (const [ad, kl] of [['atkR', 'Sapla'], ['atkL', 'Cek'], ['run', 'Kos']]) if (by(kl)) ek[ad] = by(kl); // 'Sin' (sinsi yürüyüş) kullanılmıyor: adımı çok yavaş (0,18 boy/sn), oyun hızında ayak kayıyor
+        C = { ...C0, combat: C0.idle, ...kok(ek) };
       }
       if (k == 'kemik') {
         // elinde bir şey yok: oyundaki duruş doğal bekleme (kılıç-kalkan gardı boş elle yumruk dövüşü gibi duruyordu); saldırılar
@@ -479,6 +488,44 @@ function alevTick(A, dt) {
   }
 }
 
+// ---- Gölge: yatağan sağ yumrukta (Alp'in kılıcı gibi: kabza yumruğun deliğinden geçer, ağız öne, keskin kenar aşağıda; daha kısa).
+// Kapüşonun içinde iki soluk sarı göz ışığı (yüz karanlıkta; ışık kostümde kostümün rengine uyar).
+export const YATAGAN = { boy: .42, egim: .15, kenar: 1, tut: .14 };
+function takGolge({ O, root, bone, wp, ileri, sol, yuk, h0, sk, gp }) {
+  if (O.yatagan) {
+    const bt = kutu(O.yatagan), hk = bt.max.y - bt.min.y,
+      kb = kutu(O.yatagan, v => v.y > bt.min.y + hk * (YATAGAN.tut - .06) && v.y < bt.min.y + hk * (YATAGAN.tut + .06)),
+      pv = kb.getCenter(new T.Vector3()),
+      orta = yumruk(root, 'RightHand') || wp('RightHand'),
+      disa = sol.clone().negate(),
+      yon = ileri.clone().applyAxisAngle(disa, -YATAGAN.egim);
+    const kn = kap(O.yatagan, pv, hk, sk), el = bone('RightHand');
+    tak(kn, el, orta, yon, h0 * YATAGAN.boy, undefined, 0, yuk.clone().multiplyScalar(YATAGAN.kenar));
+    el.updateWorldMatrix(true, false);
+    const qe = el.getWorldQuaternion(new T.Quaternion()).invert(),
+      h = new T.Vector3(0, 1, 0).applyQuaternion(kn.quaternion).normalize(),
+      a = wp('RightHand').sub(wp('RightForeArm')).normalize().applyQuaternion(qe);
+    a.addScaledVector(h, -a.dot(h)).normalize();
+    el.userData.asa = { tur: 'kilic', el, kol: bone('RightArm'), on: bone('RightForeArm'), h, a, c: kn.position.clone(), w: 1, gy: (wp('Spine02').y - gp.y) / h0, gv: govdeK(bone) };
+  }
+  // gözler: başın önünde, kapüşonun gölgesinde iki küçük ışık
+  const bas = bone('Head');
+  if (bas) {
+    const f = SKINF[sk], x = f ? f(1, .92, .55) : [1, .92, .55], c = new T.Color().setRGB(Math.min(1, x[0]), Math.min(1, x[1]), Math.min(1, x[2]), T.SRGBColorSpace),
+      merkez = wp('Head').add(new T.Vector3(0, h0 * GOZ.yuk, 0)).addScaledVector(ileri, h0 * GOZ.ileri);
+    bas.updateWorldMatrix(true, false);
+    const ks = bas.getWorldScale(new T.Vector3()).x;
+    for (const yan of [-1, 1]) {
+      const o = new T.Sprite(new T.SpriteMaterial({ map: HALO, color: c, transparent: true, opacity: .95, blending: T.AdditiveBlending, depthWrite: false, fog: true }));
+      o.position.copy(bas.worldToLocal(merkez.clone().addScaledVector(sol, yan * h0 * GOZ.ara)));
+      o.scale.setScalar(h0 * GOZ.boy / ks);
+      bas.add(o);
+    }
+  }
+}
+// Gölge'nin göz ışıkları: baş ekleminden yukarı, ileri, iki göz arası ve ışığın boyu (boy oranı)
+export const GOZ = { yuk: .06, ileri: .085, ara: .03, boy: .07 };
+
 // ---- Kam: asa sağ yumrukta, yumruğun deliğinden geçer (delik dinlenme duruşunda öne bakar, başparmak önde: Alp'in kılıcı gibi).
 // Asa el kemiğine bağlıdır; beklerken ve yürürken eli asanın olması gereken yere asaTut götürür. Ucundaki kor taşına ışıma eklenir.
 function takKam({ O, root, bone, wp, ileri, h0, sk, gp }) {
@@ -580,6 +627,7 @@ export function glbHero(H, key) {
       yuk = new T.Vector3(0, 1, 0);
     const ctx = { O, root, bone, wp, ileri, sol, yuk, gq, h0, sk, sapka: !!hedef.hat, gp: hedef.g.getWorldPosition(new T.Vector3()) };
     if (key == 'alp') takAlp(ctx);
+    else if (key == 'golge') takGolge(ctx);
     else if (key == 'kam') takKam(ctx);
     else if (key == 'kemik') takKemik(ctx);
     // şapka: eski gövdenin baş kemiğinden yenisinin başına, miğferin tepesine
@@ -635,7 +683,7 @@ export function glbOnYukle() {
   return a;
 }
 // kayıttaki kahraman sırası (kk_ci) → anahtar; sıra kalıcıdır (game/heroes.js CR)
-const ACILIS = { 1: 'kam', 8: 'kemik' };
+const ACILIS = { 1: 'kam', 2: 'golge', 8: 'kemik' };
 // dosyaları inmiş kahramanlar
 const hazir = {};
 function indir(k, sk = '') {
