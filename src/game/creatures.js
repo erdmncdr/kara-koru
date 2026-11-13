@@ -2,6 +2,7 @@
 // Bu dosya tek dosyalık sürümden (v22) otomatik ayrıldı. Ortak oyun durumu core/store.js içindeki $G nesnesinde.
 
 import { glbBossBirak } from '../engine/glbboss.js';
+import { glbDusman } from '../engine/glbdusman.js';
 import { $G } from '../core/store.js';
 import { SET } from '../core/settings.js';
 import { THREE } from '../engine/three.js';
@@ -53,14 +54,16 @@ export function mkE(t, fin, kd) {
   if (p && p.length) {
     const u = p.pop();
     u.g.visible = true;
-    iskinAdd(u, key, SKMAT, u.d, t);
+    iskinAdd(u, key, u.d.mat || SKMAT, u.d, t);
     return u;
   }
-  const d = skData(key, () => MODELS.creature(t, {
+  const d0 = skData(key, () => MODELS.creature(t, {
     fin,
     desert: $G.BI == 1
   }), (t == 0 || t == 1 || t == 4 ? .36 : .46) + (SET.q > 0 ? .09 : 0)); // düşük kalitede ~%22 daha az üçgen
-  if (kd && kd.tint && !d.tinted) {
+  // Tripo modeli (engine/glbdusman.js): inmişse ve türün gövdeye gömülen aksesuarı yoksa; iskelet, hareket ve toplu çizim aynı
+  const d = (!(kd && ACC.kind[kd.k]) && !fin && glbDusman(t, key, d0.info, kd && kd.tint)) || d0;
+  if (!d.glb && kd && kd.tint && !d.tinted) {
     tintGeo(d.g, kd.tint[0], kd.tint[1]);
     d.tinted = 1;
   }
@@ -74,7 +77,7 @@ export function mkE(t, fin, kd) {
   u.d = d;
   u.t = t;
   if (kd && ACC.kind[kd.k]) attachAcc(u, d.bones, ACC.kind[kd.k], 1);
-  iskinAdd(u, key, SKMAT, d, t);
+  iskinAdd(u, key, d.mat || SKMAT, d, t);
   if (t == 5) {
     u.tel = bx(TELM, .9, .05, 12, 0, .15, 6.5, u.g);
     u.tel.visible = false;

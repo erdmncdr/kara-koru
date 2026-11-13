@@ -2,6 +2,7 @@
 // Bu dosya tek dosyalık sürümden (v22) otomatik ayrıldı. Ortak oyun durumu core/store.js içindeki $G nesnesinde.
 
 import { glbProp, glbPot, glbInst } from '../engine/glbprop.js';
+import { glbDusmanHazirla } from '../engine/glbdusman.js';
 import { $G } from '../core/store.js';
 import { THREE } from '../engine/three.js';
 import { clr, freeG, kill, ownG } from '../core/helpers.js';
@@ -604,6 +605,7 @@ export function drop(x, z, ty, v, fy) {
 }
 
 export function setupStage() {
+  glbDusmanHazirla(); // sıradan düşmanların modelleri arkada iner (engine/glbdusman.js); inene dek kodla kurulan gövde
   [$G.E, $G.B, $G.B2, $G.ZN2, $G.EB, $G.G, $G.CH, $G.OB, $G.PT, $G.ZP, $G.SH, $G.POT, $G.BRK, $G.FB, $G.PU, $G.AX, $G.BO, $G.SW, $G.DY, $G.NP, $G.FXR, $G.SLS, $G.VXS, $G.MZ, $G.KS].forEach(clr);
   $G.MZC = null;
   // boss bölgeleri (lav, kum, buz): temizlenmezse eski koşunun bölgeleri yeni oyuncuyu yakar
