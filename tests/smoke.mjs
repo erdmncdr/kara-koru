@@ -486,8 +486,9 @@ const f8 = await pg.evaluate(() => {
   out.heroAccN = Object.keys(out.heroAcc).length; out.heroAccOk = Object.values(out.heroAcc).every(n => n > 0);
   // düşman türleri: aksesuarlı türler ayrı havuz, serbest bırakılınca aksesuar duruyor
   const E0 = E.length; out.kindAcc = {};
-  for (const k of Object.keys(ACC.kind)) { if (!KINDS[k]) { out.kindAcc[k] = 'tür yok'; continue } spawn(k, { x: P.x + 30, z: P.z }); const e = E[E.length - 1]; out.kindAcc[k] = cntAcc(e.m) + (e.u.d && e.u.d.g.userData.accN || 0) }
-  out.kindAccOk = Object.values(out.kindAcc).every(n => typeof n == 'number' && n > 0);
+  for (const k of Object.keys(ACC.kind)) { if (!KINDS[k]) { out.kindAcc[k] = 'tür yok'; continue } spawn(k, { x: P.x + 30, z: P.z }); const e = E[E.length - 1]; out.kindAcc[k] = e.u.d && e.u.d.glb ? 'yeni gövde' : cntAcc(e.m) + (e.u.d && e.u.d.g.userData.accN || 0) }
+  // yeni gövdeli (engine/glbdusman.js) türlerde aksesuar takılmaz: eski gövdenin ölçülerine göre yerleştirilmişlerdi
+  out.kindAccOk = Object.values(out.kindAcc).every(n => n == 'yeni gövde' || (typeof n == 'number' && n > 0));
   const e1 = E[E.length - 1], key1 = e1.u.key; e1.hp = 0; killE(e1); E = E.filter(e => !e.dead);
   spawn(Object.keys(ACC.kind).filter(k => KINDS[k]).pop(), { x: P.x + 30, z: P.z }); const e2 = E[E.length - 1];
   out.poolReuse = e2.u.key === key1 && cntAcc(e2.m) + (e2.u.d && e2.u.d.g.userData.accN || 0) === out.kindAcc[e2.kind];
@@ -830,7 +831,7 @@ const shopChk = await pg.evaluate(() => {
 });
 ok('tüccar engeli siliniyor', shopChk.skip || (shopChk.after === shopChk.before - 1 && !shopChk.inGrid), shopChk);
 // Aşama yeniden kurulunca sahneden çıkan ve dispose edilmeyen geometriler. Paylaşılan
-// önbellek geometrileri (model, sandık, halka; nesne modelleri tür başına bir tane: 11 tür) kalabilir; sahip olunanlar ve instanced olanlar kalamaz.
+// önbellek geometrileri (model, sandık, halka; nesne modelleri tür başına bir tane, düşman gövdeleri) kalabilir; sahip olunanlar ve instanced olanlar kalamaz.
 const geo = await pg.evaluate(() => {
   const snap = () => { const m = new Map(); sc.traverse(o => { if (o.geometry) m.set(o.geometry.uuid, { g: o.geometry, o, d: 0 }) }); return m };
   R.render(sc, cam); const a = snap(); for (const [, v] of a) v.g.addEventListener('dispose', () => v.d = 1);
@@ -842,7 +843,7 @@ const geo = await pg.evaluate(() => {
   S = 'play'; P.inv = 1e9;
   return { bad, shared: shared.length, bzOk };
 });
-ok('aşama geçişinde geometri sızıntısı yok', geo.bad.length === 0 && geo.shared <= 16 && geo.bzOk, geo);
+ok('aşama geçişinde geometri sızıntısı yok', geo.bad.length === 0 && geo.shared <= 24 && geo.bzOk, geo);
 
 // duraklat ve devam
 // kumanda: oyundan menüye çubuk basılıyken girilirse odak kendiliğinden oynamaz (zıplama tuşuyla yanlış kart seçilmesin)
