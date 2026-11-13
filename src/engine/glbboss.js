@@ -21,12 +21,14 @@ const U = n => new URL(`../assets/model/${n}.glb`, import.meta.url).href;
 const URLS = { tepegoz: U('boss_tepegoz'), erlik: U('boss_erlik'), hortlakboss: U('boss_hortlak'), karakoncolos_dev: U('ara_karakoncolos'), kayadevi: U('ara_kayadevi'), okcubasi: U('ara_okcubasi') };
 // Tripo Stüdyo'dan (13 Kasım 2026): Bozkır ve Mezarlık'ın ara boss'ları, dört tabut bekçisi, İskelet Kralı ve Kara Haydut
 // (haydutun türü yok: e.bandit → 'haydut')
-const TRIPO = ['kumdevi', 'baba', 'iskeletkrali', 'haydut', 'tabut1', 'tabut2', 'tabut3', 'tabut4'];
+const TRIPO = ['akrepana', 'kumdevi', 'baba', 'iskeletkrali', 'haydut', 'tabut1', 'tabut2', 'tabut3', 'tabut4'];
 for (const k of TRIPO) URLS[k] = U('ara_' + k);
 // Tripo modelleri (iskeleti başka kurulu): hareketlerin o iskelete çevrilmiş kopyası, tek dosyada (tools/tripo-ad.mjs + tools/klip-aktar.mjs;
 // Yuru, Slam, Vurus, Kukre, Kos, Ol, Idle). Ortak klip dosyalarının yerine yüklenir; kalça yüksekliği zaten modelinki
 const KLIP2 = { kayadevi: U('ara_kayadevi_hareket'), okcubasi: U('ara_okcubasi_hareket') };
 for (const k of TRIPO) KLIP2[k] = U('ara_' + k + '_hareket');
+// Çalı'nın boss hâli (Koru'daki şüpheli çalı): kahraman Çalı'nın modeli (glbhero.js ile aynı dosya), boss hareketleri o iskelete çevrildi
+URLS.cali = U('cali'); KLIP2.cali = U('ara_cali_hareket');
 const KLIP = U('boss_hareket'), BEKLE = U('alp_hareket');
 // modelin boyu, boss'un çarpışma yarıçapının katı olarak (yarıçap 5 → 9,5 birim: oyuncunun ~3,3 katı; omuz genişliği yarıçapa
 // denk gelir). Eski gövdenin kutusuna eşlenince 17 birim çıkıyordu: baş ekrana sığmıyordu. yer: yerden pay
