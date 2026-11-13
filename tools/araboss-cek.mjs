@@ -1,5 +1,5 @@
 // Ara boss'u oyunda çeker: oyuncunun önüne doğurur; geliş, yürüyüş, hücum nişanı, atılma ve ölüm anlarında kare alır.
-// node tools/araboss-cek.mjs <url> <klasör> [tür=karakoncolos_dev]   (CHROME; test derlemesi VITE_KOPRU=1)
+// node tools/araboss-cek.mjs <url> <klasör> [tür=karakoncolos_dev | haydut: Kara Haydut (türü yok, bandit bayrağıyla doğar)]   (CHROME; test derlemesi VITE_KOPRU=1)
 import { chromium } from 'playwright';
 import fs from 'node:fs';
 const [url, out, tur = 'karakoncolos_dev'] = process.argv.slice(2);
@@ -14,7 +14,7 @@ await pg.waitForFunction(() => typeof S !== 'undefined' && S === 'menu' && !!win
 await pg.evaluate(() => { start(); P.inv = 1e9; P.need = 1e12; });
 await sleep(2500);
 await pg.addStyleTag({ content: '#hud,#tip,#tt,.wl,#bossbar{display:none!important}' });
-await pg.evaluate(k => { for (const e of E) { e.m.position.x += 500; e.hp = 0; } const d = KINDS[k], fx = -Math.sin(yaw), fz = -Math.cos(yaw); spawn(d.t, { el: 1, mini: 1, kind: k, x: P.x + fx * 13, z: P.z + fz * 13 }); window.__b = E[E.length - 1]; window.__b.cc = 99; }, tur);
+await pg.evaluate(k => { for (const e of E) { e.m.position.x += 500; e.hp = 0; } const fx = -Math.sin(yaw), fz = -Math.cos(yaw); if (k == 'haydut') spawn(5, { el: 1, mini: 1, bandit: 1, x: P.x + fx * 13, z: P.z + fz * 13 }); else spawn(k, { el: 1, mini: 1, x: P.x + fx * 13, z: P.z + fz * 13 }); window.__b = E[E.length - 1]; window.__b.cc = 99; }, tur);
 await pg.waitForFunction(() => window.__b.u.glb && !window.__b.u.glb.bekliyor, null, { timeout: 60000 }).catch(() => errs.push('model 60 sn içinde gelmedi'));
 const kare = ad => pg.screenshot({ path: `${out}/${ad}.png` });
 console.log('ölçü', JSON.stringify(await pg.evaluate(() => { const b = window.__b, G = b.u.glb; return G && !G.bekliyor ? { ad: b.nm, yaricap: +b.r.toFixed(2), boy: +(G.h * b.ba).toFixed(2), halka: !!b.m.children.find(c => c.userData.ring && c.visible) } : null; })));
