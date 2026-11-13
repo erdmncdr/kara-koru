@@ -14,7 +14,7 @@ await pg.waitForFunction(() => typeof S !== 'undefined' && S === 'menu' && !!win
 await pg.evaluate(() => { start(); P.inv = 1e9; P.need = 1e12; });
 await sleep(3500);
 await pg.addStyleTag({ content: '#hud,#tip,#tt,.wl,#ov{display:none!important}' });
-const SUNAK = { ruzgar: 2, kansunak: 3, acgozluluk: 4, karasunak: 6, haydut: 7, meydan: 8, mezartasi: 9, tabut: 10, kafes: 11, yumurta: 16, iskeletkral: 17 };
+const SUNAK = process.env.YENI ? { supheli: 12, denge: 13, hediye: 14, muz: 15, maske: 18, yilan: 19 } : { ruzgar: 2, kansunak: 3, acgozluluk: 4, karasunak: 6, haydut: 7, meydan: 8, mezartasi: 9, tabut: 10, kafes: 11, yumurta: 16, iskeletkral: 17 }; // YENI=1: 13 Kasım 2026'da eklenen altı sunak
 const KORU = !process.env.MEZAR;
 async function cek(hedef, D) {
   for (const [ad, h] of Object.entries(hedef)) {
@@ -27,9 +27,9 @@ async function cek(hedef, D) {
 // 1) Koru: sunaklar oyuncunun çevresine kurulur
 const h1 = await pg.evaluate(SUNAK => {
   const r = {}; let i = 0;
-  for (const [ad, t] of Object.entries(SUNAK)) { const a = i++ / 11 * 6.283, x = P.x + Math.cos(a) * 60, z = P.z + Math.sin(a) * 60; SHH.push([x, z]); mkSh(t); r[ad] = { x, z }; }
-  const cr = BRK.find(b => b.ty == 'cr'), pot = POT.find(p => !p.big && !p.sv);
-  r.kristal = cr && { x: cr.m.position.x, z: cr.m.position.z }; r.comlek = pot && { x: pot.m.position.x, z: pot.m.position.z };
+  for (const [ad, t] of Object.entries(SUNAK)) { const a = i++ / Object.keys(SUNAK).length * 6.283, x = P.x + Math.cos(a) * 60, z = P.z + Math.sin(a) * 60; SHH.push([x, z]); mkSh(t); r[ad] = { x, z }; }
+  const cr = BRK.find(b => b.ty == 'cr'), pot = POT.find(p => !p.big && !p.sv), ore = BRK.find(b => b.ty == 'ore');
+  r.kristal = cr && { x: cr.m.position.x, z: cr.m.position.z }; r.comlek = pot && { x: pot.m.position.x, z: pot.m.position.z }; r.cevher = ore && { x: ore.m.position.x, z: ore.m.position.z };
   return r;
 }, SUNAK);
 await sleep(3000);

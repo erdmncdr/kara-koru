@@ -30,7 +30,14 @@ export const PROP = {
   kafes: { url: U('n_kafes'), boy: .8, don: TRIPO_ON, yer: 0 },
   yumurta: { url: U('n_yumurta'), boy: .8, don: TRIPO_ON, yer: 0 },
   iskeletkral: { url: U('n_iskeletkral'), boy: 1, don: TRIPO_ON, yer: 0 },
-  mahzen: { url: U('n_mahzen'), boy: 1, don: TRIPO_ON, yer: 0 }
+  mahzen: { url: U('n_mahzen'), boy: 1, don: TRIPO_ON, yer: 0 },
+  // Tripo Stüdyo'dan (13 Kasım 2026)
+  supheli: { url: U('n_supheli'), boy: 1, don: TRIPO_ON, yer: 0 },
+  denge: { url: U('n_denge'), boy: 1, don: TRIPO_ON, yer: 0 },
+  hediye: { url: U('n_hediye'), boy: 1, don: TRIPO_ON, yer: 0 },
+  muz: { url: U('n_muz'), boy: 1, don: TRIPO_ON, yer: 0 },
+  maske: { url: U('n_maske'), boy: 1, don: TRIPO_ON, yer: 0 },
+  yilan: { url: U('n_yilan'), boy: 1, don: TRIPO_ON, yer: 0 }
 };
 // toplu çizilenler (çömlek, ruh kristali, kabak): yüzlercesi tek çizim çağrısı (InstancedMesh; game/objects.js potsBuild, brkBuild).
 // Model inince ağ ve malzeme yerinde değiştirilir: geometri eski ağın kutusuna oturtulur (boyu boy katı), örneklerin yeri, ölçeği ve
@@ -38,7 +45,9 @@ export const PROP = {
 export const TOPLU = {
   comlek: { url: U('n_comlek'), boy: 1.25 },
   kristal: { url: U('n_kristal'), boy: 1 },
-  kabak: { url: U('n_kabak'), boy: 1.15 }
+  kabak: { url: U('n_kabak'), boy: 1.15 },
+  cevher: { url: U('n_cevher'), boy: 1 },
+  calitopu: { url: U('n_calitopu'), boy: 1 }
 };
 const topP = {}, topH = {};
 export function glbInst(inst, k) {

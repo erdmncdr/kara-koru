@@ -83,7 +83,7 @@ export function __init_56() {
 }
 
 // sunak türü → Tripo modeli (engine/glbprop.js PROP)
-const TRIPO_SH = { 2: 'ruzgar', 3: 'kansunak', 4: 'acgozluluk', 6: 'karasunak', 7: 'haydut', 8: 'meydan', 9: 'mezartasi', 10: 'tabut', 11: 'kafes', 16: 'yumurta', 17: 'iskeletkral' };
+const TRIPO_SH = { 2: 'ruzgar', 3: 'kansunak', 4: 'acgozluluk', 6: 'karasunak', 7: 'haydut', 8: 'meydan', 9: 'mezartasi', 10: 'tabut', 11: 'kafes', 12: 'supheli', 13: 'denge', 14: 'hediye', 15: 'muz', 16: 'yumurta', 17: 'iskeletkral', 18: 'maske', 19: 'yilan' };
 
 export function mkSh(t) {
   const [x, z] = $G.SHH.length ? $G.SHH.shift() : spot(0, 0, 35, 175, 25),
@@ -352,6 +352,8 @@ export function brkBuild() {
     im.frustumCulled = false;
     if (ty == 'cr') glbInst(im, 'kristal');
     else if (ty == 'kb' || ty == 'kbb') glbInst(im, 'kabak');
+    else if (ty == 'ore') glbInst(im, 'cevher');
+    else if (ty == 'tw') glbInst(im, 'calitopu');
     pts.forEach(([x, z], i) => {
       const y = $G.HT(x, z);
       PD.position.set(x, y - .05, z);
