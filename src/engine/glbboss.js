@@ -18,7 +18,10 @@ import { RIMU } from './renderer.js';
 const U = n => new URL(`../assets/model/${n}.glb`, import.meta.url).href;
 // boss türü (data/enemies.js BOSSP k) → model
 // ara boss'lar da aynı yoldan (data/enemies.js KINDS anahtarı): hareketleri boss'larınkini paylaşır
-const URLS = { tepegoz: U('boss_tepegoz'), erlik: U('boss_erlik'), hortlakboss: U('boss_hortlak'), karakoncolos_dev: U('ara_karakoncolos') };
+const URLS = { tepegoz: U('boss_tepegoz'), erlik: U('boss_erlik'), hortlakboss: U('boss_hortlak'), karakoncolos_dev: U('ara_karakoncolos'), kayadevi: U('ara_kayadevi') };
+// Tripo modelleri (iskeleti başka kurulu): hareketlerin o iskelete çevrilmiş kopyası, tek dosyada (tools/tripo-ad.mjs + tools/klip-aktar.mjs;
+// Yuru, Slam, Vurus, Kukre, Kos, Ol, Idle). Ortak klip dosyalarının yerine yüklenir; kalça yüksekliği zaten modelinki
+const KLIP2 = { kayadevi: U('ara_kayadevi_hareket') };
 const KLIP = U('boss_hareket'), BEKLE = U('alp_hareket');
 // modelin boyu, boss'un çarpışma yarıçapının katı olarak (yarıçap 5 → 9,5 birim: oyuncunun ~3,3 katı; omuz genişliği yarıçapa
 // denk gelir). Eski gövdenin kutusuna eşlenince 17 birim çıkıyordu: baş ekrana sığmıyordu. yer: yerden pay
@@ -37,6 +40,7 @@ export const AN = {
 
 const LD = new GLTFLoader(), buf = {};
 let klipP = null;
+const klip2P = {};
 function modelBuf(k) {
   if (!buf[k]) buf[k] = fetch(URLS[k]).then(r => { if (!r.ok) throw new Error('http ' + r.status); return r.arrayBuffer(); }).catch(e => { delete buf[k]; throw e; });
   return buf[k];
@@ -50,7 +54,14 @@ function kok(c) {
   }
   return c;
 }
-function klipler() {
+function klipler(k) {
+  if (KLIP2[k]) {
+    if (!klip2P[k]) klip2P[k] = LD.loadAsync(KLIP2[k]).then(g => {
+      const by = n => kok(g.animations.find(a => a.name == n));
+      return { C: { yuru: by('Yuru'), slam: by('Slam'), vurus: by('Vurus'), kukre: by('Kukre'), kos: by('Kos'), ol: by('Ol'), bekle: by('Idle') }, kalca: 0 };
+    }).catch(e => { delete klip2P[k]; throw e; });
+    return klip2P[k];
+  }
   if (!klipP) {
     klipP = Promise.all([LD.loadAsync(KLIP), LD.loadAsync(BEKLE)]).then(([g, b]) => {
       const by = n => kok(g.animations.find(a => a.name == n)), kalca = g.scene.getObjectByName('Hips');
@@ -91,7 +102,7 @@ export function glbBossHazirla(...ks) {
 function glbHazir1(k) {
   if (!meshyOn() || !URLS[k]) return;
   modelBuf(k).catch(() => {});
-  klipler().catch(() => {});
+  klipler(k).catch(() => {});
 }
 
 // boss doğunca (game/enemies.js): model iner, eski gövdenin yerine geçer
@@ -99,7 +110,7 @@ export function glbBoss(e) {
   const k = e.bp ? e.bp.k : e.kind, u = e.u;
   if (!meshyOn() || !URLS[k] || !u || u.glb) return;
   u.glb = { bekliyor: 1 };
-  Promise.all([modelBuf(k).then(b => LD.parseAsync(b, '')), klipler()]).then(([m, K]) => {
+  Promise.all([modelBuf(k).then(b => LD.parseAsync(b, '')), klipler(k)]).then(([m, K]) => {
     if (u.glb == null || !u.glb.bekliyor || !u.g.parent) return void (u.glb = null); // bu arada öldü ve havuza döndü
     const root = m.scene;
     root.traverse(malzeme);

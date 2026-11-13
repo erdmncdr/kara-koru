@@ -13,8 +13,9 @@ let n = 0;
 for (const x of r.listNodes()) { const m = /^mixamorig:(.+)$/.exec(x.getName()); if (m) { x.setName(E[m[1]] || m[1]); n++; } }
 const bul = ad => r.listNodes().find(x => x.getName() == ad), sol = bul('LeftUpLeg').getWorldTranslation(), sag = bul('RightUpLeg').getWorldTranslation();
 // sağ → sol yönü +X olmalı
-const aci = Math.atan2(sol[2] - sag[2], sol[0] - sag[0]), kok = r.listScenes()[0].listChildren().find(x => x.listChildren().some(c => c.getName() == 'Hips'));
-if (!kok) throw new Error('Hips kök düğümün doğrudan çocuğu değil');
+// kök: kalçanın ebeveyni (CLI çıktısında sahnenin çocuğu olan Armature; stüdyo çıktısında bir düğümün altında ve zaten çevrilmiş)
+const aci = Math.atan2(sol[2] - sag[2], sol[0] - sag[0]), kok = bul('Hips').getParentNode();
+if (!kok) throw new Error('Hips kök düğümde: döndürülecek ebeveyn yok');
 const q = kok.getRotation(), y = [0, Math.sin(aci / 2), 0, Math.cos(aci / 2)];
 // y × q
 kok.setRotation([y[3] * q[0] + y[1] * q[2], y[3] * q[1] + y[1] * q[3], y[3] * q[2] - y[1] * q[0], y[3] * q[3] - y[1] * q[1]]);
