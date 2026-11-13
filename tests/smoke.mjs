@@ -830,7 +830,7 @@ const shopChk = await pg.evaluate(() => {
 });
 ok('tüccar engeli siliniyor', shopChk.skip || (shopChk.after === shopChk.before - 1 && !shopChk.inGrid), shopChk);
 // Aşama yeniden kurulunca sahneden çıkan ve dispose edilmeyen geometriler. Paylaşılan
-// önbellek geometrileri (model, sandık, halka) kalabilir; sahip olunanlar ve instanced olanlar kalamaz.
+// önbellek geometrileri (model, sandık, halka; nesne modelleri tür başına bir tane: 11 tür) kalabilir; sahip olunanlar ve instanced olanlar kalamaz.
 const geo = await pg.evaluate(() => {
   const snap = () => { const m = new Map(); sc.traverse(o => { if (o.geometry) m.set(o.geometry.uuid, { g: o.geometry, o, d: 0 }) }); return m };
   R.render(sc, cam); const a = snap(); for (const [, v] of a) v.g.addEventListener('dispose', () => v.d = 1);
@@ -842,7 +842,7 @@ const geo = await pg.evaluate(() => {
   S = 'play'; P.inv = 1e9;
   return { bad, shared: shared.length, bzOk };
 });
-ok('aşama geçişinde geometri sızıntısı yok', geo.bad.length === 0 && geo.shared <= 8 && geo.bzOk, geo);
+ok('aşama geçişinde geometri sızıntısı yok', geo.bad.length === 0 && geo.shared <= 16 && geo.bzOk, geo);
 
 // duraklat ve devam
 // kumanda: oyundan menüye çubuk basılıyken girilirse odak kendiliğinden oynamaz (zıplama tuşuyla yanlış kart seçilmesin)

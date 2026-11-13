@@ -1,6 +1,6 @@
 // engine/glbprop.js · Kara Koru
-// Dünya nesnelerinin Meshy modelleri (sandık, altın sandık, Ocak, Balbal, Boss Kapısı, cadı kazanı). Çizim Codex, model Meshy
-// (tek resimden model + sadeleştirme; iskelet yok). Oyun nesneyi hâlâ eski koduyla kurar (yeri, etkileşimi, ışıması ona bağlı);
+// Dünya nesnelerinin modelleri. Meshy: sandık, altın sandık, Ocak, Balbal, Boss Kapısı, cadı kazanı, tüccar. Tripo (13 Kasım 2026): kan sunağı,
+// kara sunak, açgözlülük taşı, tabut, çömlek. Çizim Codex; tek resimden model, iskelet yok. Tripo modelinin önü +X'e bakar (don ile +Z'ye çevrilir). Oyun nesneyi hâlâ eski koduyla kurar (yeri, etkileşimi, ışıması ona bağlı);
 // model inince eski ağ gizlenir ve GLB aynı yere, eski ağın boyuna göre ölçeklenip takılır. Yüklenemezse eski ağ kalır.
 // Her model bir kez indirilip ayrıştırılır; sahnedeki kopyalar geometri ve malzemeyi paylaşır.
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
@@ -8,6 +8,7 @@ import * as T from 'three';
 import { meshyOn } from './glbhero.js';
 
 const U = n => new URL(`../assets/model/${n}.glb`, import.meta.url).href;
+const TRIPO_ON = -Math.PI / 2;
 // boy: eski ağın yüksekliğinin katı. don: y ekseninde dönüş (radyan; Meshy modelin önünü resimdeki bakışa göre kurar).
 // yer: yerden pay (eski ağın boyunun oranı). gen: boy yerine genişliğe göre eşle (kapı: açıklık geçide uysun)
 export const PROP = {
@@ -17,8 +18,41 @@ export const PROP = {
   balbal: { url: U('n_balbal'), boy: 1, don: 0, yer: 0 },
   kapi: { url: U('n_kapi'), boy: 1, don: 0, yer: 0 },
   kazan: { url: U('n_kazan'), boy: 1, don: 0, yer: 0 },
-  tuccar: { url: U('n_tuccar'), boy: 1.45, don: 0, yer: 0 } // eski gövde ayakta duran bir adamdı; tezgâh ondan uzun
+  tuccar: { url: U('n_tuccar'), boy: 1.45, don: 0, yer: 0 }, // eski gövde ayakta duran bir adamdı; tezgâh ondan uzun
+  kansunak: { url: U('n_kansunak'), boy: 1.25, don: TRIPO_ON, yer: 0 },
+  karasunak: { url: U('n_karasunak'), boy: 1.25, don: TRIPO_ON, yer: 0 },
+  acgozluluk: { url: U('n_acgozluluk'), boy: 1.6, don: TRIPO_ON, yer: 0 },
+  tabut: { url: U('n_tabut'), boy: .9, don: TRIPO_ON, yer: 0 }
 };
+// çömlek: yüzlercesi tek çizim çağrısı (InstancedMesh; game/objects.js potsBuild). Model inince ağ ve malzeme yerinde değiştirilir:
+// geometri eski çömleğin kutusuna oturtulur (boyu POT.boy katı), örneklerin yeri, ölçeği ve gümüş rengi aynen kalır
+export const POT = { url: U('n_comlek'), boy: 1.25 };
+let potP = null, potH = null; // potH: hazırlanmış geometri ve malzeme (bir kez; bütün aşamalar paylaşır)
+export function glbPot(inst) {
+  if (!meshyOn() || !inst) return;
+  const eski = inst.geometry, tak = () => { if (inst.geometry === eski) { inst.geometry = potH.geo; inst.material = potH.mat; } };
+  // hazırsa hemen: aşama yeniden kurulurken eski ağ bir kare bile görünmesin
+  if (potH) return tak();
+  if (!potP) potP = LD.loadAsync(POT.url).catch(e => { potP = null; throw e; });
+  potP.then(g => {
+    if (!potH) {
+      g.scene.updateMatrixWorld(true);
+      const aglar = [];
+      g.scene.traverse(o => { if (o.isMesh) aglar.push(o); });
+      const ag = aglar[0];
+      if (!ag) return;
+      malzeme(ag);
+      eski.computeBoundingBox();
+      const geo = ag.geometry.clone().applyMatrix4(ag.matrixWorld);
+      geo.rotateY(TRIPO_ON);
+      geo.computeBoundingBox();
+      const b0 = eski.boundingBox, b1 = geo.boundingBox, s = (b0.max.y - b0.min.y) / Math.max(1e-4, b1.max.y - b1.min.y) * POT.boy;
+      geo.translate(-(b1.min.x + b1.max.x) / 2, -b1.min.y, -(b1.min.z + b1.max.z) / 2).scale(s, s, s).translate((b0.min.x + b0.max.x) / 2, b0.min.y, (b0.min.z + b0.max.z) / 2);
+      potH = { geo, mat: ag.material };
+    }
+    tak();
+  }).catch(e => console.warn('Çömlek modeli yüklenemedi', e));
+}
 
 const LD = new GLTFLoader(), cache = {};
 function malzeme(o) {

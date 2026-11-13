@@ -1,7 +1,7 @@
 // game/objects.js · Kara Koru
 // Bu dosya tek dosyalık sürümden (v22) otomatik ayrıldı. Ortak oyun durumu core/store.js içindeki $G nesnesinde.
 
-import { glbProp } from '../engine/glbprop.js';
+import { glbProp, glbPot } from '../engine/glbprop.js';
 import { $G } from '../core/store.js';
 import { THREE } from '../engine/three.js';
 import { clr, freeG, kill, ownG } from '../core/helpers.js';
@@ -96,6 +96,13 @@ export function mkSh(t) {
     g.add(bm);
     if (t == 0 || t == 5) glbProp(g, bm, 'ocak');
     else if (t == 1) glbProp(g, bm, 'balbal');
+    else if (t == 3 || t == 4 || t == 6 || t == 10) {
+      // Tripo modelleri: kan sunağı, açgözlülük taşı, kara sunak, tabut. Üstte dönen taş modelin tepesinin üstüne çıkarılır
+      glbProp(g, bm, { 3: 'kansunak', 4: 'acgozluluk', 6: 'karasunak', 10: 'tabut' }[t], kop => {
+        const ust = new THREE.Box3().setFromObject(kop).max.y - g.position.y;
+        if (o && o.position.y < ust + .55) o.position.y = ust + .55;
+      });
+    }
   }
   if (t == 0 || t == 5) {
     o = mk(ownG(new THREE.OctahedronGeometry(.7)), BM(c), 0, 1.95, 0, g);
@@ -268,7 +275,7 @@ export function __init_57() {
   $G.BRK = [];
   PD = new THREE.Object3D();
   WHC = new THREE.Color(1, 1, 1);
-  SVC = new THREE.Color(.7, .78, .9);
+  SVC = new THREE.Color(.45, .8, 1.5); // gümüş çömlek: kiremit rengi dokuyu soğuk griye çeker (eski düz ağda .7, .78, .9 yetiyordu)
 }
 
 export function potsBuild(pl) {
@@ -280,6 +287,7 @@ export function potsBuild(pl) {
   $G.PINST = new THREE.InstancedMesh(gPot, VMAT, pl.length);
   $G.PINST.castShadow = $G.PINST.receiveShadow = true;
   $G.PINST.frustumCulled = false;
+  glbPot($G.PINST);
   pl.forEach((p, i) => {
     PD.position.set(p.x, p.y, p.z);
     PD.rotation.set(0, rn(0, 6.28), 0);
