@@ -2,7 +2,7 @@
 // Bu dosya tek dosyalık sürümden (v22) otomatik ayrıldı. Ortak oyun durumu core/store.js içindeki $G nesnesinde.
 
 import { glbBossBirak } from '../engine/glbboss.js';
-import { glbDusman } from '../engine/glbdusman.js';
+import { glbDusman, glbDusmanTur } from '../engine/glbdusman.js';
 import { $G } from '../core/store.js';
 import { SET } from '../core/settings.js';
 import { THREE } from '../engine/three.js';
@@ -49,7 +49,7 @@ export function tintGeo(g, hex, amt) {
 }
 
 export function mkE(t, fin, kd) {
-  const key = 'e' + t + (fin ? 'f' : '') + ($G.BI == 1 ? 'd' : '') + (kd && (kd.tint || ACC.kind[kd.k]) ? ':' + kd.k : ''),
+  const key = 'e' + t + (fin ? 'f' : '') + ($G.BI == 1 ? 'd' : '') + (kd && (kd.tint || ACC.kind[kd.k] || t == 1 && glbDusmanTur(kd.k)) ? ':' + kd.k : ''),
     p = POOL[key];
   if (p && p.length) {
     const u = p.pop();
@@ -63,7 +63,7 @@ export function mkE(t, fin, kd) {
   }), (t == 0 || t == 1 || t == 4 ? .36 : .46) + (SET.q > 0 ? .09 : 0)); // düşük kalitede ~%22 daha az üçgen
   // Tripo modeli (engine/glbdusman.js): inmişse; iskelet, hareket ve toplu çizim aynı. Renk çeşitlemeli türler de bu gövdeyi alır (renk
   // dokuya boyanır); eski gövdenin ölçülerine göre yerleştirilmiş aksesuarlar (kaburga, sargı, boynuz ...) yeni gövdeye uymadığı için takılmaz
-  const d = (!fin && glbDusman(t, key, d0.info, kd && kd.tint)) || d0;
+  const d = (!fin && glbDusman(t, key, d0.info, kd && kd.tint, kd && kd.k)) || d0;
   if (!d.glb && kd && kd.tint && !d.tinted) {
     tintGeo(d.g, kd.tint[0], kd.tint[1]);
     d.tinted = 1;

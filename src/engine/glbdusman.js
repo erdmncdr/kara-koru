@@ -12,7 +12,11 @@ import { RIMU } from './renderer.js';
 
 const U = n => new URL(`../assets/model/${n}.glb`, import.meta.url).href;
 // taban sınıf (data/enemies.js t) → model
-const URLS = { 0: U('d_gulyabani'), 2: U('d_tasdev'), 4: U('d_okcu'), 5: U('d_karakoncolos') };
+const URLS = { 0: U('d_gulyabani'), 1: U('d_yarasa'), 2: U('d_tasdev'), 4: U('d_okcu'), 5: U('d_karakoncolos'), hayalet: U('d_hayalet'), kafa: U('d_kafa') };
+// uçan türlerin kendi modeli var (hepsi yarasa iskeletinde: tools/dusman-ucan.mjs). Değer: [model, tür rengi dokuya boyanır mı]
+const TUR = { kafa: ['kafa', 0], hayalet: ['hayalet', 0], morhayalet: ['hayalet', 0], kizilhayalet: ['hayalet', 0], karahayalet: ['hayalet', 1], hayaletbeyi: ['hayalet', 0] };
+// kendi modeli olan tür: havuz anahtarı türe göre ayrılır (game/creatures.js mkE)
+export const glbDusmanTur = k => !!TUR[k] && meshyOn();
 const LD = new GLTFLoader(), ham = {}, bekle = {}, veri = {};
 
 // aşama kurulurken çağrılır: dosyalar arkada iner
@@ -58,9 +62,10 @@ function malzeme(map, tint) {
 
 // key: havuz anahtarı (tür çeşitlemesi başına ayrı veri: renk malzemede). info0: kodla kurulan gövdenin hareket bilgisi (yürüyüş ölçüleri);
 // bacak ölçüleri yeni iskeletten yeniden hesaplanır. tint: [renk, oran] (data/enemies.js; eski gövdede köşe rengine işleniyordu)
-export function glbDusman(t, key, info0, tint) {
+export function glbDusman(t, key, info0, tint, k) {
   if (veri[key]) return veri[key];
-  const ag = ham[t];
+  const tur = t == 1 && TUR[k], ag = ham[tur ? tur[0] : t];
+  if (tur && !tur[1]) tint = null;
   if (!ag) return null;
   const g0 = ag.geometry, g = new T.BufferGeometry(), n = g0.attributes.position.count;
   // dosyada köşe verileri iç içe (interleaved) durur: ham tampon değil, öğe öğe okunur
@@ -78,6 +83,8 @@ export function glbDusman(t, key, info0, tint) {
     H = Object.fromEntries(bones.map(b => [b.n, b.h]));
   // bacak ölçüleri (geo/models.js S.info.leg): kalça eklemine göre diz, dize göre bilek, bileğe göre topuk ve parmak ucu ([y, z])
   let topuk = 0, uc = 0;
+  // uçanlarda bacak yok: hareket bilgisi kodla kurulan gövdeninki
+  if (!H.th0) return (veri[key] = { g, bones, eyes: [], info: info0, mat: malzeme(ag.material.map, tint), glb: 1 });
   { const p = g0.attributes.position, si = g0.attributes.skinIndex, sw = g0.attributes.skinWeight, fi = bones.findIndex(b => b.n == 'ft0');
     for (let i = 0; i < n; i++) for (let j = 0; j < 4; j++) if (si.getComponent(i, j) == fi && sw.getComponent(i, j) > .5) { const z = p.getZ(i) - H.ft0[2]; topuk = Math.min(topuk, z); uc = Math.max(uc, z); } }
   const info = { ...info0, hy0: H.hip[1], leg: { k: [H.sh0[1] - H.th0[1], H.sh0[2] - H.th0[2]], a: [H.ft0[1] - H.sh0[1], H.ft0[2] - H.sh0[2]], h: [-H.ft0[1], topuk], t: [-H.ft0[1], uc], hjy: H.th0[1], s0: 0 } };
