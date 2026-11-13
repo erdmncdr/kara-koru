@@ -34,6 +34,9 @@ const URLS = {
   bahadir: { model: U('bahadir'), es: { balta: U('bahadir_balta') }, tum: U('bahadir_hareket') },
   // Çalı (Tripo): yürüyen çalı; elinde bir şey yok
   cali: { model: U('cali'), tum: U('cali_hareket') },
+  // Anka ve Tulpar (Tripo Stüdyo): iki ayaklı kuş ve kanatlı at; ellerinde bir şey yok, kanatlar omuzla oynar
+  anka: { model: U('anka'), tum: U('anka_hareket') },
+  tulpar: { model: U('tulpar'), tum: U('tulpar_hareket') },
   kemik: { model: U('kemik'), klip: U('kemik_at'), kostum: { ayaz: U('kemik_ayaz'), erlik: U('kemik_erlik'), akinci: U('kemik_akinci'), saman: U('kemik_saman') } }
 };
 // modelin anahtarı ve adresi: kostümün kendi modeli varsa o
@@ -53,6 +56,8 @@ const KAHRAMAN = {
   bahadir: { sal: { atkR: [.12, .95], atkL: [.3, 1.2] }, ayak: { walk: .5, run: 3.7 } },
   // Çalı: bacakları kısa (kalça yüksekliği boyun 0,29'u; Bahadır'da 0,43): adımı da o oranda kısa
   cali: { sal: { atkR: [.12, .95], atkL: [.3, 1.2] }, ayak: { walk: .34, run: 2.1 }, boy: 1.1 }, // boy: tepedeki dallar kutuya giriyor, gövde eski gövdeden kısa kalıyordu
+  anka: { sal: { atkR: [.12, .95], atkL: [.3, 1.2] }, ayak: { walk: .5, run: 3.7 } },
+  tulpar: { sal: { atkR: [.12, .95], atkL: [.3, 1.2] }, ayak: { walk: .5, run: 3.7 } },
   kemik: { sal: { atkR: [1.1, 1.9], atkL: [3.1, 3.85] }, sapkaUc: 1, ayak: { walk: .52, run: 3.7 }, boy: 1.2 }
 };
 // kliplerin kendi ayak hızı (boy/sn): oyunda sabit hızla ilerletilen modelde yerdeki ayağın kaymasını en aza indiren
@@ -729,7 +734,7 @@ export function glbOnYukle() {
   return a;
 }
 // kayıttaki kahraman sırası (kk_ci) → anahtar; sıra kalıcıdır (game/heroes.js CR)
-const ACILIS = { 1: 'kam', 2: 'golge', 3: 'bahadir', 8: 'kemik', 17: 'cali' };
+const ACILIS = { 1: 'kam', 2: 'golge', 3: 'bahadir', 8: 'kemik', 16: 'anka', 17: 'cali', 18: 'tulpar' };
 // dosyaları inmiş kahramanlar
 const hazir = {};
 function indir(k, sk = '') {
