@@ -24,15 +24,25 @@ const res = await pg.evaluate(async ([ekler, yalnizGlb]) => {
   const list = ekler ? ekler.split(',') : (ROSTER[['koru', 'bozkir', 'mezarlik'][$G.BI]] || ROSTER.koru).map(r => r.k).filter((k, i, a) => a.indexOf(k) == i);
   // Tripo modelli gövdeler (engine/glbdusman.js) inmiş olsun: mkE onları verir
   const GD = await import('/src/engine/glbdusman.js'); GD.glbDusmanHazirla(); await GD.glbDusmanBekle();
+  // tür rengi oyunda shader'da dokuya boyanır (glbdusman.js malzeme); Unity için aynı işlem dokunun piksellerine uygulanır
+  const T3 = await import('/@id/three');
+  const boya = (map, [hex, oran]) => {
+    const im = map.image, cv = document.createElement('canvas'); cv.width = im.width; cv.height = im.height;
+    const cx = cv.getContext('2d'); cx.drawImage(im, 0, 0);
+    const d = cx.getImageData(0, 0, cv.width, cv.height), a = d.data, c = new T3.Color(hex), L = x => (x /= 255) <= .04045 ? x / 12.92 : ((x + .055) / 1.055) ** 2.4, S = x => Math.round(255 * Math.min(1, x <= .0031308 ? x * 12.92 : 1.055 * x ** (1 / 2.4) - .055));
+    for (let i = 0; i < a.length; i += 4) { const r = L(a[i]), g = L(a[i + 1]), b = L(a[i + 2]), l = (r * .3 + g * .59 + b * .11) * 1.5 + .06; a[i] = S(r + (c.r * l - r) * oran); a[i + 1] = S(g + (c.g * l - g) * oran); a[i + 2] = S(b + (c.b * l - b) * oran); }
+    cx.putImageData(d, 0, 0);
+    const t = new T3.CanvasTexture(cv); t.flipY = map.flipY; t.colorSpace = map.colorSpace; return t;
+  };
   const out = {};
   for (const k of list) {
     const kd = { ...(KINDS[k] || { t: 3 }), k }, t = kd.t != null ? kd.t : 3;
     const u0 = C.mkE(t, false, kd), d = u0.d;
     if (yalnizGlb && !d.glb) continue;
     const u = R.skInst(d, 0);
-    if (A.ACC.kind[k]) A.attachAcc(u, d.bones, A.ACC.kind[k], 1);
+    if (A.ACC.kind[k] && !d.glb) A.attachAcc(u, d.bones, A.ACC.kind[k], 1); // yeni gövdede aksesuar yok (creatures.js mkE)
     // dokulu gövde: doku ve renk dışa aktarılır (Unity KoruLook şablona _BaseMap olarak koyar); ışıma oyunun kendi malzemesinden gelir
-    if (d.mat) { const m = d.mat.clone(); m.onBeforeCompile = () => {}; m.emissiveMap = null; m.emissive.setRGB(0, 0, 0); m.color.setRGB(Math.min(1, m.color.r), Math.min(1, m.color.g), Math.min(1, m.color.b)); m.vertexColors = true; u.m.material = m; } else u.m.material = u.m.material.clone();
+    if (d.mat) { const m = d.mat.clone(); if (d.mat.userData.tint) m.map = boya(d.mat.map, d.mat.userData.tint); m.onBeforeCompile = () => {}; m.emissiveMap = null; m.emissive.setRGB(0, 0, 0); m.color.setRGB(Math.min(1, m.color.r), Math.min(1, m.color.g), Math.min(1, m.color.b)); m.vertexColors = true; u.m.material = m; } else u.m.material = u.m.material.clone();
     u.m.material.name = 'kk_yaratik';
     u.g.name = k;
     const glb = await new GLTFExporter().parseAsync(u.g, { binary: true });

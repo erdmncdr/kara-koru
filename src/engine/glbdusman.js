@@ -32,21 +32,27 @@ export function glbDusmanHazirla() {
 // dosyaların inmesini bekler (dışa aktarım aracı: tools/unity-yaratik.mjs)
 export const glbDusmanBekle = () => Promise.all(Object.values(bekle));
 
-function malzeme(map, renk) {
+// tint: [renk, oran] (data/enemies.js). Eski gövdede köşe rengi o renge doğru karışıyordu; dokulu gövdede doku, parlaklığı korunarak
+// o renge boyanır (çarpmak yalnız koyulaştırırdı: kemik beyazı iskelet, kum rengi mumya çıkmazdı)
+function malzeme(map, tint) {
   const m = new T.MeshStandardMaterial({ map, vertexColors: false, roughness: .78, metalness: 0 });
   m.color.setRGB(1.1, 1.1, 1.1);
-  if (renk) m.color.multiply(renk);
+  const tu = { value: new T.Color(tint ? tint[0] : 0xffffff) }, ta = { value: tint ? tint[1] : 0 };
   m.emissiveMap = map;
   m.emissive.setRGB(1, 1, 1);
   m.emissiveIntensity = .14;
   // kenar ışığı (renderer.js rimify ile aynı terim)
   m.onBeforeCompile = sh => {
     sh.uniforms.rimCol = RIMU;
+    sh.uniforms.dTint = tu;
+    sh.uniforms.dTintA = ta;
     sh.fragmentShader = sh.fragmentShader
-      .replace('#include <common>', '#include <common>\nuniform vec3 rimCol;')
+      .replace('#include <common>', '#include <common>\nuniform vec3 rimCol;\nuniform vec3 dTint;\nuniform float dTintA;')
+      .replace('#include <map_fragment>', '#include <map_fragment>\n{float dl=dot(diffuseColor.rgb,vec3(.3,.59,.11));diffuseColor.rgb=mix(diffuseColor.rgb,dTint*(dl*1.5+.06),dTintA);}')
       .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n{float rimF=1.0-clamp(dot(normal,normalize(vViewPosition)),0.0,1.0);totalEmissiveRadiance+=rimCol*(rimF*rimF*rimF);}');
   };
   m.customProgramCacheKey = () => 'dusrim';
+  m.userData.tint = tint || null; // dışa aktarım (tools/unity-yaratik.mjs) rengi dokuya işler
   return m;
 }
 
@@ -75,6 +81,5 @@ export function glbDusman(t, key, info0, tint) {
   { const p = g0.attributes.position, si = g0.attributes.skinIndex, sw = g0.attributes.skinWeight, fi = bones.findIndex(b => b.n == 'ft0');
     for (let i = 0; i < n; i++) for (let j = 0; j < 4; j++) if (si.getComponent(i, j) == fi && sw.getComponent(i, j) > .5) { const z = p.getZ(i) - H.ft0[2]; topuk = Math.min(topuk, z); uc = Math.max(uc, z); } }
   const info = { ...info0, hy0: H.hip[1], leg: { k: [H.sh0[1] - H.th0[1], H.sh0[2] - H.th0[2]], a: [H.ft0[1] - H.sh0[1], H.ft0[2] - H.sh0[2]], h: [-H.ft0[1], topuk], t: [-H.ft0[1], uc], hjy: H.th0[1], s0: 0 } };
-  const renk = tint ? new T.Color(1, 1, 1).lerp(new T.Color(tint[0]), tint[1] * .8) : null;
-  return (veri[key] = { g, bones, eyes: [], info, mat: malzeme(ag.material.map, renk), glb: 1 });
+  return (veri[key] = { g, bones, eyes: [], info, mat: malzeme(ag.material.map, tint), glb: 1 });
 }

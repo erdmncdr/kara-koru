@@ -61,13 +61,14 @@ export function mkE(t, fin, kd) {
     fin,
     desert: $G.BI == 1
   }), (t == 0 || t == 1 || t == 4 ? .36 : .46) + (SET.q > 0 ? .09 : 0)); // düşük kalitede ~%22 daha az üçgen
-  // Tripo modeli (engine/glbdusman.js): inmişse ve türün gövdeye gömülen aksesuarı yoksa; iskelet, hareket ve toplu çizim aynı
-  const d = (!(kd && ACC.kind[kd.k]) && !fin && glbDusman(t, key, d0.info, kd && kd.tint)) || d0;
+  // Tripo modeli (engine/glbdusman.js): inmişse; iskelet, hareket ve toplu çizim aynı. Renk çeşitlemeli türler de bu gövdeyi alır (renk
+  // dokuya boyanır); eski gövdenin ölçülerine göre yerleştirilmiş aksesuarlar (kaburga, sargı, boynuz ...) yeni gövdeye uymadığı için takılmaz
+  const d = (!fin && glbDusman(t, key, d0.info, kd && kd.tint)) || d0;
   if (!d.glb && kd && kd.tint && !d.tinted) {
     tintGeo(d.g, kd.tint[0], kd.tint[1]);
     d.tinted = 1;
   }
-  if (kd && ACC.kind[kd.k] && !d.accBaked) {
+  if (!d.glb && kd && ACC.kind[kd.k] && !d.accBaked) {
     // mat parçalar geometriye kemik ağırlığıyla gömülür (tek çizim); saydam parçalar ve parıltılar kemik çocuğu kalır
     bakeAcc(d, ACC.kind[kd.k]);
     d.accBaked = 1;
@@ -76,7 +77,7 @@ export function mkE(t, fin, kd) {
   u.key = key;
   u.d = d;
   u.t = t;
-  if (kd && ACC.kind[kd.k]) attachAcc(u, d.bones, ACC.kind[kd.k], 1);
+  if (!d.glb && kd && ACC.kind[kd.k]) attachAcc(u, d.bones, ACC.kind[kd.k], 1);
   iskinAdd(u, key, d.mat || SKMAT, d, t);
   if (t == 5) {
     u.tel = bx(TELM, .9, .05, 12, 0, .15, 6.5, u.g);
