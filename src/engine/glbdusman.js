@@ -12,9 +12,9 @@ import { RIMU } from './renderer.js';
 
 const U = n => new URL(`../assets/model/${n}.glb`, import.meta.url).href;
 // taban sınıf (data/enemies.js t) → model
-const URLS = { 0: U('d_gulyabani'), 1: U('d_yarasa'), 2: U('d_tasdev'), 4: U('d_okcu'), 5: U('d_karakoncolos'), hayalet: U('d_hayalet'), kafa: U('d_kafa') };
+const URLS = { 0: U('d_gulyabani'), 1: U('d_yarasa'), 2: U('d_tasdev'), 4: U('d_okcu'), 5: U('d_karakoncolos'), hayalet: U('d_hayalet'), kafa: U('d_kafa'), ari: U('d_ari'), ruhalevi: U('d_ruhalevi') };
 // uçan türlerin kendi modeli var (hepsi yarasa iskeletinde: tools/dusman-ucan.mjs). Değer: [model, tür rengi dokuya boyanır mı]
-const TUR = { kafa: ['kafa', 0], hayalet: ['hayalet', 0], morhayalet: ['hayalet', 0], kizilhayalet: ['hayalet', 0], karahayalet: ['hayalet', 1], hayaletbeyi: ['hayalet', 0] };
+const TUR = { ari: ['ari', 0], ruhalevi: ['ruhalevi', 0], kafa: ['kafa', 0], hayalet: ['hayalet', 0], morhayalet: ['hayalet', 0], kizilhayalet: ['hayalet', 0], karahayalet: ['hayalet', 1], hayaletbeyi: ['hayalet', 0] };
 // kendi modeli olan tür: havuz anahtarı türe göre ayrılır (game/creatures.js mkE)
 export const glbDusmanTur = k => !!TUR[k] && meshyOn();
 const LD = new GLTFLoader(), ham = {}, bekle = {}, veri = {};
