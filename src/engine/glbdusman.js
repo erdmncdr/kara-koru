@@ -29,6 +29,9 @@ export function glbDusmanHazirla() {
   }
 }
 
+// dosyaların inmesini bekler (dışa aktarım aracı: tools/unity-yaratik.mjs)
+export const glbDusmanBekle = () => Promise.all(Object.values(bekle));
+
 function malzeme(map, renk) {
   const m = new T.MeshStandardMaterial({ map, vertexColors: false, roughness: .78, metalness: 0 });
   m.color.setRGB(1.1, 1.1, 1.1);

@@ -1,7 +1,7 @@
 // Unity için düşman dışa aktarımı: her tür için oyunun kendi kurduğu kemikli modeli (mkE ile aynı: renk tonu ve gömülü
 // aksesuarlar, saydam aksesuarlar ve parıltılar kemik çocuğu) SkinnedMesh olarak GLB'ye, iskelet bilgisini (kemik adları,
 // kalça yüksekliği, bacak ölçüleri, gözler, ölçek) JSON'a yazar. Hareketler Unity'de geo/anim.js'in C# çevirisiyle oynar.
-// node tools/unity-yaratik.mjs <oyun url> <çıktı klasörü> [biyom=0]
+// node tools/unity-yaratik.mjs <oyun url> <çıktı klasörü> [biyom=0] [türler]   YALNIZ_GLB=1: yalnız Tripo modelli gövdesi olan türler (yeniden dışa aktarım)
 import { chromium } from 'playwright';
 import fs from 'node:fs';
 const [url, out, bi = '0', ekler = ''] = process.argv.slice(2); // ekler: virgüllü boss türleri (taban sınıf 3), ör. tepegoz
@@ -16,19 +16,24 @@ await pg.evaluate(() => { start(); P.inv = 1e9 });
 await pg.waitForFunction(() => S === 'ready' || S === 'play', null, { timeout: 60000 });
 // biyom 1-2: aşama geçişiyle (setupStage) dünya ve $G.BI o biyoma geçer (renk tonları biyoma bağlı olabilir)
 if (+bi > 0) await pg.evaluate(async n => { const { $G } = await import('/src/core/store.js'); const O = await import('/src/game/objects.js'); $G.P.stage = n; $G.P.map = ['koru', 'bozkir', 'mezarlik'][n]; O.setupStage(); }, +bi);
-const res = await pg.evaluate(async ekler => {
+const res = await pg.evaluate(async ([ekler, yalnizGlb]) => {
   const { GLTFExporter } = await import('/@id/three/examples/jsm/exporters/GLTFExporter.js');
   const C = await import('/src/game/creatures.js'), R = await import('/src/engine/renderer.js'), A = await import('/src/geo/accessories.js');
   const { KINDS, ROSTER } = await import('/src/data/enemies.js'), { $G } = await import('/src/core/store.js');
   const CT = await import('/src/data/content.js');
   const list = ekler ? ekler.split(',') : (ROSTER[['koru', 'bozkir', 'mezarlik'][$G.BI]] || ROSTER.koru).map(r => r.k).filter((k, i, a) => a.indexOf(k) == i);
+  // Tripo modelli gövdeler (engine/glbdusman.js) inmiş olsun: mkE onları verir
+  const GD = await import('/src/engine/glbdusman.js'); GD.glbDusmanHazirla(); await GD.glbDusmanBekle();
   const out = {};
   for (const k of list) {
     const kd = { ...(KINDS[k] || { t: 3 }), k }, t = kd.t != null ? kd.t : 3;
     const u0 = C.mkE(t, false, kd), d = u0.d;
+    if (yalnizGlb && !d.glb) continue;
     const u = R.skInst(d, 0);
     if (A.ACC.kind[k]) A.attachAcc(u, d.bones, A.ACC.kind[k], 1);
-    u.m.material = u.m.material.clone(); u.m.material.name = 'kk_yaratik';
+    // dokulu gövde: doku ve renk dışa aktarılır (Unity KoruLook şablona _BaseMap olarak koyar); ışıma oyunun kendi malzemesinden gelir
+    if (d.mat) { const m = d.mat.clone(); m.onBeforeCompile = () => {}; m.emissiveMap = null; m.emissive.setRGB(0, 0, 0); m.color.setRGB(Math.min(1, m.color.r), Math.min(1, m.color.g), Math.min(1, m.color.b)); m.vertexColors = true; u.m.material = m; } else u.m.material = u.m.material.clone();
+    u.m.material.name = 'kk_yaratik';
     u.g.name = k;
     const glb = await new GLTFExporter().parseAsync(u.g, { binary: true });
     const a = new Uint8Array(glb); let s = '';
@@ -45,7 +50,7 @@ const res = await pg.evaluate(async ekler => {
     };
   }
   return { out, list };
-}, ekler);
+}, [ekler, !!process.env.YALNIZ_GLB]);
 for (const [k, v] of Object.entries(res.out)) {
   fs.writeFileSync(`${out}/yaratik_${k}.glb`, Buffer.from(v.b64, 'base64'));
   fs.writeFileSync(`${out}/yaratik_${k}.json`, JSON.stringify(v.rig));
