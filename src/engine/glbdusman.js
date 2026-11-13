@@ -12,7 +12,7 @@ import { RIMU } from './renderer.js';
 
 const U = n => new URL(`../assets/model/${n}.glb`, import.meta.url).href;
 // taban sınıf (data/enemies.js t) → model
-const URLS = { 0: U('d_gulyabani') };
+const URLS = { 0: U('d_gulyabani'), 2: U('d_tasdev'), 4: U('d_okcu'), 5: U('d_karakoncolos') };
 const LD = new GLTFLoader(), ham = {}, bekle = {}, veri = {};
 
 // aşama kurulurken çağrılır: dosyalar arkada iner
