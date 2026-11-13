@@ -16,6 +16,7 @@ import { MODELS } from '../geo/models.js';
 import { MAPGEN } from './mapgen.js';
 import { MAPM } from './mapm.js';
 import { BIO, WG, addObs, gridAdd, pad } from './terrain.js';
+import { glbProp } from '../engine/glbprop.js';
 
 export let WTEX, CLTEX, P2h;
 
@@ -750,10 +751,11 @@ export function buildMap(bi) {
     for (const p of pick(5, (x, z) => ok(x, z, 7) && slope(x, z) < .22 && M.flowD(x, z) > 16)) {
       const a = Math.floor(rn(0, 4)) * Math.PI / 2,
         hb = M.ht(p[0], p[1]);
-      addMesh(GEO.tf(MAPM.mausoleum(p[0] * 3 | 0), {
+      const mz = addMesh(GEO.tf(MAPM.mausoleum(p[0] * 3 | 0), {
         r: [0, a, 0],
         t: [p[0], hb - .1, p[1]]
       }));
+      glbProp(WG, mz, 'mahzen', null, a); // Tripo modeli; eski ağın dönüşü geometrisinde
       addObs({
         x: p[0],
         z: p[1],

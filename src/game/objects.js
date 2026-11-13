@@ -1,7 +1,7 @@
 // game/objects.js · Kara Koru
 // Bu dosya tek dosyalık sürümden (v22) otomatik ayrıldı. Ortak oyun durumu core/store.js içindeki $G nesnesinde.
 
-import { glbProp, glbPot } from '../engine/glbprop.js';
+import { glbProp, glbPot, glbInst } from '../engine/glbprop.js';
 import { $G } from '../core/store.js';
 import { THREE } from '../engine/three.js';
 import { clr, freeG, kill, ownG } from '../core/helpers.js';
@@ -82,6 +82,9 @@ export function __init_56() {
   $G.s_gl = undefined;
 }
 
+// sunak türü → Tripo modeli (engine/glbprop.js PROP)
+const TRIPO_SH = { 2: 'ruzgar', 3: 'kansunak', 4: 'acgozluluk', 6: 'karasunak', 7: 'haydut', 8: 'meydan', 9: 'mezartasi', 10: 'tabut', 11: 'kafes', 16: 'yumurta', 17: 'iskeletkral' };
+
 export function mkSh(t) {
   const [x, z] = $G.SHH.length ? $G.SHH.shift() : spot(0, 0, 35, 175, 25),
     g = new THREE.Group();
@@ -96,11 +99,11 @@ export function mkSh(t) {
     g.add(bm);
     if (t == 0 || t == 5) glbProp(g, bm, 'ocak');
     else if (t == 1) glbProp(g, bm, 'balbal');
-    else if (t == 3 || t == 4 || t == 6 || t == 10) {
-      // Tripo modelleri: kan sunağı, açgözlülük taşı, kara sunak, tabut. Üstte dönen taş modelin tepesinin üstüne çıkarılır
-      glbProp(g, bm, { 3: 'kansunak', 4: 'acgozluluk', 6: 'karasunak', 10: 'tabut' }[t], kop => {
+    else if (TRIPO_SH[t]) {
+      // Tripo modelleri (TRIPO_SH). Üstte dönen taş modelin tepesinin üstüne çıkarılır
+      glbProp(g, bm, TRIPO_SH[t], kop => {
         const ust = new THREE.Box3().setFromObject(kop).max.y - g.position.y;
-        if (o && o.position.y < ust + .55) o.position.y = ust + .55;
+        if (o) o.position.y = ust + .55; // eski ağ modelden uzunsa taş havada kalmasın, kısaysa içine girmesin
       });
     }
   }
@@ -347,6 +350,8 @@ export function brkBuild() {
     const im = new THREE.InstancedMesh(g, VMAT, pts.length);
     im.castShadow = im.receiveShadow = true;
     im.frustumCulled = false;
+    if (ty == 'cr') glbInst(im, 'kristal');
+    else if (ty == 'kb' || ty == 'kbb') glbInst(im, 'kabak');
     pts.forEach(([x, z], i) => {
       const y = $G.HT(x, z);
       PD.position.set(x, y - .05, z);
